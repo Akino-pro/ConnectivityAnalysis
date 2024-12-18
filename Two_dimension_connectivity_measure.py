@@ -137,7 +137,7 @@ def connectivity_analysis(binary_image, kernel_size, lamda):
         general_connectivity = shape_area*connected_connectivity
         #print(f"The area of the shape in the original image is {shape_area} pixels.")
         #print(f"the connected connectivity of given shape is {connected_connectivity}")
-        print(f"the general connectivity of given shape is {general_connectivity}")
+        #print(f"the general connectivity of given shape is {general_connectivity}")
         return [shape_area, connected_connectivity, general_connectivity]
     return [shape_area, 0, 0]
 

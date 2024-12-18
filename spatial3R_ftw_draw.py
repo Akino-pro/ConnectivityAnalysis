@@ -4,7 +4,7 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 
 # Function to generate the corner points of a square grid in x-z plane
-def generate_square_grid(n_x, n_z, x_range=(0, 3), z_range=(-3, 3)):
+def generate_square_grid(n_x, n_z, x_range, z_range):
     """Generate a grid of squares in the x-z plane."""
     x_vals = np.linspace(x_range[0], x_range[1], n_x + 1)
     z_vals = np.linspace(z_range[0], z_range[1], n_z + 1)
@@ -47,65 +47,30 @@ def draw_rotated_grid(ax, square, angle_range, color):
         ax.add_collection3d(Poly3DCollection([face], color=color))
 
 
-
-
-def generate_grid_centers(n_x, n_z, num_points, x_range=(0, 3), z_range=(-3, 3)):
-    """Generate the center points of each grid in the x-z plane."""
+def generate_grid_centers(n_x, n_z, num_points, x_range, z_range):
+    """Generate the center points of each grid in the x-z plane with correct order."""
     # Ensure that n_x * n_z equals the number of points (or close)
     if n_x * n_z != num_points:
         raise ValueError(f"Number of points ({num_points}) does not match grid layout ({n_x} * {n_z})")
 
-    # Generate x and z values for the grid centers
-    x_vals = np.linspace(x_range[0], x_range[1], n_x + 1)[:-1] + (x_range[1] - x_range[0]) / (2 * n_x)
-    z_vals = np.linspace(z_range[0], z_range[1], n_z + 1)[:-1] + (z_range[1] - z_range[0]) / (2 * n_z)
+    # Calculate the step size for each square in the grid
+    x_step = (x_range[1] - x_range[0]) / n_x
+    z_step = (z_range[1] - z_range[0]) / n_z
 
-    # Create meshgrid and calculate the centers
-    x, z = np.meshgrid(x_vals, z_vals)
-    y = np.zeros_like(x)  # y = 0 for all grid points (plane)
+    # Initialize the list to store centers in the correct order
+    centers = []
 
-    # Return the center points as 3D coordinates
-    centers = np.column_stack((x.ravel(), y.ravel(), z.ravel()))
-    return centers
+    # Generate center points for each square by iterating in the same order as `generate_square_grid`
+    for i in range(n_x):
+        for j in range(n_z):
+            # Calculate the center of each square
+            x_center = x_range[0] + (i + 0.5) * x_step
+            z_center = z_range[0] + (j + 0.5) * z_step
+            centers.append([x_center, 0, z_center])  # y = 0 as we're in the x-z plane
 
-"""
-# Parameters for grid and arcs
-N = 50
-n_z = int(np.sqrt(2 * N))
-n_x = int(n_z / 2)  # Number of grid divisions along z-axis
-x_range = (0, 3)  # Range for x-axis
-z_range = (-3, 3)  # Range for z-axis
-arc_color = 'blue'  # Single color for the arcs
-grid_centers = generate_grid_centers(n_x, n_z, N)
-print("3D coordinates of center points:")
-for center in grid_centers:
-    print(center)
+    # Convert list to numpy array for compatibility
+    return np.array(centers)
 
-# Angle ranges for arcs (customize as needed)
-angle_ranges = [(-np.pi, np.pi ) for _ in range(n_x * n_z)]  # Angle ranges for arcs
-
-# Generate grid of squares
-grid_squares = generate_square_grid(n_x, n_z, x_range, z_range)
-
-# Plot setup
-fig = plt.figure()
-ax = fig.add_subplot(111, projection='3d')
-
-# Set plot range
-ax.set_xlim([-3, 3])
-ax.set_ylim([-3, 3])
-ax.set_zlim([-3, 3])
-
-# Draw arcs for each square grid by rotating the entire grid square
-for i, square in enumerate(grid_squares):
-    draw_rotated_grid(ax, square, angle_ranges[i], arc_color)
-
-# Set plot labels and show the plot
-ax.set_xlabel('X')
-ax.set_ylabel('Y')
-ax.set_zlabel('Z')
-
-plt.show()
-"""
 
 
 
@@ -134,24 +99,9 @@ def generate_rotated_scatter_points(grid_squares, angle_range, num_samples=5):
 
     # Flatten the list of arrays into a single array of points
     return np.vstack(scatter_points)
-
+"""
 def generate_binary_matrix(n_x, n_z, x_range, z_range, grid_size, angle_ranges):
-    """
-    Generate a binary 3D matrix representing the rotated grid object with individual angle ranges per grid square,
-    where each grid square can have multiple angle ranges or be empty.
-
-    Parameters:
-    - n_x, n_z: Number of divisions along x and z axes in the grid.
-    - x_range, z_range: Tuples specifying the range of x and z values.
-    - grid_size: Tuple specifying the number of points along each axis in the 3D grid.
-    - angle_ranges: List where each element corresponds to a grid square and contains:
-        - An empty list [] if no angles are specified for that grid square.
-        - A list of one or more angle ranges [(theta_min, theta_max), ...] for that grid square.
-
-    Returns:
-    - binary_matrix: A 3D NumPy array with True inside the object and False outside.
-    - x_edges, y_edges, z_edges: 1D arrays of the x, y, z coordinates at the edges of the grid.
-    """
+    
     # Generate x and z values for the grid in x-z plane
     x_vals_grid = np.linspace(x_range[0], x_range[1], n_x + 1)
     z_vals_grid = np.linspace(z_range[0], z_range[1], n_z + 1)
@@ -232,3 +182,89 @@ def generate_binary_matrix(n_x, n_z, x_range, z_range, grid_size, angle_ranges):
     z_edges = np.linspace(z_range[0], z_range[1], grid_size[2] + 1)
 
     return binary_matrix, x_edges, y_edges, z_edges
+"""
+def generate_binary_matrix(n_x, n_z, x_range, z_range, grid_size, angle_ranges):
+    """Generate a binary matrix representing the object based on angle ranges per grid square."""
+    # Generate x and z values for the grid in x-z plane
+    x_vals_grid = np.linspace(x_range[0], x_range[1], n_x + 1)
+    z_vals_grid = np.linspace(z_range[0], z_range[1], n_z + 1)
+
+    # Calculate the increments
+    delta_x = (x_range[1] - x_range[0]) / n_x
+    delta_z = (z_range[1] - z_range[0]) / n_z
+
+    # Create the 3D grid (voxel centers)
+    x_vals = np.linspace(-x_range[1], x_range[1], grid_size[0])
+    y_vals = np.linspace(-x_range[1], x_range[1], grid_size[1])
+    z_vals = np.linspace(z_range[0], z_range[1], grid_size[2])
+    X, Y, Z = np.meshgrid(x_vals, y_vals, z_vals, indexing='ij')
+
+    # Compute radial distance and angular coordinate from Z-axis
+    R = np.sqrt(X ** 2 + Y ** 2)
+    Theta = np.arctan2(Y, X)  # Theta ranges from -pi to pi
+
+    # Initialize the binary matrix
+    binary_matrix = np.zeros(X.shape, dtype=bool)
+
+    # Check that angle_ranges has the correct length
+    if len(angle_ranges) != n_x * n_z:
+        raise ValueError(f"angle_ranges should have length {n_x * n_z}, but has length {len(angle_ranges)}")
+
+    # Adjusted loop order to match generate_square_grid
+    square_index = 0
+    for i in range(n_x):
+        for j in range(n_z):
+            # Define the boundaries of the square in x-z plane
+            x_min = x_vals_grid[i]
+            x_max = x_vals_grid[i + 1]
+            z_min = z_vals_grid[j]
+            z_max = z_vals_grid[j + 1]
+
+            # Get the list of angle ranges for this square
+            square_angle_ranges = angle_ranges[square_index]
+            square_index += 1
+
+            # Skip this square if the angle range list is empty
+            if not square_angle_ranges:
+                continue  # No angles specified, skip this square
+
+            # Create masks for points within this square after rotation
+            within_r = (R >= x_min) & (R <= x_max)
+            within_z = (Z >= z_min) & (Z <= z_max)
+
+            # Initialize the angular mask for this square
+            angular_mask = np.zeros(X.shape, dtype=bool)
+
+            # Process each angle range for this square
+            for theta_min, theta_max in square_angle_ranges:
+                # Adjust angle ranges to handle wrapping around -pi and pi
+                theta_min_adj = theta_min
+                theta_max_adj = theta_max
+                if theta_min < -np.pi:
+                    theta_min_adj += 2 * np.pi
+                if theta_max > np.pi:
+                    theta_max_adj -= 2 * np.pi
+
+                # Create mask for this angular range
+                if theta_min_adj <= theta_max_adj:
+                    within_theta = (Theta >= theta_min_adj) & (Theta <= theta_max_adj)
+                else:
+                    # Angle range crosses the -pi to pi boundary
+                    within_theta = (Theta >= theta_min_adj) | (Theta <= theta_max_adj)
+
+                # Update the angular mask
+                angular_mask |= within_theta
+
+            # Combine all conditions
+            total_mask = within_r & within_z & angular_mask
+            binary_matrix |= total_mask
+
+    # Generate the edges of the grid for plotting
+    x_edges = np.linspace(-x_range[1], x_range[1], grid_size[0] + 1)
+    y_edges = np.linspace(-x_range[1], x_range[1], grid_size[1] + 1)
+    z_edges = np.linspace(z_range[0], z_range[1], grid_size[2] + 1)
+
+    return binary_matrix, x_edges, y_edges, z_edges
+
+
+

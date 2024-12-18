@@ -54,16 +54,18 @@ def plot_3d_object(labeled_object, num_components, title):
     plt.show()
 
 
-@measure_time
+#@measure_time
 def connectivity_analysis(object_matrix, kernel_size, lamda):
     erosion_number = 0
     data_list = []
 
     #radius = 20  # Radius of the sphere
     original_object = object_matrix
-    # cv2.imshow('original', img)
-    # cv2.waitKey(0)
-    # cv2.destroyAllWindows()
+    #labeled_object, num_components = label(original_object, connectivity=2, return_num=True)
+    #plot_3d_object(labeled_object, num_components, 'Fault-Tolerant Workspace')
+    #cv2.imshow('original', img)
+    #cv2.waitKey(0)
+    #cv2.destroyAllWindows()
     # gray_mask = (img > 50) & (img < 200)
     # img = np.where(gray_mask, 0, 255).astype(np.uint8)
     # img = cv2.bitwise_not(img)
@@ -75,13 +77,13 @@ def connectivity_analysis(object_matrix, kernel_size, lamda):
     # size of kernal is propotional to the degree of erosion and dilation.
     kernel = ball(kernel_size)
 
-    labeled_object, num_components = label(original_object, connectivity=1, return_num=True)
+    labeled_object, num_components = label(original_object, connectivity=2, return_num=True)
     original_component_number = num_components
     # plot_3d_object(labeled_object, num_components, 'Original Object')
 
     while True:
         eroded_object = multiple_erosions(original_object, kernel, erosion_number)
-        labeled_object, num_components = label(eroded_object, connectivity=1, return_num=True)
+        labeled_object, num_components = label(eroded_object, connectivity=2, return_num=True)
         num_connected_components = num_components
         # cv2.imshow('erosion', img_erosion)
         # cv2.waitKey(0)
@@ -102,7 +104,7 @@ def connectivity_analysis(object_matrix, kernel_size, lamda):
                 while current_components_number > 1:
                     dilated_object = binary_dilation(current_object, footprint=kernel)
                     current_object = dilated_object
-                    labeled_object, num_components = label(current_object, connectivity=1, return_num=True)
+                    labeled_object, num_components = label(current_object, connectivity=2, return_num=True)
                     #plot_3d_object(labeled_object, num_components, 'Fault-Tolerant Workspace')
                     current_components_number = num_components
                     dilation_number += 1
@@ -151,7 +153,7 @@ def connectivity_analysis(object_matrix, kernel_size, lamda):
                     dilated_object = binary_dilation(current_object, footprint=kernel)
                     object_stepwise_intersection = np.logical_and(dilated_object,original_object)
                     current_object = object_stepwise_intersection
-                    labeled_object, num_components = label(current_object, connectivity=1, return_num=True)
+                    labeled_object, num_components = label(current_object, connectivity=2, return_num=True)
                     current_components_number = num_components
                     dilation_number += 1
 
@@ -176,9 +178,9 @@ def connectivity_analysis(object_matrix, kernel_size, lamda):
         integral = np.trapz(y_values)
         connected_connectivity = integral / (len(data_list) - 1)
         general_connectivity = object_volume*connected_connectivity
-        print(f"The volume of the shape in the original image is {object_volume} pixels.")
-        print(f"the connected connectivity of given shape is {connected_connectivity}")
-        print(f"the general connectivity of given shape is {general_connectivity}")
+        #print(f"The volume of the shape in the original image is {object_volume} pixels.")
+        #print(f"the connected connectivity of given shape is {connected_connectivity}")
+        #print(f"the general connectivity of given shape is {general_connectivity}")
         return [object_volume, connected_connectivity, general_connectivity]
     return [object_volume,0,0]
 

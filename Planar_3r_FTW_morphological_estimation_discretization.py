@@ -14,7 +14,7 @@ from Two_dimension_connectivity_measure import connectivity_analysis
 # if not cv2.cuda.getCudaEnabledDeviceCount():
 # print("not supported for GPU")
 # parameters for FTW estimation
-sample_density = 100  # correlated to accuracy of estimation but increase complexity
+sample_density = 150  # correlated to accuracy of estimation but increase complexity
 data_point_size = 15  # use to fill out the blank space between data points.
 # parameters for connectivity estimation
 kernel_size = 4
@@ -37,17 +37,23 @@ def measure_time(func):
 
 
 def reliability_computation(r1, r2, r3):
-    reliability_list = [r2 * r3, r1 * r3, r1 * r2, r2 * r3 + r1 * r3 - r1 * r2 * r3,
+    #reliability_list = [r2 * r3, r1 * r3, r1 * r2, r2 * r3 + r1 * r3 - r1 * r2 * r3,
+    #                    r1 * r2 + r2 * r3 - r1 * r2 * r3, r1 * r2 + r1 * r3 - r1 * r2 * r3,
+    #                    r1 * r2 + r1 * r3 + r2 * r3 - 2 * r1 * r2 * r3]
+    reliability_list = [r2 * r3 + r1 * r3 - r1 * r2 * r3,
                         r1 * r2 + r2 * r3 - r1 * r2 * r3, r1 * r2 + r1 * r3 - r1 * r2 * r3,
                         r1 * r2 + r1 * r3 + r2 * r3 - 2 * r1 * r2 * r3]
     conditional_reliability_list = []
     for p in reliability_list:
-        conditional_reliability_list.append(np.power(((p - r1 * r2 * r3) / (r1 * r2 + r1 * r3 + r2 * r3 - 3 * r1 * r2 * r3)), 2))
+        conditional_reliability_list.append((p - r1 * r2 * r3) / (r1 * r2 + r1 * r3 + r2 * r3 - 3 * r1 * r2 * r3))
     return conditional_reliability_list
 
 
 # now only consider 7 different region with different probability of confidence
 cr_list = reliability_computation(r1, r2, r3)
+#print(cr_list )
+
+# print(cr_list  )
 
 
 # Function to compute intersection of binary images
@@ -202,11 +208,10 @@ def compute_post_failure_workspace(L, joint_limits, locked_joint_idx, pfs, champ
 
 
 start_time = time.time()
-
 """
-@measure_time
+# @measure_time
 def planar_3R_connectivity_analysis(L, joint_limits, pfs, championship):
-    #for jm in joint_limits:
+    # for jm in joint_limits:
     #    print(jm[0]*180/np.pi)
     #    print(jm[1] * 180 / np.pi)
     pre_failure_workspace = compute_workspace(L, joint_limits, resolution=int(sample_density * 0.5))
@@ -219,10 +224,10 @@ def planar_3R_connectivity_analysis(L, joint_limits, pfs, championship):
     # grayscale_matrix = workspace_to_binary_matrix_with_size(pre_failure_workspace, data_point_size)
     processed_img = cv2.bitwise_not(grayscale_matrix.astype(np.uint8))
     shape_area = np.sum(processed_img == 255)
-    print(championship)
+    # print(championship)
     if shape_area == 0 or shape_area < championship:
         print("too small")
-        #return shape_area
+        # return shape_area
         return 0
     # else:
     # cv2.imshow(f"post_failure_workspace fixed joint ",  processed_img)
@@ -235,32 +240,35 @@ def planar_3R_connectivity_analysis(L, joint_limits, pfs, championship):
         shape_area = np.sum(post_failure_workspace == 255)
         if shape_area == 0 or shape_area < championship:
             print('too small')
-            #return shape_area
+            # return shape_area
             return 0
         workspaces.append(post_failure_workspace)
     fault_tolerant_workspace = intersect_binary_images(workspaces)
 
     # End total time measurement
-    end_time = time.time()
-    total_time = end_time - start_time
-    print(f"Total execution time: {total_time:.4f} seconds")
+    # end_time = time.time()
+    # total_time = end_time - start_time
+    # print(f"Total execution time: {total_time:.4f} seconds")
 
     # Display the final intersected binary image using OpenCV
     #cv2.imshow("Fault-Tolerant Workspace", fault_tolerant_workspace)
     #cv2.waitKey(0)
     #cv2.destroyAllWindows()
-
+    #shape_area = np.sum(fault_tolerant_workspace == 255)
     shape_area, connected_connectivity, general_connectivity = connectivity_analysis(fault_tolerant_workspace,
                                                                                      kernel_size, Lambda)
-    #print(shape_area)
-    #print(connected_connectivity)
-    #return connected_connectivity
+    print(shape_area)
+    print(connected_connectivity)
+    print(general_connectivity)
+    # return connected_connectivity
+    #return shape_area
     return general_connectivity
-
 """
 
 
-@measure_time
+
+
+# @measure_time
 def planar_3R_connectivity_analysis(L, joint_limits, pfs, championship):
     pre_failure_workspace = compute_workspace(L, joint_limits, resolution=int(sample_density * 0.5))
     all_workspace.append(pre_failure_workspace)
@@ -272,7 +280,7 @@ def planar_3R_connectivity_analysis(L, joint_limits, pfs, championship):
     # grayscale_matrix = workspace_to_binary_matrix_with_size(pre_failure_workspace, data_point_size)
     processed_img = cv2.bitwise_not(grayscale_matrix.astype(np.uint8))
     shape_area = np.sum(processed_img == 255)
-    print(championship)
+    # print(championship)
     # if shape_area == 0 or shape_area < championship:
     #    print("too small")
     #    return shape_area
@@ -290,9 +298,9 @@ def planar_3R_connectivity_analysis(L, joint_limits, pfs, championship):
         #   return shape_area
         workspaces.append(post_failure_workspace)
     workspaces_cases = []
-    workspaces_cases.append(intersect_binary_images([workspaces[0], workspaces[1]]))
-    workspaces_cases.append(intersect_binary_images([workspaces[0], workspaces[2]]))
-    workspaces_cases.append(intersect_binary_images([workspaces[0], workspaces[3]]))
+    #workspaces_cases.append(intersect_binary_images([workspaces[0], workspaces[1]]))
+    #workspaces_cases.append(intersect_binary_images([workspaces[0], workspaces[2]]))
+    #workspaces_cases.append(intersect_binary_images([workspaces[0], workspaces[3]]))
     workspaces_cases.append(intersect_binary_images([workspaces[0], workspaces[1], workspaces[2]]))
     workspaces_cases.append(intersect_binary_images([workspaces[0], workspaces[1], workspaces[3]]))
     workspaces_cases.append(intersect_binary_images([workspaces[0], workspaces[2], workspaces[3]]))
@@ -300,22 +308,27 @@ def planar_3R_connectivity_analysis(L, joint_limits, pfs, championship):
     reliable_connectivity = 0
     for index, wp_combination in enumerate(workspaces_cases):
         # if index == 6:
-        cv2.imshow("Fault-Tolerant Workspace", wp_combination)
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
+        #cv2.imshow("Fault-Tolerant Workspace", wp_combination)
+        #cv2.waitKey(0)
+        #cv2.destroyAllWindows()
         shape_area, connected_connectivity, general_connectivity = connectivity_analysis(wp_combination,
                                                                                          kernel_size, Lambda)
+        #print(general_connectivity)
         reliable_connectivity += general_connectivity * cr_list[index]
     print(f'under probability {r1, r2, r3}the reliable connectivity of given configuration is {reliable_connectivity}!')
 
     return reliable_connectivity
 
 
-#planar_3R_connectivity_analysis([1.42,1,0.58],
-#[(-100 * np.pi / 180, 100 * np.pi / 180), (-130 * np.pi / 180, 130 * np.pi / 180),
- #     (-160 * np.pi / 180, 160 * np.pi / 180)], pfs=20, championship=0)
-#                               , pfs=20, championship=0)
-#planar_3R_connectivity_analysis([0.009651087409352832, 1.6279980832723875, 1.3623508293182596]
- #                               , [(-2.312033825326607, 2.312033825326607), (-2.1986530478299358, 1.3083974620434837),
- #                                  (-3.119803865520389, 0.38031991292340495)]
-  #                              , pfs=20, championship=0)
+
+#planar_3R_connectivity_analysis([1.4142135623730951, 1.4142135623730951, 0.816496580927726],
+#                               [(-3.031883452592004, 3.031883452592004), (-1.619994146091692, -0.8276157453255935), (-1.6977602095460234, -0.7265946655975718)], pfs=20, championship=0)
+#planar_3R_connectivity_analysis([1.0, 1.0, 1.0],
+#                                [(-3.031883452592004, 3.031883452592004), (-1.619994146091692, -0.8276157453255935), (-1.6977602095460234, -0.7265946655975718)], pfs=60,
+ #                               championship=0)
+#planar_3R_connectivity_analysis([1.0, 1.0, 1.0],
+#                                [(-18.2074 * np.pi / 180, 18.2074 * np.pi / 180),
+ #                                (-111.3415 * np.pi / 180, 111.3415 * np.pi / 180),
+ #                                (-111.3415 * np.pi / 180, 111.3415 * np.pi / 180)], pfs=60,
+  #                              championship=0)
+

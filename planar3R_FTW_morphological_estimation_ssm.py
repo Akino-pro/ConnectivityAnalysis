@@ -10,19 +10,22 @@ step_size = 0.01
 terminate_threshold = 9.0 / 5.0 * step_size
 ssm_finding_num = 20
 max_ssm = 2
-sample_num = 100
-r1 = 0.99
-r2 = 0.9
-r3 = 0.8
+sample_num = 400
+r1 = 0.5
+r2 = 0.6
+r3 = 0.7
 
 # L = [0.4888656043245976, 1.3992499610293656, 1.1118844346460368]
 #L = [1, 1, 1]
 #L = [0.009651087409352832, 1.6279980832723875, 1.3623508293182596]
 #CA = [(-2.312033825326607, 2.312033825326607), (-2.1986530478299358, 1.3083974620434837),
  #     (-3.119803865520389, 0.38031991292340495)]
-L=[1.42,1,0.58]
-CA = [(-100 * np.pi / 180, 100 * np.pi / 180), (-130 * np.pi / 180, 130 * np.pi / 180),
-      (-160 * np.pi / 180, 160 * np.pi / 180)]
+# L=[1.42,1,0.58]
+L=[1.4142135623730951, 1.4142135623730951, 0.816496580927726]
+#CA = [(-18.2074 * np.pi / 180, 18.2074 * np.pi / 180), (-111.3415 * np.pi / 180, 111.3415 * np.pi / 180),
+#    (-111.3415 * np.pi / 180, 111.3415 * np.pi / 180)]
+#CA=[(-3.031883452592004, 3.031883452592004), (-1.619994146091692, -0.8276157453255935), (-1.6977602095460234, -0.7265946655975718)]
+CA=[(-3.124681302246617, 3.124681302246617), (-1.4415636177812134, -1.279211595348536), (-1.7248730619372978, 0.5619657181265192)]
 """
 CA = [(-30 * np.pi / 180, 30 * np.pi / 180), (-120 * np.pi / 180, 60 * np.pi / 180),
       (-130 * np.pi / 180, 130 * np.pi / 180)]
@@ -102,29 +105,18 @@ def stepwise_ssm(theta, n_j, x_target, previous_n_j):
         n_j = -n_j
 
     x = forward_kinematics_3R(theta, L)
-    delta_x_step = x - x_target
+    delta_x_step = x_target - x
     J_step = Jacobian_3R(theta, L)
     J_step_plus = np.linalg.pinv(J_step)
     corrected_delta_theta = np.dot(J_step_plus, delta_x_step)
-    theta_next = theta + step_size * n_j / np.linalg.norm(n_j) + corrected_delta_theta
+    dq = n_j + corrected_delta_theta
+    dq /= np.linalg.norm(dq)
+    theta_next = theta + step_size * dq
     for i in range(len(theta_next)):
         theta_next[i] %= 2 * np.pi
         if theta_next[i] > np.pi: theta_next[i] -= 2 * np.pi
         if theta_next[i] < -np.pi: theta_next[i] += 2 * np.pi
-    x_next = forward_kinematics_3R(theta_next, L)
     new_J = Jacobian_3R(theta_next, L)
-    # back_step = 1
-    while np.linalg.norm(x_target - x_next) > 1e-6:
-        # back_step += 1
-        new_J_plus = np.linalg.pinv(new_J)
-        theta_next += np.dot(new_J_plus, x_target - x_next)
-        for i in range(len(theta_next)):
-            theta_next[i] %= 2 * np.pi
-            if theta_next[i] > np.pi: theta_next[i] -= 2 * np.pi
-            if theta_next[i] < -np.pi: theta_next[i] += 2 * np.pi
-        x_next = forward_kinematics_3R(theta_next, L)
-        new_J = Jacobian_3R(theta_next, L)
-    # print(back_step)
 
     new_n_j = null_space(new_J)
     return theta_next, new_n_j, n_j
@@ -153,16 +145,22 @@ def extend_ranges(union_ranges):
     has_positive_pi_range = None
     for tr in union_ranges:
         if tr[0] == -np.pi and tr[1] == np.pi:
-            return [[-2*np.pi,2*np.pi]]
+            return [[-np.pi,
+                     np.pi]]
         elif tr[0] == -np.pi:
             has_negative_pi_range = tr[1]
         elif tr[1] == np.pi:
             has_positive_pi_range = tr[0]
         else:
             extended_ranges.append(tr)
+
     if has_negative_pi_range is not None and has_positive_pi_range is not None:
         extended_ranges.append([has_positive_pi_range - 2 * np.pi, has_negative_pi_range])
         extended_ranges.append([has_positive_pi_range, has_negative_pi_range + 2 * np.pi])
+    elif has_negative_pi_range is not None:
+        extended_ranges.append([-np.pi, has_negative_pi_range])
+    elif has_positive_pi_range is not None:
+        extended_ranges.append([has_positive_pi_range, np.pi])
     return extended_ranges
 
 
@@ -378,7 +376,6 @@ def union_ranges(ranges):
     return merged
 
 
-
 def compute_beta_range(x, y):
     target_x = np.array([x, y]).T.reshape((2, 1))
     all_smm_beta_range = []
@@ -439,28 +436,9 @@ def compute_beta_range(x, y):
             ion1 = True
             min_beta1 = CA[0][1] - tr[1]
             max_beta1 = CA[0][0] - tr[0]
-            if max_beta1 - min_beta1 >= 2 * np.pi:
+            if (max_beta1 - min_beta1 >= 2 * np.pi) or (tr[0] == -np.pi and tr[1] == np.pi):
                 max_beta1 = np.pi
                 min_beta1 = -np.pi
-    if CA[0][0] < -np.pi:
-        if has_negative_pi_range is not None and has_positive_pi_range is not None:
-            if CA[0][1] <= has_negative_pi_range and CA[0][0] + 2 * np.pi >= has_positive_pi_range:
-                ion1 = True
-                min_beta1 = CA[0][1] - has_negative_pi_range
-                max_beta1 = CA[0][0] - has_positive_pi_range + 2 * np.pi
-                if max_beta1 - min_beta1 >= 2 * np.pi:
-                    max_beta1 = np.pi
-                    min_beta1 = -np.pi
-    if CA[0][1] > np.pi:
-        if has_negative_pi_range is not None and has_positive_pi_range is not None:
-            if CA[0][1] - 2 * np.pi <= has_negative_pi_range and CA[0][0] >= has_positive_pi_range:
-                ion1 = True
-                min_beta1 = CA[0][1] - has_negative_pi_range - 2 * np.pi
-                max_beta1 = CA[0][0] - has_positive_pi_range
-                if max_beta1 - min_beta1 >= 2 * np.pi:
-                    max_beta1 = np.pi
-                    min_beta1 = -np.pi
-
     ion2 = False
     has_negative_pi_range = None
     has_positive_pi_range = None
@@ -505,10 +483,10 @@ def compute_beta_range(x, y):
 
     for index in range(len(beta0_ranges)):
         min_beta0, max_beta0 = beta0_ranges[index][0], beta0_ranges[index][1]
-        #print(min_beta0, max_beta0)
-        #print(min_beta1, max_beta1)
-        #print(min_beta2, max_beta2)
-        #print(min_beta3, max_beta3)
+        # print(min_beta0, max_beta0)
+        # print(min_beta1, max_beta1)
+        # print(min_beta2, max_beta2)
+        # print(min_beta3, max_beta3)
         if ion1:
             min_beta_f_1 = max(min_beta0, min_beta1)
             max_beta_f_1 = min(max_beta0, max_beta1)
@@ -529,16 +507,16 @@ def compute_beta_range(x, y):
             max_beta_f_12 = min(max_beta0, max_beta1, max_beta2)
             if min_beta_f_12 <= max_beta_f_12:
                 reliable_beta_ranges[3].append([min_beta_f_12, max_beta_f_12])
-        if ion2 and ion3:
-            min_beta_f_23 = max(min_beta0, min_beta2, min_beta3)
-            max_beta_f_23 = min(max_beta0, max_beta2, max_beta3)
-            if min_beta_f_23 <= max_beta_f_23:
-                reliable_beta_ranges[4].append([min_beta_f_23, max_beta_f_23])
         if ion1 and ion3:
             min_beta_f_13 = max(min_beta0, min_beta1, min_beta3)
             max_beta_f_13 = min(max_beta0, max_beta1, max_beta3)
             if min_beta_f_13 <= max_beta_f_13:
-                reliable_beta_ranges[5].append([min_beta_f_13, max_beta_f_13])
+                reliable_beta_ranges[4].append([min_beta_f_13, max_beta_f_13])
+        if ion2 and ion3:
+            min_beta_f_23 = max(min_beta0, min_beta2, min_beta3)
+            max_beta_f_23 = min(max_beta0, max_beta2, max_beta3)
+            if min_beta_f_23 <= max_beta_f_23:
+                reliable_beta_ranges[5].append([min_beta_f_23, max_beta_f_23])
         if ion1 and ion2 and ion3:
             min_beta_f_ftw = max(min_beta0, min_beta1, min_beta2, min_beta3)
             max_beta_f_ftw = min(max_beta0, max_beta1, max_beta2, max_beta3)
@@ -592,7 +570,8 @@ for i in range(len(points)):
     beta_ranges, reliable_beta_ranges = compute_beta_range(x, y)  # Get multiple beta ranges
     for b_r_index in range(len(reliable_beta_ranges)):
         b_r = reliable_beta_ranges[b_r_index]
-        z_level = z_levels[b_r_index]
+        #z_level = z_levels[b_r_index]
+        z_level=b_r_index
         color = color_list[b_r_index]
         for beta_range in b_r:
             # Compute angles in degrees (as required by Wedge)
@@ -632,7 +611,7 @@ for i in range(len(points)):
 # Set the plot limits to range from -3 to 3 for both x and y axes
 ax.set_xlim(-3, 3)
 ax.set_ylim(-3, 3)
-ax.set_zlim(0, 1)
+ax.set_zlim(0, 6)
 
 ax.set_xlabel("X-axis")
 ax.set_ylabel("Y-axis")

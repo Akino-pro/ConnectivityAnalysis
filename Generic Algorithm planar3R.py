@@ -10,7 +10,7 @@ pd.set_option('display.max_colwidth', None)  # No column width truncation
 pd.set_option('display.width', 1000)  # Set display width to a large value
 
 # num_threads=4
-sample_number = 140
+sample_number = 100
 num_generations = 20
 pfs = 20
 alpha = 0.05
@@ -22,11 +22,12 @@ alpha = 0.05
 def generate_planar_3r_params():
     # Generate random link lengths such that l1 + l2 + l3 = 3 and l1, l2, l3 > 0
     lengths = np.sort(np.random.rand(2) * 3)  # Scale by 3
-    l1 = lengths[0]
-    l2 = lengths[1] - lengths[0]
-    l3 = 3 - lengths[1]
+    # l1 = lengths[0]
+    # l2 = lengths[1] - lengths[0]
+    # l3 = 3 - lengths[1]
 
-    link_lengths = [l1, l2, l3]
+    # link_lengths = [l1, l2, l3]
+    link_lengths = [1, 1, 1]
     joint_limits = []
     for i in range(3):
         if i == 0:
@@ -201,59 +202,6 @@ def connectivity_analysis(samples, global_elite_limit):
     return samples, new_global_elite_limit
 
 
-"""
-
-def process_batch(batch, elites, pfs):
-    connectivity_values = []
-    for index, row in batch.iterrows():
-        connectivity_value = planar_3R_connectivity_analysis(row['link_lengths'], row['joint_limits'], pfs, elites[-1])
-        connectivity_values.append(connectivity_value)
-    return connectivity_values
-
-def update_elites(elites, connectivity_values, limit_size):
-    for connectivity_value in connectivity_values:
-        if connectivity_value > elites[-1]:
-            if len(elites) < limit_size:
-                elites.append(connectivity_value)
-            else:
-                elites[-1] = connectivity_value
-            elites.sort(reverse=True)
-    return elites
-
-def connectivity_analysis(samples, num_threads=num_threads, batch_size=num_threads):
-    # Initialize variables
-    connectivity_values = []
-    elites = [0]
-    limit_size = int(len(samples) * 0.05)  # 5% of total samples
-
-    # Create ThreadPoolExecutor for parallel processing
-    with concurrent.futures.ThreadPoolExecutor(max_workers=num_threads) as executor:
-        # Process the samples in batches
-        future_to_batch = {}
-        for i in range(0, len(samples), batch_size):
-            batch = samples.iloc[i:i + batch_size]
-            future = executor.submit(process_batch, batch, elites, pfs)
-            future_to_batch[future] = batch
-
-        # Collect results as they are completed
-        for future in concurrent.futures.as_completed(future_to_batch):
-            batch_connectivity_values = future.result()
-            connectivity_values.extend(batch_connectivity_values)
-            elites = update_elites(elites, batch_connectivity_values, limit_size)
-
-    # Add the computed connectivity values to the samples DataFrame
-    samples['connectivity'] = connectivity_values
-
-    # Identify the champion
-    champion = get_champion(samples)
-    print(champion['link_lengths'])
-    print(champion['joint_limits'])
-    print(champion['connectivity'])
-
-    return samples
-"""
-
-
 # Function to generate next generation
 def next_generation(samples, global_elite_limit, alpha=0.05):
     samples, new_global_elite_limit = connectivity_analysis(samples, global_elite_limit)
@@ -271,38 +219,69 @@ def next_generation(samples, global_elite_limit, alpha=0.05):
 
 
 """
-prior_knowledge=[{
-        'link_lengths':  [0.4888656043245976, 1.3992499610293656, 1.1118844346460368]
+prior_knowledge = [{
+    'link_lengths': [1, 1, 1]
+    ,
+    'joint_limits': [(-0.7491244590957556, 0.7491244590957556), (-0.2590887855330002, 1.5556037937159994),
+                     (-2.11211741668124, 2.1202051003030054)]
+},
+    {
+        'link_lengths': [1, 1, 1]
         ,
-        'joint_limits':   [(-3.141592653589793, 3.141592653589793), (-0.9272951769138392, 2.2142957313467018), (1.8545903538276785, 1.8545903538276785)]
-    }]
-"""
+        'joint_limits': [(-2.774750271122719, 2.774750271122719), (1.2777545332070899, 2.0158468121963895),
+                         (1.239553473445568, 2.6529687704766163)]
+    },
+    {
+        'link_lengths': [1, 1, 1]
+        ,
+        'joint_limits': [(-2.9176382691953155, 2.9176382691953155), (1.133540967587864, 2.8418646796178906),
+                         (1.6652913709646366, 1.9793472646133028)]
+    }
+]
+
+
 prior_knowledge = [
 
     {
-        'link_lengths':   [0.4888656043245976, 1.3992499610293656, 1.1118844346460368]
+        'link_lengths':   [0.5,1.25,1.25]
         ,
-        'joint_limits': [(-3.141592653589793, 3.141592653589793), (-0.9272951769138392, 2.2142957313467018), (1.8545903538276785, 1.8545903538276785)]
+        'joint_limits': [(-3.124681302246617, 3.124681302246617), (-1.4415636177812134, -1.279211595348536), (-1.7248730619372978, 0.5619657181265192)]
     },
     {
         'link_lengths': [0.5,1.25,1.25]
         ,
-        'joint_limits': [(-3.141592653589793, 3.141592653589793), (-0.9272951769138392, 2.2142957313467018), (1.8545903538276785, 1.8545903538276785)]
+        'joint_limits': [(3.1215926535897935, -3.1215926535897935), (-0.9272951769138392, 2.2142957313467018), (1.8545903538276785, 1.8545903538276785)]
 
-    },
-    {
-        'link_lengths':   [0.0409381072168612, 1.60650255325608, 1.3525593395270588]
-        ,
-        'joint_limits':   [(-2.12720203873519, 2.12720203873519), (-2.949995660344648, 1.169447348312247), (-2.935115465988839, 0.4973433364265576)]
-    },
-    {
-        'link_lengths':    [0.008519589482239076, 1.87637511701138, 1.1151052935063808]
-        ,
-        'joint_limits':   [(-1.6341880196716376, 1.6341880196716376), (-2.994127677428315, -0.3414440400066612), (-1.3320745205876303, 2.9100694769133835)]
     }
 ]
 
-#prior_knowledge = []
+
+prior_knowledge = [{
+    'link_lengths': [1.4142135623730951, 1.4142135623730951, 0.816496580927726]
+    ,
+    'joint_limits': [(-3.124681302246617, 3.124681302246617), (-1.4415636177812134, -1.279211595348536),
+                     (-1.7248730619372978, 0.5619657181265192)]
+},
+    {'link_lengths': [1.4142135623730951, 1.4142135623730951, 0.816496580927726]
+        ,
+     'joint_limits': [(-3.031883452592004, 3.031883452592004), (-1.619994146091692, -0.8276157453255935), (-1.6977602095460234, -0.7265946655975718)]
+
+     },
+    {'link_lengths': [1.4142135623730951, 1.4142135623730951, 0.816496580927726]
+        ,
+     'joint_limits': [(-0.5779611440942315, 0.5779611440942315), (-1.1887031063410372, 0.6453736884533061),
+                      (-1.7852473794934884, 1.8681718728028136)]
+
+     },
+    {'link_lengths': [1.4142135623730951, 1.4142135623730951, 0.816496580927726]
+        ,
+     'joint_limits': [(-0.07796114409423144, 0.07796114409423144), (-1.4718884135206238, 1.5453736884533062),
+                      (-1.7852473794934884, 1.8681718728028136)]
+
+     },
+]
+"""
+prior_knowledge = []
 # Generate given number of samples
 samples = prior_knowledge[:]
 additional_samples_needed = sample_number - len(prior_knowledge)

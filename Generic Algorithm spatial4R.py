@@ -1,14 +1,13 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from Planar_3r_FTW_morphological_estimation_discretization import planar_3R_connectivity_analysis
 from spatial_4r_FTW_morphological_estimation_ssm import ssm_estimation
 
 pd.set_option('display.max_colwidth', None)  # No column width truncation
 pd.set_option('display.width', 1000)  # Set display width to a large value
 
-sample_number = 20
-num_generations = 2
+sample_number = 95
+num_generations = 1
 grid_sample_number = 72
 alpha = 0.05
 
@@ -38,19 +37,24 @@ def generate_spatial_4r_parameters():
         'd': [],
         'theta': []
     }
-
+    #params['alpha'] = [90 * np.pi / 180, -90 * np.pi / 180, 90 * np.pi / 180, 0 * np.pi / 180]
+    #params['a'] = [np.sqrt(2), np.sqrt(2), np.sqrt(2), np.sqrt(3) / 2]
+    #params['d'] = [0, 1, -1, 1 / 2]
+    params['alpha'] = [85 * np.pi / 180, -53 * np.pi / 180, -89 * np.pi / 180, 68 * np.pi / 180]
+    params['a'] = [0.50, 0.48, 0.76, 0.95]
+    params['d'] = [-0.29, 0, 0.05, 1.0]
     for i in range(4):
         # Sample alpha_i within [-π/2, π/2]
-        alpha_i = np.random.uniform(-np.pi / 2, np.pi / 2)
-        params['alpha'].append(alpha_i)
+        # alpha_i = np.random.uniform(-np.pi / 2, np.pi / 2)
+        # params['alpha'].append(alpha_i)
 
         # Sample a_i within [0, 1]
-        a_i = np.random.uniform(0, 1)
-        params['a'].append(a_i)
+        # a_i = np.random.uniform(0, 1)
+        # params['a'].append(a_i)
 
         # Sample d_i within [-1, 1]
-        d_i = np.random.uniform(-1, 1)
-        params['d'].append(d_i)
+        # d_i = np.random.uniform(-1, 1)
+        # params['d'].append(d_i)
 
         # Sample theta_i based on conditions
         if i == 0:
@@ -59,10 +63,10 @@ def generate_spatial_4r_parameters():
             lower_limit = -upper_limit
             params['theta'].append((lower_limit, upper_limit))
         else:
-            theta_a = np.random.uniform(-np.pi, np.pi)
-            theta_b = np.random.uniform(-np.pi, np.pi)
-            theta_li = min(theta_a, theta_b)
-            theta_up = max(theta_a, theta_b)
+            theta_a = np.random.uniform(-2 * np.pi, 2 * np.pi)
+            theta_b = np.random.uniform(theta_a, min(theta_a + 2 * np.pi, 2 * np.pi))
+            theta_li = theta_a
+            theta_up = theta_b
             if theta_li > np.pi and theta_up > np.pi:
                 theta_li -= 2 * np.pi
                 theta_up -= 2 * np.pi
@@ -276,15 +280,66 @@ def next_generation(samples, global_elite_limit, alpha=0.05):
     return next_gen, new_global_elite_limit
 
 
+"""
 prior_knowledge = [
     {
-        'alpha': [85 * np.pi / 180, -53 * np.pi / 180, -89 * np.pi / 180, 68 * np.pi / 180],
+        'alpha': [1.4835298641951802, -0.9250245035569946, -1.5533430342749535, 1.1868238913561442],
         'a': [0.5, 0.48, 0.76, 0.95],
         'd': [-0.29, 0, 0.05, 1],
         'theta': [(-146 * np.pi / 180, 146 * np.pi / 180), (-234 * np.pi / 180, 10 * np.pi / 180),
                   (-115 * np.pi / 180, 132 * np.pi / 180), (-101 * np.pi / 180, 118 * np.pi / 180)]
     },
+    {
+        'alpha': [1.3530260569406813, 0.5815494014778277, -1.231648276983966, -1.5163055940008698],
+        'a': [0.9287270885201707, 0.4994756122358448, 0.7685188108795683, 0.6680743969555348],
+        'd': [0.568000075043517, -0.3231993488726066, 0.003592122603383041, 0.7603074889962598],
+        'theta': [(-1.4826653842746298, 1.4826653842746298), (-2.506182390743712, -1.650875107001795),
+                  (-4.308481440337792, -1.470078570218699), (-4.058339587195345, -1.9363992330162003)]
+    },
+    {
+        'alpha': [-0.3999633317494409, 0.42168291992172824, 1.245903897536277, 0.009090015139661123],
+        'a': [0.7392641066486639, 0.6185738823931973, 0.9823573819975665, 0.7233373678811974],
+        'd': [-0.7318333971914557, 0.40453707313161624, -0.42108008758448157, 0.5018901255639037],
+        'theta': [(-1.0402267143108133, 1.0402267143108133), (-2.5248743903643796, -1.8858316108946882),
+                  (-1.4347415266741792, -0.13280752991957545), (-5.896582877620955, 0.12733245226499612)]
+    },
+    {
+        'alpha': [0.46020172462756426, -1.2823067367398915, -1.4640947261600994, 1.4751896893035656],
+        'a': [0.3463923592811875, 0.3434769658556146, 0.599094647710502, 0.4966790442513729],
+        'd': [-0.44748083694194585, 0.3589151250522289, 0.9394326861339084, 0.13337579865596583],
+        'theta': [(-1.2110075695752252, 1.2110075695752252), (0.47047995455770497, 2.285131901502494),
+                  (-2.744589354934385, -0.7156193721460355), (-1.6939075562322312, -0.7361424289820029)]
+    }
 ]
+"""
+prior_knowledge = [
+    {
+        'alpha': [85 * np.pi / 180, -53 * np.pi / 180, -89 * np.pi / 180, 68 * np.pi / 180],
+        'a': [0.5, 0.48, 0.76, 0.95],
+        'd': [-0.29, 0, 0.05, 1],
+        'theta': [(-0.8615805323640514, 0.8615805323640514), (-3.8557928335253506, 1.6559655147428782), (-3.0120387975312504, -0.13893174173657563), (0.6783005563193569, 2.1951493670529656)]
+    },
+    {
+        'alpha': [85 * np.pi / 180, -53 * np.pi / 180, -89 * np.pi / 180, 68 * np.pi / 180],
+        'a': [0.5, 0.48, 0.76, 0.95],
+        'd': [-0.29, 0, 0.05, 1],
+        'theta': [(-0.1470278113853551, 0.1470278113853551), (-3.473539690795027, -0.5168694724009897), (-1.8371633753877283, -0.7009457338876963), (1.0940518006482778, 3.1264162965427076)]
+    },
+    {
+        'alpha': [85 * np.pi / 180, -53 * np.pi / 180, -89 * np.pi / 180, 68 * np.pi / 180],
+        'a': [0.5, 0.48, 0.76, 0.95],
+        'd': [-0.29, 0, 0.05, 1],
+        'theta': [(-0.5611139187110638, 0.5611139187110638), (-1.4332040867250238, 3.056292855678535), (-0.9133580983061655, -0.012285244563186914), (-4.091992651989399, 2.0188327733950846)]
+    },
+    {
+        'alpha': [85 * np.pi / 180, -53 * np.pi / 180, -89 * np.pi / 180, 68 * np.pi / 180],
+        'a': [0.5, 0.48, 0.76, 0.95],
+        'd': [-0.29, 0, 0.05, 1],
+        'theta': [(-0.7902358311935295, 0.7902358311935295), (-4.82211977682122, -1.1981099286345578), (-2.713803787202181, 2.0407118759167915), (-1.3565727619191588, 0.7870922248126955)]
+    }
+]
+
+#prior_knowledge = []
 # Generate given number of samples
 samples = prior_knowledge[:]
 additional_samples_needed = sample_number - len(prior_knowledge)
@@ -292,8 +347,7 @@ if additional_samples_needed > 0:
     samples += [generate_spatial_4r_parameters() for _ in range(additional_samples_needed)]
 
 # Display the samples in a dataframe
-df = pd.DataFrame(samples)
-current_generation = df
+current_generation = pd.DataFrame(samples)
 
 # print(current_generation)
 global_elite_limit = 0

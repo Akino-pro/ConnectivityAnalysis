@@ -15,8 +15,8 @@ kernel_size = 1
 Lambda = 0.5
 step_size = 0.01
 terminate_threshold = 9.0 / 5.0 * step_size
-ssm_finding_num = 30
-max_ssm = 4
+ssm_finding_num = 20
+max_ssm = 8
 
 
 def convert_to_C_dot_A(CA):
@@ -124,9 +124,9 @@ def stepwise_ssm(theta, n_j, x_target, previous_n_j, robot):
     theta_next = theta + step_size * n_j / np.linalg.norm(n_j) + corrected_delta_theta
     # print(theta_next)
     for i in range(len(theta_next)):
-        theta_next[i] %= 2 * np.pi
-        if theta_next[i] > np.pi: theta_next[i] -= 2 * np.pi
-        if theta_next[i] < -np.pi: theta_next[i] += 2 * np.pi
+        theta_next[i] %= 4 * np.pi
+        if theta_next[i] > 2 * np.pi: theta_next[i] -= 4 * np.pi
+        if theta_next[i] < -2 * np.pi: theta_next[i] += 4 * np.pi
     x_next = robot.fkine(theta_next.flatten())
     x_next = np.array(x_next)[:3, 3].T.reshape((3, 1))
     new_J = robot.jacob0(theta_next.flatten())[:3, :]
@@ -136,9 +136,9 @@ def stepwise_ssm(theta, n_j, x_target, previous_n_j, robot):
         new_J_plus = np.linalg.pinv(new_J)
         theta_next += np.dot(new_J_plus, x_target - x_next)
         for i in range(len(theta_next)):
-            theta_next[i] %= 2 * np.pi
-            if theta_next[i] > np.pi: theta_next[i] -= 2 * np.pi
-            if theta_next[i] < -np.pi: theta_next[i] += 2 * np.pi
+            theta_next[i] %= 4 * np.pi
+            if theta_next[i] > 2 * np.pi: theta_next[i] -= 4 * np.pi
+            if theta_next[i] < -2 * np.pi: theta_next[i] += 4 * np.pi
         x_next = robot.fkine(theta_next.flatten())
         x_next = np.array(x_next)[:3, 3].T.reshape((3, 1))
         new_J = robot.jacob0(theta_next.flatten())[:3, :]
@@ -169,10 +169,10 @@ def find_intersection_points(ssm_theta_list, C_dot_A):
                 local_min_theta1 = ssm_theta_list[i][0][0]
             if ssm_theta_list[i][0][0] > local_max_theta1:
                 local_max_theta1 = ssm_theta_list[i][0][0]
-        if np.abs(local_min_theta1 + np.pi) <= 1e-3: local_min_theta1 = -np.pi
-        if np.abs(local_min_theta1 - np.pi) <= 1e-3: local_min_theta1 = np.pi
-        if np.abs(local_max_theta1 + np.pi) <= 1e-3: local_max_theta1 = -np.pi
-        if np.abs(local_max_theta1 - np.pi) <= 1e-3: local_max_theta1 = np.pi
+        if np.abs(local_min_theta1 + 2 * np.pi) <= 1e-3: local_min_theta1 = -2 * np.pi
+        if np.abs(local_min_theta1 - 2 * np.pi) <= 1e-3: local_min_theta1 = 2 * np.pi
+        if np.abs(local_max_theta1 + 2 * np.pi) <= 1e-3: local_max_theta1 = -2 * np.pi
+        if np.abs(local_max_theta1 - 2 * np.pi) <= 1e-3: local_max_theta1 = 2 * np.pi
         ip_ranges.append([local_min_theta1, local_max_theta1])
     return union_ranges(ip_ranges), tof
 
@@ -193,24 +193,6 @@ def find_ranges(nums):
     ranges.append([start, nums[-1]])
     return ranges
 
-
-def extend_ranges(union_ranges):
-    extended_ranges = []
-    has_negative_pi_range = None
-    has_positive_pi_range = None
-    for tr in union_ranges:
-        if tr[0] == -np.pi and tr[1] == np.pi:
-            return [[-2 * np.pi, 2 * np.pi]]
-        elif tr[0] == -np.pi:
-            has_negative_pi_range = tr[1]
-        elif tr[1] == np.pi:
-            has_positive_pi_range = tr[0]
-        else:
-            extended_ranges.append(tr)
-    if has_negative_pi_range is not None and has_positive_pi_range is not None:
-        extended_ranges.append([has_positive_pi_range - 2 * np.pi, has_negative_pi_range])
-        extended_ranges.append([has_positive_pi_range, has_negative_pi_range + 2 * np.pi])
-    return extended_ranges
 
 
 def union_ranges(ranges):
@@ -267,13 +249,13 @@ def find_critical_points(ssm_theta_list):
         for theta_index in range(1, len(ssm_theta_list)):
             theta = ssm_theta_list[theta_index]
             for i in range(4):
-                if np.abs(theta[i][0] - previous_theta[i][0]) > 3:
+                if np.abs(theta[i][0] - previous_theta[i][0]) > 6:
                     if theta[i][0] > previous_theta[i][0]:
-                        thetas_cp_sum[i].append([-np.pi, thetas_cp_range[i][1]])
-                        thetas_cp_range[i] = [theta[i][0], np.pi]
+                        thetas_cp_sum[i].append([-2 * np.pi, thetas_cp_range[i][1]])
+                        thetas_cp_range[i] = [theta[i][0], 2 * np.pi]
                     else:
-                        thetas_cp_sum[i].append([thetas_cp_range[i][0], np.pi])
-                        thetas_cp_range[i] = [-np.pi, theta[i][0]]
+                        thetas_cp_sum[i].append([thetas_cp_range[i][0], 2 * np.pi])
+                        thetas_cp_range[i] = [-2 * np.pi, theta[i][0]]
                 elif theta[i][0] < thetas_cp_range[i][0]:
                     thetas_cp_range[i][0] = theta[i][0]
                 elif theta[i][0] > thetas_cp_range[i][1]:
@@ -296,7 +278,7 @@ def find_random_ssm(x_target, all_ssm_theta_list, robot, C_dot_A):
     for configuration in all_ssm_theta_list:
         if np.linalg.norm(configuration - sol) <= terminate_threshold:
             # print('ssm already exists.')
-            return True,[], [[], [], [], []], all_ssm_theta_list, ssm_found
+            return True, [], [[], [], [], []], all_ssm_theta_list, ssm_found
     theta = sol
     theta_prime = theta.copy()
 
@@ -317,7 +299,7 @@ def find_random_ssm(x_target, all_ssm_theta_list, robot, C_dot_A):
             for configuration in all_ssm_theta_list:
                 if np.linalg.norm(configuration - theta) <= terminate_threshold:
                     # print('ssm guided to wrong direction.')
-                    return True,[], [[], [], [], []], all_ssm_theta_list, ssm_found
+                    return True, [], [[], [], [], []], all_ssm_theta_list, ssm_found
         n_j = new_n_j
         if num > 15000 and lowest >= terminate_threshold:
             print(robot)
@@ -386,10 +368,10 @@ def find_random_ssm(x_target, all_ssm_theta_list, robot, C_dot_A):
             for configuration in all_ssm_theta_list:
                 if np.linalg.norm(configuration - theta) <= terminate_threshold:
                     # print('ssm already exists.')
-                    return True,[], [[], [], [], []], all_ssm_theta_list, ssm_found
+                    return True, [], [[], [], [], []], all_ssm_theta_list, ssm_found
             # return [], -10000, np.inf, -np.inf, np.inf, -np.inf, np.inf, -np.inf, np.inf, all_ssm_theta_list, ssm_found
             ssm_theta_list = [theta]
-        if num > 20000: return True,[], [[], [], [], []], all_ssm_theta_list, ssm_found
+        if num > 20000: return True, [], [[], [], [], []], all_ssm_theta_list, ssm_found
         num += 1
         ssm_theta_list.append(theta)
 
@@ -404,8 +386,8 @@ def find_random_ssm(x_target, all_ssm_theta_list, robot, C_dot_A):
     plt.ylabel('theta2')
 
         # Set plot limits for better visualization
-    plt.xlim([-np.pi, np.pi])
-    plt.ylim([-np.pi, np.pi])
+    plt.xlim([-2*np.pi, 2*np.pi])
+    plt.ylim([-2*np.pi, 2*np.pi])
 
     plt.show()
 
@@ -417,8 +399,8 @@ def find_random_ssm(x_target, all_ssm_theta_list, robot, C_dot_A):
     plt.ylabel('theta3')
 
         # Set plot limits for better visualization
-    plt.xlim([-np.pi, np.pi])
-    plt.ylim([-np.pi, np.pi])
+    plt.xlim([-2*np.pi, 2*np.pi])
+    plt.ylim([-2*np.pi, 2*np.pi])
 
     plt.show()
 
@@ -430,8 +412,8 @@ def find_random_ssm(x_target, all_ssm_theta_list, robot, C_dot_A):
     plt.ylabel('theta4')
 
         # Set plot limits for better visualization
-    plt.xlim([-np.pi, np.pi])
-    plt.ylim([-np.pi, np.pi])
+    plt.xlim([-2*np.pi, 2*np.pi])
+    plt.ylim([-2*np.pi, 2*np.pi])
 
     plt.show()
 
@@ -443,18 +425,19 @@ def find_random_ssm(x_target, all_ssm_theta_list, robot, C_dot_A):
     plt.ylabel('theta1')
 
         # Set plot limits for better visualization
-    plt.xlim([-np.pi, np.pi])
-    plt.ylim([-np.pi, np.pi])
+    plt.xlim([-2*np.pi, 2*np.pi])
+    plt.ylim([-2*np.pi, 2*np.pi])
 
     plt.show()
     """
+
     all_ssm_theta_list.extend(ssm_theta_list)
     print(f'found a new ssm with {num} points.')
     ssm_found = True
 
     ip_ranges, tof = find_intersection_points(ssm_theta_list, C_dot_A)
     cp_ranges = find_critical_points(ssm_theta_list)
-    return True,ip_ranges, cp_ranges, all_ssm_theta_list, ssm_found
+    return True, ip_ranges, cp_ranges, all_ssm_theta_list, ssm_found
 
 
 def compute_beta_range(x, y, z, robot, C_dot_A, CA):
@@ -469,22 +452,22 @@ def compute_beta_range(x, y, z, robot, C_dot_A, CA):
     find_count = 0
     ssm_found = 0
     while find_count < ssm_finding_num and ssm_found < max_ssm:
-        ik,iprs, cp_ranges, all_theta, ssm_found_tf = find_random_ssm(
+        ik, iprs, cp_ranges, all_theta, ssm_found_tf = find_random_ssm(
             target_x, all_theta, robot, C_dot_A)
         if not ik: break
         find_count += 1
-        iprs = extend_ranges(iprs)
+        # iprs = extend_ranges(iprs)
         for intersection_range in iprs:
             beta0_lm = CA[0][0] - intersection_range[1]
             beta0_um = CA[0][1] - intersection_range[0]
             if beta0_um - beta0_lm >= 2 * np.pi:
-                beta0_ranges.append([-np.pi, np.pi])
-            elif beta0_lm < -np.pi:
+                beta0_ranges.append([-2*np.pi, 2*np.pi])
+            elif beta0_lm < -2*np.pi:
                 beta0_ranges.append([beta0_lm + 2 * np.pi, np.pi])
-                beta0_ranges.append([-np.pi, beta0_um])
-            elif beta0_um > np.pi:
+                beta0_ranges.append([-2*np.pi, beta0_um])
+            elif beta0_um > 2*np.pi:
                 beta0_ranges.append([-np.pi, beta0_um - 2 * np.pi])
-                beta0_ranges.append([beta0_lm, np.pi])
+                beta0_ranges.append([beta0_lm, 2*np.pi])
             else:
                 beta0_ranges.append([beta0_lm, beta0_um])
         if ssm_found_tf:  ssm_found += 1; find_count = 0
@@ -552,7 +535,7 @@ def compute_beta_range(x, y, z, robot, C_dot_A, CA):
 
         plt.show()
     """
-    #print(beta0_ranges)
+    # print(beta0_ranges)
     if len(theta1_ranges) == 0: return []
     if len(theta2_ranges) == 0: return []
     if len(theta3_ranges) == 0: return []
@@ -568,122 +551,48 @@ def compute_beta_range(x, y, z, robot, C_dot_A, CA):
     ion1 = False
     min_beta1 = 0
     max_beta1 = 0
-    has_negative_pi_range = None
-    has_positive_pi_range = None
-    theta1_ranges_union = extend_ranges(theta1_ranges_union)
     for tr in theta1_ranges_union:
-        if tr[0] == -np.pi:
-            has_negative_pi_range = tr[1]
-        if tr[1] == np.pi:
-            has_positive_pi_range = tr[0]
+
         if CA[0][0] >= tr[0] and CA[0][1] <= tr[1]:
             ion1 = True
             print('joint 1 succeed')
             min_beta1 = CA[0][1] - tr[1]
             max_beta1 = CA[0][0] - tr[0]
             if max_beta1 - min_beta1 >= 2 * np.pi:
-                max_beta1 = np.pi
-                min_beta1 = -np.pi
-    if CA[0][0] < -np.pi:
-        if has_negative_pi_range is not None and has_positive_pi_range is not None:
-            if CA[0][1] <= has_negative_pi_range and CA[0][0] + 2 * np.pi >= has_positive_pi_range:
-                ion1 = True
-                print('joint 1 succeed')
-                min_beta1 = CA[0][1] - has_negative_pi_range
-                max_beta1 = CA[0][0] - has_positive_pi_range + 2 * np.pi
-                if max_beta1 - min_beta1 >= 2 * np.pi:
-                    max_beta1 = np.pi
-                    min_beta1 = -np.pi
-    if CA[0][1] > np.pi:
-        if has_negative_pi_range is not None and has_positive_pi_range is not None:
-            if CA[0][1] - 2 * np.pi <= has_negative_pi_range and CA[0][0] >= has_positive_pi_range:
-                ion1 = True
-                print('joint 1 succeed')
-                min_beta1 = CA[0][1] - has_negative_pi_range - 2 * np.pi
-                max_beta1 = CA[0][0] - has_positive_pi_range
-                if max_beta1 - min_beta1 >= 2 * np.pi:
-                    max_beta1 = np.pi
-                    min_beta1 = -np.pi
+                max_beta1 = 2*np.pi
+                min_beta1 = -2*np.pi
 
     ion2 = False
-    has_negative_pi_range = None
-    has_positive_pi_range = None
     for tr in theta2_ranges_union:
-        if tr[0] == -np.pi:
-            has_negative_pi_range = tr[1]
-        if tr[1] == np.pi:
-            has_positive_pi_range = tr[0]
         if CA[1][0] >= tr[0] and CA[1][1] <= tr[1]:
             ion2 = True
             print('joint 2 succeed')
-    if CA[1][0] < -np.pi:
-        if has_negative_pi_range is not None and has_positive_pi_range is not None:
-            if CA[1][1] <= has_negative_pi_range and CA[1][0] + 2 * np.pi >= has_positive_pi_range:
-                ion2 = True
-                print('joint 2 succeed')
-    if CA[1][1] > np.pi:
-        if has_negative_pi_range is not None and has_positive_pi_range is not None:
-            if CA[1][1] - 2 * np.pi <= has_negative_pi_range and CA[1][0] >= has_positive_pi_range:
-                ion2 = True
-                print('joint 2 succeed')
-    min_beta2 = -np.pi
-    max_beta2 = np.pi
+    min_beta2 = -2*np.pi
+    max_beta2 = 2*np.pi
 
     ion3 = False
-    has_negative_pi_range = None
-    has_positive_pi_range = None
     for tr in theta3_ranges_union:
-        if tr[0] == -np.pi:
-            has_negative_pi_range = tr[1]
-        if tr[1] == np.pi:
-            has_positive_pi_range = tr[0]
         if CA[2][0] >= tr[0] and CA[2][1] <= tr[1]:
             ion3 = True
             print('joint 3 succeed')
-    if CA[2][0] < -np.pi:
-        if has_negative_pi_range is not None and has_positive_pi_range is not None:
-            if CA[2][1] <= has_negative_pi_range and CA[2][0] + 2 * np.pi >= has_positive_pi_range:
-                ion3 = True
-                print('joint 3 succeed')
-    if CA[2][1] > np.pi:
-        if has_negative_pi_range is not None and has_positive_pi_range is not None:
-            if CA[2][1] - 2 * np.pi <= has_negative_pi_range and CA[2][0] >= has_positive_pi_range:
-                ion3 = True
-                print('joint 3 succeed')
-    min_beta3 = -np.pi
-    max_beta3 = np.pi
+    min_beta3 = -2*np.pi
+    max_beta3 = 2*np.pi
 
     ion4 = False
-    has_negative_pi_range = None
-    has_positive_pi_range = None
     for tr in theta4_ranges_union:
-        if tr[0] == -np.pi:
-            has_negative_pi_range = tr[1]
-        if tr[1] == np.pi:
-            has_positive_pi_range = tr[0]
         if CA[3][0] >= tr[0] and CA[3][1] <= tr[1]:
             ion4 = True
             print('joint 4 succeed')
-    if CA[3][0] < -np.pi:
-        if has_negative_pi_range is not None and has_positive_pi_range is not None:
-            if CA[3][1] <= has_negative_pi_range and CA[3][0] + 2 * np.pi >= has_positive_pi_range:
-                ion4 = True
-                print('joint 4 succeed')
-    if CA[3][1] > np.pi:
-        if has_negative_pi_range is not None and has_positive_pi_range is not None:
-            if CA[3][1] - 2 * np.pi <= has_negative_pi_range and CA[3][0] >= has_positive_pi_range:
-                ion4 = True
-                print('joint 4 succeed')
-    min_beta4 = -np.pi
-    max_beta4 = np.pi
+    min_beta4 = -2*np.pi
+    max_beta4 = 2*np.pi
 
     for index in range(len(beta0_ranges)):
         min_beta0, max_beta0 = beta0_ranges[index][0], beta0_ranges[index][1]
-        #print(min_beta0, max_beta0)
-        #print(min_beta1, max_beta1)
-        #print(min_beta2, max_beta2)
-        #print(min_beta3, max_beta3)
-        #print(min_beta3, max_beta4)
+        # print(min_beta0, max_beta0)
+        # print(min_beta1, max_beta1)
+        # print(min_beta2, max_beta2)
+        # print(min_beta3, max_beta3)
+        # print(min_beta3, max_beta4)
 
         if ion1 and ion2 and ion3 and ion4:
             min_beta_f_ftw = max(min_beta0, min_beta1, min_beta2, min_beta3, min_beta4)
@@ -702,7 +611,7 @@ def compute_beta_range(x, y, z, robot, C_dot_A, CA):
 @measure_time
 def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     C_dot_A = CA.copy()
-    C_dot_A[0] = (-np.pi, np.pi)
+    C_dot_A[0] = (-2*np.pi, 2*np.pi)
     C_dot_A = convert_to_C_dot_A(C_dot_A)
     robot = DHRobot(
         [
