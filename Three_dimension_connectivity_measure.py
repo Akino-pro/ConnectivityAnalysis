@@ -178,9 +178,9 @@ def connectivity_analysis(object_matrix, kernel_size, lamda):
         integral = np.trapz(y_values)
         connected_connectivity = integral / (len(data_list) - 1)
         general_connectivity = object_volume*connected_connectivity
-        #print(f"The volume of the shape in the original image is {object_volume} pixels.")
-        #print(f"the connected connectivity of given shape is {connected_connectivity}")
-        #print(f"the general connectivity of given shape is {general_connectivity}")
+        print(f"The volume of the shape in the original image is {object_volume} pixels.")
+        print(f"the connected connectivity of given shape is {connected_connectivity}")
+        print(f"the general connectivity of given shape is {general_connectivity}")
         return [object_volume, connected_connectivity, general_connectivity]
     return [object_volume,0,0]
 

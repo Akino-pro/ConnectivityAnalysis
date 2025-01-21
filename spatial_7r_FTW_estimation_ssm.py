@@ -1,7 +1,9 @@
+# 1. Goldberg polyhedron
+# 2. add codes to find the alpha range of 7th joint
+# 3. visualize positional and orientational workspace
 import time
 
 import numpy as np
-from tqdm import tqdm
 from scipy.linalg import null_space
 from roboticstoolbox import DHRobot, RevoluteDH
 import matplotlib.pyplot as plt
@@ -10,15 +12,98 @@ from spatialmath import SE3
 from spatial3R_ftw_draw import generate_grid_centers, generate_square_grid, draw_rotated_grid
 from Three_dimension_connectivity_measure import connectivity_analysis
 from spatial3R_ftw_draw import generate_binary_matrix
+from scipy.spatial.transform import Rotation as R
+from graph_connectivity_analysis import erode_and_dilate_until_vanished, fibonacci_sphere_angles, \
+    fibonacci_sphere_distance
+import networkx as nx
 
 kernel_size = 1
 Lambda = 0.5
 step_size = 0.01
-#terminate_threshold = 5.0 * step_size
-terminate_threshold = 9.0/5.0 * step_size
-#terminate_threshold = step_size * 0.5
-ssm_finding_num = 20
+# terminate_threshold = 0.5 * step_size
+terminate_threshold = 9.0 / 5.0 * step_size
+# terminate_threshold = step_size * 0.5
+ssm_finding_num = 10
 max_ssm = 16
+positional_samples = 72
+orientation_samples = 100
+theta_phi_list = fibonacci_sphere_angles(orientation_samples)
+adjacency_threshold=fibonacci_sphere_distance(orientation_samples)*np.pi/180
+
+#adjacency_threshold = 2 * np.pi / orientation_samples
+# theta_phi_list = np.linspace(0, 2 * np.pi, orientation_samples)
+
+
+def zyz_to_R(psi, theta, phi):
+    rot_fwd = R.from_euler('zyz', [psi, theta, phi], degrees=False)
+    R_mat = rot_fwd.as_matrix()
+    return R_mat
+
+
+def R_to_zyz(R_mat):
+    rot_back = R.from_matrix(R_mat)
+    recovered_angles = rot_back.as_euler('zyz', degrees=False)
+    return recovered_angles
+
+
+def angle_between_2_orientation(R1, R2):
+    # print(np.arccos((np.trace(np.dot(R1.T, R2)) - 1) / 2))
+    return np.arccos((np.trace(np.dot(R1.T, R2)) - 1) / 2)
+
+
+def sample_points_in_ranges(ranges, min_distance):
+    """
+    Samples as many points as possible in the given ranges such that the
+    distance between any two points is at least `min_distance`.
+
+    Parameters:
+    - ranges: list of tuples [(start1, end1), (start2, end2), ...]
+              Each tuple represents a range [start, end].
+    - min_distance: float
+                    Minimum distance between any two points.
+
+    Returns:
+    - List of sampled points.
+    """
+    sampled_points = []
+
+    for range_start, range_end in ranges:
+        # Generate evenly spaced points in the current range
+        num_points = int((range_end - range_start) // min_distance) + 1
+        points = np.linspace(range_start, range_end, num_points)
+        sampled_points.extend(points)
+
+    return sampled_points
+
+
+def create_graph_from_numbers(numbers):
+    """
+    Create an undirected graph from a list of numbers based on a threshold distance.
+
+    Parameters:
+    - numbers: list of numbers
+               The list of numbers to use as nodes.
+    - threshold: float
+                 The maximum distance between two numbers to add an edge.
+
+    Returns:
+    - graph: networkx.Graph
+             The resulting undirected graph.
+    """
+    # Create an empty undirected graph
+    graph = nx.Graph()
+
+    # Add nodes to the graph
+    for idx, num in enumerate(numbers):
+        graph.add_node(idx, value=num)
+
+    # Add edges if the distance between numbers is within the threshold
+    for i in range(len(numbers)):
+        for j in range(i + 1, len(numbers)):
+            if angle_between_2_orientation(numbers[i], numbers[j]) <= 1.1 * adjacency_threshold:
+                graph.add_edge(i, j)
+
+    return graph
 
 
 def convert_to_C_dot_A(CA):
@@ -109,26 +194,32 @@ def stepwise_ssm(theta, n_j, Tep, previous_n_j, robot):
     x_pos_ori = robot.fkine(theta.flatten())
     x_pos = np.array(x_pos_ori)[:3, 3].T.reshape((3, 1))
     x_target = np.array(Tep)[:3, 3].T.reshape((3, 1))
-    cn = np.array(x_pos_ori)[:3, 0].T.reshape((3, 1))
-    co = np.array(x_pos_ori)[:3, 1].T.reshape((3, 1))
-    ca = np.array(x_pos_ori)[:3, 2].T.reshape((3, 1))
-    tn = np.array(Tep)[:3, 0].T.reshape((3, 1))
-    to = np.array(Tep)[:3, 1].T.reshape((3, 1))
-    ta = np.array(Tep)[:3, 2].T.reshape((3, 1))
+    cn = np.array(x_pos_ori)[:3, 0].T.reshape((3, 1)).flatten()
+    co = np.array(x_pos_ori)[:3, 1].T.reshape((3, 1)).flatten()
+    ca = np.array(x_pos_ori)[:3, 2].T.reshape((3, 1)).flatten()
+    tn = np.array(Tep)[:3, 0].T.reshape((3, 1)).flatten()
+    to = np.array(Tep)[:3, 1].T.reshape((3, 1)).flatten()
+    ta = np.array(Tep)[:3, 2].T.reshape((3, 1)).flatten()
     delta_pos = x_target - x_pos
-    delta_ori_n = np.cross(tn.flatten(), cn.flatten())
-    delta_ori_o = np.cross(to.flatten(), co.flatten())
-    delta_ori_a = np.cross(ta.flatten(), ca.flatten())
+    # delta_ori_n = np.cross(tn, cn)
+    # delta_ori_o = np.cross(to, co)
+    # delta_ori_a = np.cross(ta, ca)
+    delta_ori_n = np.cross(cn, tn)
+    delta_ori_o = np.cross(co, to)
+    delta_ori_a = np.cross(ca, ta)
     delta_ori = 0.5 * (delta_ori_n + delta_ori_o + delta_ori_a).reshape((3, 1))
     delta_x_step = np.vstack((delta_pos, delta_ori))
-
+    # print(delta_x_step)
     # J_step = robot.jacob0(theta.flatten())[:3, :]
     J_step = robot.jacob0(theta.flatten())
     J_step_plus = np.linalg.pinv(J_step)
     corrected_delta_theta = np.dot(J_step_plus, delta_x_step)
+    # dq = n_j + corrected_delta_theta * np.linalg.norm(corrected_delta_theta)
+    # corrected_delta_theta/= np.linalg.norm(corrected_delta_theta)
     dq = n_j + corrected_delta_theta
     dq /= np.linalg.norm(dq)
     theta_next = theta + dq * step_size
+
     for i in range(len(theta_next)):
         theta_next[i] %= 2 * np.pi
         if theta_next[i] > np.pi: theta_next[i] -= 2 * np.pi
@@ -145,6 +236,11 @@ def stepwise_ssm(theta, n_j, Tep, previous_n_j, robot):
             new_n_j = n_j_1
         else:
             new_n_j = n_j_2
+    if np.dot(new_n_j.reshape(-1), previous_n_j.reshape(-1)) < 0:
+        new_n_j = -new_n_j
+    # print(f'n_j {new_n_j[0]}')
+    # print(f'delta {delta_x_step[0]}')
+    """ 
     a = np.array(new_n_j).reshape(-1)  # Converts 4x1 to 1D array
     a_prime = np.array(-new_n_j).reshape(-1)
     b = np.array(previous_n_j).reshape(-1)
@@ -161,6 +257,7 @@ def stepwise_ssm(theta, n_j, Tep, previous_n_j, robot):
     angle_rad_prime = np.arccos(cos_theta_prime)
     if np.abs(angle_rad) > np.abs(angle_rad_prime):
         new_n_j = -new_n_j
+    """
 
     return theta_next, new_n_j, n_j
 
@@ -193,6 +290,37 @@ def find_intersection_points(ssm_theta_list, C_dot_A):
         if np.abs(local_max_theta1 + np.pi) <= 1e-2: local_max_theta1 = -np.pi
         if np.abs(local_max_theta1 - np.pi) <= 1e-2: local_max_theta1 = np.pi
         ip_ranges.append([local_min_theta1, local_max_theta1])
+        # print([local_min_theta1, local_max_theta1])
+    return union_ranges(ip_ranges), tof
+
+
+def find_ip_7th_joint(ssm_theta_list, C_dot_A_7th):
+    tof = False
+    counter = 0
+    ip_ranges = []
+    isin_list = []
+    for theta_index in range(len(ssm_theta_list)):
+        theta_flatten = ssm_theta_list[theta_index].flatten()
+        if all(any(r[0] <= v <= r[1] for r in ranges) for v, ranges in zip(theta_flatten, C_dot_A_7th)):
+            isin_list.append(theta_index)
+            tof = True
+            counter += 1
+    ip_index_ranges = []
+    if len(isin_list) != 0: ip_index_ranges = find_ranges(isin_list)
+
+    for index_range in ip_index_ranges:
+        local_min_theta7 = 100
+        local_max_theta7 = -100
+        for i in range(index_range[0], index_range[1] + 1):
+            if ssm_theta_list[i][6][0] < local_min_theta7:
+                local_min_theta7 = ssm_theta_list[i][6][0]
+            if ssm_theta_list[i][6][0] > local_max_theta7:
+                local_max_theta7 = ssm_theta_list[i][6][0]
+        if np.abs(local_min_theta7 + np.pi) <= 1e-2: local_min_theta7 = -np.pi
+        if np.abs(local_min_theta7 - np.pi) <= 1e-2: local_min_theta7 = np.pi
+        if np.abs(local_max_theta7 + np.pi) <= 1e-2: local_max_theta7 = -np.pi
+        if np.abs(local_max_theta7 - np.pi) <= 1e-2: local_max_theta7 = np.pi
+        ip_ranges.append([local_min_theta7, local_max_theta7])
         # print([local_min_theta1, local_max_theta1])
     return union_ranges(ip_ranges), tof
 
@@ -318,13 +446,28 @@ def find_critical_points(ssm_theta_list):
     return thetas_cp_sum
 
 
-def find_random_ssm(x_target, all_ssm_theta_list, robot, C_dot_A):
+def find_random_ssm(r, x_target, all_ssm_theta_list, robot, C_dot_A, C_dot_A_7):
     ssm_found = False
-    q = np.array(np.random.uniform(low=-np.pi, high=np.pi, size=(7,))).T.reshape((7, 1))
-    Tep = SE3(x_target)
-    result = robot.ikine_LM(Tep, mask=[1, 1, 1, 0, 0, 0], q0=q)
-    if not result.success: return result.success, [], [[], [], [], [], [], [], []], all_ssm_theta_list, ssm_found
-    sol = result.q.T.reshape((7, 1))
+
+    # Initialize random joint configuration
+    q = np.random.uniform(low=-np.pi, high=np.pi, size=(7,))
+    q = q.reshape((7, 1))
+
+    # Generate a random rotation matrix
+    # Method: create a random matrix and use QR decomposition
+    # R is now a proper rotation matrix
+
+    # Construct the SE3 with random orientation and given position x_target
+    # Assuming x_target is a 3D vector representing desired position
+    Tep = SE3.Rt(r, x_target)
+
+    # Now solve IK with full orientation constraints
+    result = robot.ikine_LM(Tep, mask=[1, 1, 1, 1, 1, 1], q0=q)
+
+    if not result.success:
+        return result.success, [], [[], [], [], [], [], [], []], all_ssm_theta_list, ssm_found
+
+    sol = result.q.reshape((7, 1))
     for configuration in all_ssm_theta_list:
         if np.linalg.norm(configuration - sol) <= terminate_threshold:
             # print('ssm already exists.')
@@ -340,13 +483,81 @@ def find_random_ssm(x_target, all_ssm_theta_list, robot, C_dot_A):
     num = 0
     threshold = 1
     lowest = step_size
-    print(terminate_threshold)
+    all_dis = []
     while True:
         num += 1
-        if threshold <= terminate_threshold and num >= 4: break
+        # print(num)
+        if threshold <= terminate_threshold and num >= 4:
+            """
+            points = np.array(ssm_theta_list)
+
+            plt.figure()
+            plt.scatter(points[:, 0], points[:, 1], c='b', marker='o')
+
+            # Set labels
+            plt.xlabel('theta1')
+            plt.ylabel('theta2')
+
+            # Set plot limits for better visualization
+            plt.xlim([-np.pi, np.pi])
+            plt.ylim([-np.pi, np.pi])
+
+            plt.show()
+
+            plt.figure()
+            plt.scatter(points[:, 1], points[:, 2], c='b', marker='o')
+
+            # Set labels
+            plt.xlabel('theta2')
+            plt.ylabel('theta3')
+
+            # Set plot limits for better visualization
+            plt.xlim([-np.pi, np.pi])
+            plt.ylim([-np.pi, np.pi])
+
+            plt.show()
+
+            plt.figure()
+            plt.scatter(points[:, 2], points[:, 3], c='b', marker='o')
+
+            # Set labels
+            plt.xlabel('theta3')
+            plt.ylabel('theta4')
+
+            # Set plot limits for better visualization
+            plt.xlim([-np.pi, np.pi])
+            plt.ylim([-np.pi, np.pi])
+
+            plt.show()
+
+            plt.figure()
+            plt.scatter(points[:, 3], points[:, 0], c='b', marker='o')
+
+            # Set labels
+            plt.xlabel('theta4')
+            plt.ylabel('theta1')
+
+            # Set plot limits for better visualization
+            plt.xlim([-np.pi, np.pi])
+            plt.ylim([-np.pi, np.pi])
+
+            plt.show()
+
+            # Plot the list of values. By default, the x-axis will be the index of each value (0, 1, 2, ...)
+            plt.plot(all_dis, marker='o')
+
+            # Add labels and title
+            plt.xlabel('Index')
+            plt.ylabel('Value')
+            plt.title('Plot of Values vs. Index')
+
+            # Display the plot
+            plt.show()
+            """
+            break
         theta, new_n_j, old_n_j = stepwise_ssm(theta, n_j, Tep, old_n_j, robot)
         threshold = np.linalg.norm(theta - theta_prime)
-        # print(threshold)
+        all_dis.append(threshold)
         if threshold < lowest: lowest = threshold
 
         if num == 100:
@@ -357,19 +568,8 @@ def find_random_ssm(x_target, all_ssm_theta_list, robot, C_dot_A):
                     return True, [], [[], [], [], [], [], [], []], all_ssm_theta_list, ssm_found
         # m, n = np.shape(new_n_j)
         n_j = new_n_j
-        # print('new n_j')
-        # print(n_j)
-        # if n == 2:
-        #   print('special case')
-        #    n_j_1 = new_n_j[:, 0]
-        #    n_j_2 = new_n_j[:, 1]
-        #    if np.dot(n_j_1, old_n_j) > np.dot(n_j_2, old_n_j):
-        #        n_j = n_j_1
-        #    else:
-        #        n_j = n_j_2
-        # if num > 10000: print('here')
-        if num > 5000: print(threshold)
-        if num > 10000:
+
+        if num > 15000:
             print('stuck at a too small smm')
             # for configuration in all_ssm_theta_list:
             #    if np.linalg.norm(configuration - theta) <= terminate_threshold:
@@ -378,6 +578,77 @@ def find_random_ssm(x_target, all_ssm_theta_list, robot, C_dot_A):
             # print('still not found')
             theta_prime = theta
             num = 0
+            """
+
+            points = np.array(ssm_theta_list)
+
+            plt.figure()
+            plt.scatter(points[:, 0], points[:, 1], c='b', marker='o')
+
+            # Set labels
+            plt.xlabel('theta1')
+            plt.ylabel('theta2')
+
+            # Set plot limits for better visualization
+            plt.xlim([-np.pi, np.pi])
+            plt.ylim([-np.pi, np.pi])
+
+            plt.show()
+
+            plt.figure()
+            plt.scatter(points[:, 1], points[:, 2], c='b', marker='o')
+
+            # Set labels
+            plt.xlabel('theta2')
+            plt.ylabel('theta3')
+
+            # Set plot limits for better visualization
+            plt.xlim([-np.pi, np.pi])
+            plt.ylim([-np.pi, np.pi])
+
+            plt.show()
+
+            plt.figure()
+            plt.scatter(points[:, 2], points[:, 3], c='b', marker='o')
+
+            # Set labels
+            plt.xlabel('theta3')
+            plt.ylabel('theta4')
+
+            # Set plot limits for better visualization
+            plt.xlim([-np.pi, np.pi])
+            plt.ylim([-np.pi, np.pi])
+
+            plt.show()
+
+            plt.figure()
+            plt.scatter(points[:, 3], points[:, 0], c='b', marker='o')
+
+            # Set labels
+            plt.xlabel('theta4')
+            plt.ylabel('theta1')
+
+            # Set plot limits for better visualization
+            plt.xlim([-np.pi, np.pi])
+            plt.ylim([-np.pi, np.pi])
+
+            plt.show()
+
+            # Plot the list of values. By default, the x-axis will be the index of each value (0, 1, 2, ...)
+            plt.plot(all_dis, marker='o')
+
+            # Add labels and title
+            plt.xlabel('Index')
+            plt.ylabel('Value')
+            plt.title('Plot of Values vs. Index')
+
+            # Display the plot
+            plt.show()
+            """
+
+            ssm_theta_list = [theta]
+            all_dis = []
+
             # return True, [], [[], [], [], []], all_ssm_theta_list, ssm_found
         ssm_theta_list.append(theta)
     """
@@ -434,21 +705,23 @@ def find_random_ssm(x_target, all_ssm_theta_list, robot, C_dot_A):
     plt.ylim([-np.pi, np.pi])
 
     plt.show()
-    """
 
+    """
     all_ssm_theta_list.extend(ssm_theta_list)
-    print(f'found a new ssm with {num} points.')
+    # print(f'found a new ssm with {num} points.')
     ssm_found = True
 
     ip_ranges, tof = find_intersection_points(ssm_theta_list, C_dot_A)
+    ip_ranges_alpha, tof_alpha = find_ip_7th_joint(ssm_theta_list, C_dot_A_7)
     cp_ranges = find_critical_points(ssm_theta_list)
-    return True, ip_ranges, cp_ranges, all_ssm_theta_list, ssm_found
+    return tof, ip_ranges, cp_ranges, all_ssm_theta_list, ssm_found, tof_alpha, ip_ranges_alpha
 
 
-def compute_beta_range(x, y, z, robot, C_dot_A, CA):
-    target_x = np.array([x, y, z]).T.reshape((3, 1))
+def compute_beta_range(r, target_x, robot, C_dot_A, CA):
     all_smm_beta_range = []
+    all_alpha_ranges = []
     all_theta = []
+    alpha0_ranges = []
     beta0_ranges = []
     theta1_ranges = []
     theta2_ranges = []
@@ -459,12 +732,16 @@ def compute_beta_range(x, y, z, robot, C_dot_A, CA):
     theta7_ranges = []
     find_count = 0
     ssm_found = 0
+    C_dot_A_7 = CA.copy()
+    C_dot_A_7[6] = (-np.pi, np.pi)
+    C_dot_A_7 = convert_to_C_dot_A(C_dot_A_7)
     while find_count < ssm_finding_num and ssm_found < max_ssm:
-        ik, iprs, cp_ranges, all_theta, ssm_found_tf = find_random_ssm(
-            target_x, all_theta, robot, C_dot_A)
+        ik, iprs, cp_ranges, all_theta, ssm_found_tf, ik7, iprs7 = find_random_ssm(
+            r, target_x, all_theta, robot, C_dot_A, C_dot_A_7)
         if not ik: break
         find_count += 1
         iprs = extend_ranges(iprs)
+        iprs7 = extend_ranges(iprs7)
         for intersection_range in iprs:
             beta0_lm = CA[0][0] - intersection_range[1]
             beta0_um = CA[0][1] - intersection_range[0]
@@ -479,7 +756,23 @@ def compute_beta_range(x, y, z, robot, C_dot_A, CA):
                 beta0_ranges.append([beta0_lm, np.pi])
             else:
                 beta0_ranges.append([beta0_lm, beta0_um])
+
+        for intersection_range in iprs7:
+            alpha0_lm = CA[6][0] - intersection_range[1]
+            alpha0_um = CA[6][1] - intersection_range[0]
+            if alpha0_um - alpha0_lm >= 2 * np.pi:
+                alpha0_ranges.append([-np.pi, np.pi])
+            elif alpha0_lm < -np.pi:
+                alpha0_ranges.append([alpha0_lm + 2 * np.pi, np.pi])
+                alpha0_ranges.append([-np.pi, alpha0_um])
+            elif alpha0_um > np.pi:
+                alpha0_ranges.append([-np.pi, alpha0_um - 2 * np.pi])
+                alpha0_ranges.append([alpha0_lm, np.pi])
+            else:
+                alpha0_ranges.append([alpha0_lm, alpha0_um])
+
         if ssm_found_tf:  ssm_found += 1; find_count = 0
+
         for cp_range in cp_ranges[0]:
             if cp_range[0] > -np.inf: theta1_ranges.append(cp_range)
         for cp_range in cp_ranges[1]:
@@ -495,7 +788,6 @@ def compute_beta_range(x, y, z, robot, C_dot_A, CA):
         for cp_range in cp_ranges[6]:
             if cp_range[0] > -np.inf: theta7_ranges.append(cp_range)
 
-    # print(beta0_ranges)
     if len(theta1_ranges) == 0: return []
     if len(theta2_ranges) == 0: return []
     if len(theta3_ranges) == 0: return []
@@ -508,15 +800,6 @@ def compute_beta_range(x, y, z, robot, C_dot_A, CA):
     theta6_ranges_union = union_ranges(theta6_ranges)
     theta7_ranges_union = union_ranges(theta7_ranges)
 
-    # print(theta1_ranges_union)
-    # print(theta2_ranges_union)
-    # print(theta3_ranges_union)
-    # print(theta4_ranges_union)
-    # print('hello')
-    # print(extend_ranges(theta1_ranges_union))
-    # print(extend_ranges(theta2_ranges_union))
-    # print(extend_ranges(theta3_ranges_union))
-    # print(extend_ranges(theta4_ranges_union))
     """
     if len(all_theta) != 0:
         points = np.array(all_theta)
@@ -586,6 +869,25 @@ def compute_beta_range(x, y, z, robot, C_dot_A, CA):
             if (max_beta1 - min_beta1 >= 2 * np.pi) or (tr[0] == -np.pi and tr[1] == np.pi):
                 max_beta1 = np.pi
                 min_beta1 = -np.pi
+
+    ion1_alpha = False
+    has_negative_pi_range = None
+    has_positive_pi_range = None
+    for tr in theta1_ranges_union:
+        if tr[0] == -np.pi:
+            has_negative_pi_range = tr[1]
+        if tr[1] == np.pi:
+            has_positive_pi_range = tr[0]
+        if CA[0][0] >= tr[0] and CA[0][1] <= tr[1]:
+            ion1_alpha = True
+    if CA[0][0] < -np.pi:
+        if has_negative_pi_range is not None and has_positive_pi_range is not None:
+            if CA[0][1] <= has_negative_pi_range and CA[0][0] + 2 * np.pi >= has_positive_pi_range:
+                ion1_alpha = True
+    if CA[0][1] > np.pi:
+        if has_negative_pi_range is not None and has_positive_pi_range is not None:
+            if CA[0][1] - 2 * np.pi <= has_negative_pi_range and CA[0][0] >= has_positive_pi_range:
+                ion1_alpha = True
 
     ion2 = False
     has_negative_pi_range = None
@@ -717,21 +1019,35 @@ def compute_beta_range(x, y, z, robot, C_dot_A, CA):
         if has_negative_pi_range is not None and has_positive_pi_range is not None:
             if CA[6][1] - 2 * np.pi <= has_negative_pi_range and CA[6][0] >= has_positive_pi_range:
                 ion7 = True
-                # print('joint 7 succeed')
-    # for index in range(len(beta0_ranges)):
-    #    min_beta0, max_beta0 = beta0_ranges[index][0], beta0_ranges[index][1]
-    #    min_beta_f_ftw = -np.pi
-    #   max_beta_f_ftw = np.pi
-    #    all_smm_beta_range.append([min_beta_f_ftw, max_beta_f_ftw])
+
+    ion7_alpha = False
+    min_alpha1 = 0
+    max_alpha1 = 0
+    theta7_ranges_union = extend_ranges(theta7_ranges_union)
+    for tr in theta7_ranges_union:
+        if CA[6][0] >= tr[0] and CA[6][1] <= tr[1]:
+            ion7_alpha = True
+            min_alpha1 = CA[6][1] - tr[1]
+            max_alpha1 = CA[6][0] - tr[0]
+            if (max_alpha1 - min_alpha1 >= 2 * np.pi) or (tr[0] == -np.pi and tr[1] == np.pi):
+                max_alpha1 = np.pi
+                min_alpha1 = -np.pi
+
     if ion1 and ion2 and ion3 and ion4 and ion5 and ion6 and ion7:
         for index in range(len(beta0_ranges)):
             min_beta0, max_beta0 = beta0_ranges[index][0], beta0_ranges[index][1]
-
             min_beta_f_ftw = max(min_beta0, min_beta1, -np.pi)
             max_beta_f_ftw = min(max_beta0, max_beta1, np.pi)
             if min_beta_f_ftw <= max_beta_f_ftw:
                 all_smm_beta_range.append([min_beta_f_ftw, max_beta_f_ftw])
-    return union_ranges(all_smm_beta_range)
+    if ion1_alpha and ion2 and ion3 and ion4 and ion5 and ion6 and ion7_alpha:
+        for index in range(len(alpha0_ranges)):
+            min_alpha0, max_alpha0 = alpha0_ranges[index][0], alpha0_ranges[index][1]
+            min_alpha_f_ftw = max(min_alpha0, min_alpha1, -np.pi)
+            max_alpha_f_ftw = min(max_alpha0, max_alpha1, np.pi)
+            if min_alpha_f_ftw <= max_alpha_f_ftw:
+                all_alpha_ranges.append([min_alpha_f_ftw, max_alpha_f_ftw])
+    return union_ranges(all_smm_beta_range), union_ranges(all_alpha_ranges)
 
 
 @measure_time
@@ -763,18 +1079,59 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     # print("3D coordinates of center points:")
     angle_ranges = []
     reachable_points = 0
-
+    orientational_connectivity = 0
     for center in grid_centers:
+        orientational_nodes = []
         # for center in tqdm(grid_centers, desc="Processing centers"):
         # Compute beta ranges for each center
         print(center)
-        beta_ranges = compute_beta_range(center[0], center[1], center[2], robot, C_dot_A, CA)
+        target_x = np.array([center[0], center[1], center[2]]).T.reshape((3, 1))
+        for sample_tuple in theta_phi_list:
+            sampled_orientation = zyz_to_R(sample_tuple[0], sample_tuple[1], 0)
+            beta_ranges, alpha_ranges = compute_beta_range(sampled_orientation, target_x, robot, C_dot_A, CA)
+            print(beta_ranges)
+            print(alpha_ranges)
+            # angle_ranges.append(beta_ranges)
+            # alpha_ranges=compute_alpha_range(sampled_orientation, target_x, robot, C_dot_A, CA)
+
+            # now we can plot the orientational graph for point(target x rotate by Z1 by sampled_beta degree) as a line
+            # or several line segments in 3D space with theta=sampled_beta,phi=phi,psi in the alpha ranges
+            # this beta ranges means number of angles allowed
+            # for rotation around Z1, result in ft 6D position(x',y',z,sample_theta+beta,sample_phi,0)
+            # that can be restored to 6D position(x,0,z,sample_theta, sample_phi, 0) by rotating -beta degree
+
+            # this alpha ranges means number of angles allowed
+            # for rotation around Z7, result in ft 6D position(x,0,z,sample_theta,sample_phi,alpha)
+            # that can be restored to 6D position(x,0,z,sample_theta, sample_phi, 0) by rotating -alpha degree
+            # which represents ft orientations for point x,0,z when sample_theta,sample_phi is determined.
+        """
+                sampled_psi_list = sample_points_in_ranges(orientation_beta_ranges, adjacency_threshold)
+                for psi in sampled_psi_list:
+                    # print(psi, sample_theta, sample_phi)
+                    orientational_nodes.append(zyz_to_R(sample_theta, sample_phi,0))
+        udg = create_graph_from_numbers(orientational_nodes)
+        nudg= nx.number_of_edges(udg)
+        #print(udg.edges)
+        output_connected = erode_and_dilate_until_vanished(udg)
+        print(output_connected)
+        orientational_connectivity += nudg*output_connected
+        """
+
+        random_matrix = np.random.randn(3, 3)
+        q, r = np.linalg.qr(random_matrix)
+        if np.linalg.det(q) < 0:
+            q[:, -1] = -q[:, -1]
+        r = q
+        beta_ranges = compute_beta_range(r, target_x, robot, C_dot_A, CA)
         # print(beta_ranges)
         if len(beta_ranges) != 0: reachable_points += 1
         angle_ranges.append(beta_ranges)
+    #print(f'gross orientational connectivity is{orientational_connectivity}')
+    #print(f'average orientational connectivity is{orientational_connectivity / len(grid_centers)}')
     # print(reachable_points)
 
     # Generate grid of squares
+    """
     grid_squares = generate_square_grid(n_x, n_z, x_range, z_range)
     arc_color = 'blue'
     # Plot setup
@@ -782,9 +1139,9 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     ax = fig.add_subplot(111, projection='3d')
 
     # Set plot range
-    ax.set_xlim([-4, 4])
-    ax.set_ylim([-4, 4])
-    ax.set_zlim([-4, 4])
+    ax.set_xlim([-7, 7])
+    ax.set_ylim([-7, 7])
+    ax.set_zlim([-7, 7])
     #    for i, square in enumerate(grid_squares):
     #   center = grid_centers[i]
     #    if center[2] > 0:  # Upper half, keep only one quarter
@@ -804,6 +1161,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
     plt.show()
+    """
 
     binary_matrix, x_edges, y_edges, z_edges = generate_binary_matrix(
         n_x, n_z, x_range, z_range, grid_size, angle_ranges
@@ -831,6 +1189,7 @@ l = [0.5, 0.48, 0.76, 0.95]
 # l =   [0.4678658670270923, 0.4484934743492972, 0.860979553181329, 0.832349768252797]
 ap = ssm_estimation(512, d, alpha, l, CA)
 """
+
 # 72 98 128 162 200 242 288 338 392
 alpha = [-62 * np.pi / 180, -79 * np.pi / 180, 90 * np.pi / 180, 29 * np.pi / 180, 81 * np.pi / 180, -80 * np.pi / 180,
          -90 * np.pi / 180]
@@ -846,7 +1205,7 @@ CA = [(-107 * np.pi / 180, 107 * np.pi / 180), (-164 * np.pi / 180, 141 * np.pi 
       (-132 * np.pi / 180, 132 * np.pi / 180), (-151 * np.pi / 180, 102 * np.pi / 180),
       (-115 * np.pi / 180, 149 * np.pi / 180), (-75 * np.pi / 180, 129 * np.pi / 180),
       (16 * np.pi / 180, 193 * np.pi / 180)]
-ap = ssm_estimation(512, d, alpha, l, CA)
+ap = ssm_estimation(positional_samples, d, alpha, l, CA)
 # print(beta_ranges)
 
 # print(x)
