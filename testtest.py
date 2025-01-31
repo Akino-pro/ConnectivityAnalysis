@@ -2,71 +2,58 @@ import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
-
-def fibonacci_sphere_modified(n, r=1):
+def spherical_to_cartesian(theta, phi):
     """
-    Generate vertices evenly distributed on the surface of a sphere using a
-    modified Fibonacci Sphere Algorithm:
-
-    - Uses the golden angle (2*pi / phi^2).
-    - Includes an offset (0.5) in the index to avoid placing a point exactly at the pole.
-
-    Args:
-    - n (int): Number of points.
-    - r (float): Radius of the sphere. Default is 1.
-
-    Returns:
-    - points (list of tuples): List of (x, y, z) coordinates on the sphere.
+    Convert spherical angles (theta, phi) to 3D Cartesian coordinates (x, y, z).
+    Here:
+      - theta in [0, 2π) is the azimuth angle,
+      - phi   in [0,   π] is the polar angle from the +z axis.
     """
-    phi = (1.0 + np.sqrt(5.0)) / 2.0  # The golden ratio, ~1.618
-    # The "golden angle" often used in phyllotaxis:
-    golden_angle = 2.0 * np.pi / (phi ** 2)  # ~2.399963
+    x = np.sin(phi) * np.cos(theta)
+    y = np.sin(phi) * np.sin(theta)
+    z = np.cos(phi)
+    return x, y, z
 
-    points = []
-    for i in range(n):
-        # Offset from 0 to avoid the exact pole
-        offset_i = i + 0.5
-        # Map z from +1 to -1
-        z = 1.0 - 2.0 * offset_i / n
-        # Radius in x-y plane
-        xy_radius = np.sqrt(1.0 - z * z)
+# --- 1) Choose a single 'base' point on the sphere ---
+theta0 = 1.2       # some azimuth
+phi0   = 0.8       # some colatitude
 
-        # Angle increments by the golden angle
-        theta = golden_angle * offset_i
+# --- 2) Define the "shift": theta ∈ [theta0 + 1, theta0 + 2] ---
+N = 100  # number of sample points to plot the arc
+thetas_arc = np.linspace(theta0 + 1, theta0 + 2, N)
 
-        x = xy_radius * np.cos(theta)
-        y = xy_radius * np.sin(theta)
+# Compute Cartesian coords of that arc at constant phi = phi0
+arc_x, arc_y, arc_z = [], [], []
+for t in thetas_arc:
+    x, y, z = spherical_to_cartesian(t, phi0)
+    arc_x.append(x)
+    arc_y.append(y)
+    arc_z.append(z)
 
-        points.append((r * x, r * y, r * z))
+# --- 3) (Optional) Create a sphere mesh to visualize reference ---
+phi_s    = np.linspace(0, np.pi, 50)       # for the mesh
+theta_s  = np.linspace(0, 2*np.pi, 50)
+phi_s, theta_s = np.meshgrid(phi_s, theta_s)
+x_s = np.sin(phi_s) * np.cos(theta_s)
+y_s = np.sin(phi_s) * np.sin(theta_s)
+z_s = np.cos(phi_s)
 
-    return points
+# --- 4) Plot the sphere and the arc ---
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
 
+# Light gray sphere surface
+ax.plot_surface(x_s, y_s, z_s, color='gray', alpha=0.2, linewidth=0)
 
-def plot_fibonacci_sphere_modified(n, r=1):
-    """
-    Plot the vertices generated using the modified Fibonacci Sphere.
+# The shifted arc
+ax.plot(arc_x, arc_y, arc_z, 'r-', lw=3, label='theta ∈ [theta0+1, theta0+2]')
 
-    Args:
-    - n (int): Number of points.
-    - r (float): Radius of the sphere. Default is 1.
-    """
-    points = fibonacci_sphere_modified(n, r)
-    x_vals, y_vals, z_vals = zip(*points)
+# Original point (theta0, phi0)
+x0, y0, z0 = spherical_to_cartesian(theta0, phi0)
+ax.scatter([x0], [y0], [z0], color='blue', s=50, label='Original point')
 
-    fig = plt.figure(figsize=(8, 8))
-    ax = fig.add_subplot(111, projection='3d')
-
-    ax.scatter(x_vals, y_vals, z_vals, color='b', s=10)
-
-    ax.set_box_aspect((1, 1, 1))  # Ensures the sphere looks round
-    ax.set_xlabel('X')
-    ax.set_ylabel('Y')
-    ax.set_zlabel('Z')
-    ax.set_title(f"Modified Fibonacci Sphere with {n} points, radius={r}")
-
-    plt.show()
-
-
-# Example usage
-if __name__ == "__main__":
-    plot_fibonacci_sphere_modified(100)
+# Some cosmetic touches
+ax.set_xlim([-1,1]); ax.set_ylim([-1,1]); ax.set_zlim([-1,1])
+ax.set_xlabel('X'); ax.set_ylabel('Y'); ax.set_zlabel('Z')
+ax.legend()
+plt.show()

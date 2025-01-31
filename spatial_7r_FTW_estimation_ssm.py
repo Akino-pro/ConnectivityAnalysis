@@ -3,6 +3,9 @@
 # 3. visualize positional and orientational workspace
 import time
 
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+from tqdm import tqdm
+
 import numpy as np
 from scipy.linalg import null_space
 from roboticstoolbox import DHRobot, RevoluteDH
@@ -13,9 +16,12 @@ from spatial3R_ftw_draw import generate_grid_centers, generate_square_grid, draw
 from Three_dimension_connectivity_measure import connectivity_analysis
 from spatial3R_ftw_draw import generate_binary_matrix
 from scipy.spatial.transform import Rotation as R
-from graph_connectivity_analysis import erode_and_dilate_until_vanished, fibonacci_sphere_angles, \
-    fibonacci_sphere_distance
+from graph_connectivity_analysis import erode_and_dilate_until_vanished, fibonacci_sphere_distance
+from helper_functions import plot_shifted_arcs_on_sphere, fibonacci_sphere_angles, get_extruded_wedges, \
+    wedge_faces_to_binary_volume, track_top_5
 import networkx as nx
+
+from test_the_end import plot_bar_graph_transposed_same_color
 
 kernel_size = 1
 Lambda = 0.5
@@ -26,13 +32,31 @@ terminate_threshold = 9.0 / 5.0 * step_size
 ssm_finding_num = 10
 max_ssm = 16
 positional_samples = 72
-orientation_samples = 100
+orientation_samples = 64
 theta_phi_list = fibonacci_sphere_angles(orientation_samples)
-adjacency_threshold=fibonacci_sphere_distance(orientation_samples)*np.pi/180
+#print(theta_phi_list)
+"""
+theta_ranges_all = [[] for _ in range(orientation_samples)]
+theta_ranges_all[0] = [(0, 1), (2, 3)]
+theta_ranges_all[1] = [(1.5, 1.8)]
+theta_ranges_all[2] = [(4.5, 5.5), (5.9, 6.2)]
+theta_ranges_all[3] = [(0, 2 * np.pi)]
 
-#adjacency_threshold = 2 * np.pi / orientation_samples
-# theta_phi_list = np.linspace(0, 2 * np.pi, orientation_samples)
+#plot_shifted_arcs_on_sphere(theta_phi_list, theta_ranges_all, samples_per_arc=40)
+all_wedge_faces = get_extruded_wedges(
+    theta_phi_list,
+    theta_ranges_all,
+    samples_per_arc=40,
+    extrude_radius=2*np.pi,
+    do_plot=True
+)
+binary_volume = wedge_faces_to_binary_volume(all_wedge_faces, NX=50, NY=50, NZ=50)
+print(binary_volume)
+shape_area, connected_connectivity, general_connectivity = connectivity_analysis(binary_volume,kernel_size, Lambda)
+"""
 
+
+# adjacency_threshold = fibonacci_sphere_distance(orientation_samples) * np.pi / 180
 
 def zyz_to_R(psi, theta, phi):
     rot_fwd = R.from_euler('zyz', [psi, theta, phi], degrees=False)
@@ -49,6 +73,13 @@ def R_to_zyz(R_mat):
 def angle_between_2_orientation(R1, R2):
     # print(np.arccos((np.trace(np.dot(R1.T, R2)) - 1) / 2))
     return np.arccos((np.trace(np.dot(R1.T, R2)) - 1) / 2)
+
+
+def range_sum(range_list):
+    result = 0.0
+    for single_range in range_list:
+        result = +(single_range[1] - single_range[0])
+    return result
 
 
 def sample_points_in_ranges(ranges, min_distance):
@@ -76,20 +107,9 @@ def sample_points_in_ranges(ranges, min_distance):
     return sampled_points
 
 
+"""
 def create_graph_from_numbers(numbers):
-    """
-    Create an undirected graph from a list of numbers based on a threshold distance.
 
-    Parameters:
-    - numbers: list of numbers
-               The list of numbers to use as nodes.
-    - threshold: float
-                 The maximum distance between two numbers to add an edge.
-
-    Returns:
-    - graph: networkx.Graph
-             The resulting undirected graph.
-    """
     # Create an empty undirected graph
     graph = nx.Graph()
 
@@ -104,6 +124,7 @@ def create_graph_from_numbers(numbers):
                 graph.add_edge(i, j)
 
     return graph
+"""
 
 
 def convert_to_C_dot_A(CA):
@@ -263,7 +284,6 @@ def stepwise_ssm(theta, n_j, Tep, previous_n_j, robot):
 
 
 def find_intersection_points(ssm_theta_list, C_dot_A):
-    tof = False
     counter = 0
     ip_ranges = []
     isin_list = []
@@ -291,11 +311,10 @@ def find_intersection_points(ssm_theta_list, C_dot_A):
         if np.abs(local_max_theta1 - np.pi) <= 1e-2: local_max_theta1 = np.pi
         ip_ranges.append([local_min_theta1, local_max_theta1])
         # print([local_min_theta1, local_max_theta1])
-    return union_ranges(ip_ranges), tof
+    return union_ranges(ip_ranges)
 
 
 def find_ip_7th_joint(ssm_theta_list, C_dot_A_7th):
-    tof = False
     counter = 0
     ip_ranges = []
     isin_list = []
@@ -322,7 +341,7 @@ def find_ip_7th_joint(ssm_theta_list, C_dot_A_7th):
         if np.abs(local_max_theta7 - np.pi) <= 1e-2: local_max_theta7 = np.pi
         ip_ranges.append([local_min_theta7, local_max_theta7])
         # print([local_min_theta1, local_max_theta1])
-    return union_ranges(ip_ranges), tof
+    return union_ranges(ip_ranges)
 
 
 def find_ranges(nums):
@@ -348,7 +367,7 @@ def extend_ranges(union_ranges):
     has_positive_pi_range = None
     for tr in union_ranges:
         if tr[0] == -np.pi and tr[1] == np.pi:
-            return [[- np.pi, np.pi]]
+            return [[- 3 * np.pi, np.pi], [-np.pi, 3 * np.pi]]
         elif tr[0] == -np.pi:
             has_negative_pi_range = tr[1]
         elif tr[1] == np.pi:
@@ -465,13 +484,13 @@ def find_random_ssm(r, x_target, all_ssm_theta_list, robot, C_dot_A, C_dot_A_7):
     result = robot.ikine_LM(Tep, mask=[1, 1, 1, 1, 1, 1], q0=q)
 
     if not result.success:
-        return result.success, [], [[], [], [], [], [], [], []], all_ssm_theta_list, ssm_found
+        return result.success, [], [[], [], [], [], [], [], []], all_ssm_theta_list, ssm_found, []
 
     sol = result.q.reshape((7, 1))
     for configuration in all_ssm_theta_list:
         if np.linalg.norm(configuration - sol) <= terminate_threshold:
             # print('ssm already exists.')
-            return True, [], [[], [], [], [], [], [], []], all_ssm_theta_list, ssm_found
+            return True, [], [[], [], [], [], [], [], []], all_ssm_theta_list, ssm_found, []
     theta = sol
     theta_prime = theta.copy()
 
@@ -484,6 +503,7 @@ def find_random_ssm(r, x_target, all_ssm_theta_list, robot, C_dot_A, C_dot_A_7):
     threshold = 1
     lowest = step_size
     all_dis = []
+    tf_reset = False
     while True:
         num += 1
         # print(num)
@@ -560,24 +580,34 @@ def find_random_ssm(r, x_target, all_ssm_theta_list, robot, C_dot_A, C_dot_A_7):
         all_dis.append(threshold)
         if threshold < lowest: lowest = threshold
 
-        if num == 100:
+        if num == 2000 and not tf_reset:
             # check if the searching has been guided to an searched smm in 100 steps.
             for configuration in all_ssm_theta_list:
                 if np.linalg.norm(configuration - theta) <= terminate_threshold:
                     # print('ssm guided to wrong direction.')
-                    return True, [], [[], [], [], [], [], [], []], all_ssm_theta_list, ssm_found
+                    return True, [], [[], [], [], [], [], [], []], all_ssm_theta_list, ssm_found, []
+
+            theta_prime = theta
+            num = 0
+            ssm_theta_list = [theta]
+            all_dis = []
+            tf_reset = True
+
         # m, n = np.shape(new_n_j)
         n_j = new_n_j
 
         if num > 15000:
             print('stuck at a too small smm')
+            print('should never show up now')
             # for configuration in all_ssm_theta_list:
             #    if np.linalg.norm(configuration - theta) <= terminate_threshold:
             #        # print('ssm guided to wrong direction.')
             #        return True, [], [[], [], [], []], all_ssm_theta_list, ssm_found
             # print('still not found')
-            theta_prime = theta
-            num = 0
+            return True, [], [[], [], [], [], [], [], []], all_ssm_theta_list, ssm_found, []
+            # theta_prime = theta
+            # num = 0
+            ###
             """
 
             points = np.array(ssm_theta_list)
@@ -644,10 +674,11 @@ def find_random_ssm(r, x_target, all_ssm_theta_list, robot, C_dot_A, C_dot_A_7):
 
             # Display the plot
             plt.show()
-            """
 
-            ssm_theta_list = [theta]
-            all_dis = []
+            ###
+            """
+            # ssm_theta_list = [theta]
+            # all_dis = []
 
             # return True, [], [[], [], [], []], all_ssm_theta_list, ssm_found
         ssm_theta_list.append(theta)
@@ -711,10 +742,10 @@ def find_random_ssm(r, x_target, all_ssm_theta_list, robot, C_dot_A, C_dot_A_7):
     # print(f'found a new ssm with {num} points.')
     ssm_found = True
 
-    ip_ranges, tof = find_intersection_points(ssm_theta_list, C_dot_A)
-    ip_ranges_alpha, tof_alpha = find_ip_7th_joint(ssm_theta_list, C_dot_A_7)
+    ip_ranges = find_intersection_points(ssm_theta_list, C_dot_A)
+    ip_ranges_alpha = find_ip_7th_joint(ssm_theta_list, C_dot_A_7)
     cp_ranges = find_critical_points(ssm_theta_list)
-    return tof, ip_ranges, cp_ranges, all_ssm_theta_list, ssm_found, tof_alpha, ip_ranges_alpha
+    return True, ip_ranges, cp_ranges, all_ssm_theta_list, ssm_found, ip_ranges_alpha
 
 
 def compute_beta_range(r, target_x, robot, C_dot_A, CA):
@@ -736,7 +767,7 @@ def compute_beta_range(r, target_x, robot, C_dot_A, CA):
     C_dot_A_7[6] = (-np.pi, np.pi)
     C_dot_A_7 = convert_to_C_dot_A(C_dot_A_7)
     while find_count < ssm_finding_num and ssm_found < max_ssm:
-        ik, iprs, cp_ranges, all_theta, ssm_found_tf, ik7, iprs7 = find_random_ssm(
+        ik, iprs, cp_ranges, all_theta, ssm_found_tf, iprs7 = find_random_ssm(
             r, target_x, all_theta, robot, C_dot_A, C_dot_A_7)
         if not ik: break
         find_count += 1
@@ -770,7 +801,6 @@ def compute_beta_range(r, target_x, robot, C_dot_A, CA):
                 alpha0_ranges.append([alpha0_lm, np.pi])
             else:
                 alpha0_ranges.append([alpha0_lm, alpha0_um])
-
         if ssm_found_tf:  ssm_found += 1; find_count = 0
 
         for cp_range in cp_ranges[0]:
@@ -788,10 +818,10 @@ def compute_beta_range(r, target_x, robot, C_dot_A, CA):
         for cp_range in cp_ranges[6]:
             if cp_range[0] > -np.inf: theta7_ranges.append(cp_range)
 
-    if len(theta1_ranges) == 0: return []
-    if len(theta2_ranges) == 0: return []
-    if len(theta3_ranges) == 0: return []
-    if len(theta4_ranges) == 0: return []
+    if len(theta1_ranges) == 0: return [], []
+    if len(theta2_ranges) == 0: return [], []
+    if len(theta3_ranges) == 0: return [], []
+    if len(theta4_ranges) == 0: return [], []
     theta1_ranges_union = union_ranges(theta1_ranges)
     theta2_ranges_union = union_ranges(theta2_ranges)
     theta3_ranges_union = union_ranges(theta3_ranges)
@@ -856,20 +886,6 @@ def compute_beta_range(r, target_x, robot, C_dot_A, CA):
 
         plt.show()
     """
-    ion1 = False
-    min_beta1 = 0
-    max_beta1 = 0
-    theta1_ranges_union = extend_ranges(theta1_ranges_union)
-    for tr in theta1_ranges_union:
-        if CA[0][0] >= tr[0] and CA[0][1] <= tr[1]:
-            ion1 = True
-            # print('joint 1 succeed')
-            min_beta1 = CA[0][1] - tr[1]
-            max_beta1 = CA[0][0] - tr[0]
-            if (max_beta1 - min_beta1 >= 2 * np.pi) or (tr[0] == -np.pi and tr[1] == np.pi):
-                max_beta1 = np.pi
-                min_beta1 = -np.pi
-
     ion1_alpha = False
     has_negative_pi_range = None
     has_positive_pi_range = None
@@ -888,6 +904,20 @@ def compute_beta_range(r, target_x, robot, C_dot_A, CA):
         if has_negative_pi_range is not None and has_positive_pi_range is not None:
             if CA[0][1] - 2 * np.pi <= has_negative_pi_range and CA[0][0] >= has_positive_pi_range:
                 ion1_alpha = True
+
+    ion1 = False
+    min_beta1 = 0
+    max_beta1 = 0
+    theta1_ranges_union = extend_ranges(theta1_ranges_union)
+    for tr in theta1_ranges_union:
+        if CA[0][0] >= tr[0] and CA[0][1] <= tr[1]:
+            ion1 = True
+            # print('joint 1 succeed')
+            min_beta1 = CA[0][1] - tr[1]
+            max_beta1 = CA[0][0] - tr[0]
+            if (max_beta1 - min_beta1 >= 2 * np.pi) or (tr[0] == -np.pi and tr[1] == np.pi):
+                max_beta1 = np.pi
+                min_beta1 = -np.pi
 
     ion2 = False
     has_negative_pi_range = None
@@ -1002,6 +1032,7 @@ def compute_beta_range(r, target_x, robot, C_dot_A, CA):
     ion7 = False
     has_negative_pi_range = None
     has_positive_pi_range = None
+    # print(theta7_ranges_union)
     for tr in theta7_ranges_union:
         if tr[0] == -np.pi:
             has_negative_pi_range = tr[1]
@@ -1024,6 +1055,7 @@ def compute_beta_range(r, target_x, robot, C_dot_A, CA):
     min_alpha1 = 0
     max_alpha1 = 0
     theta7_ranges_union = extend_ranges(theta7_ranges_union)
+    # print(theta7_ranges_union)
     for tr in theta7_ranges_union:
         if CA[6][0] >= tr[0] and CA[6][1] <= tr[1]:
             ion7_alpha = True
@@ -1034,6 +1066,7 @@ def compute_beta_range(r, target_x, robot, C_dot_A, CA):
                 min_alpha1 = -np.pi
 
     if ion1 and ion2 and ion3 and ion4 and ion5 and ion6 and ion7:
+        # print(ion1_alpha, ion2, ion3, ion4, ion5, ion6, ion7_alpha)
         for index in range(len(beta0_ranges)):
             min_beta0, max_beta0 = beta0_ranges[index][0], beta0_ranges[index][1]
             min_beta_f_ftw = max(min_beta0, min_beta1, -np.pi)
@@ -1079,59 +1112,79 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     # print("3D coordinates of center points:")
     angle_ranges = []
     reachable_points = 0
-    orientational_connectivity = 0
-    for center in grid_centers:
-        orientational_nodes = []
-        # for center in tqdm(grid_centers, desc="Processing centers"):
+    orientational_connectivity = []
+    update_top_5, get_top_5 = track_top_5()
+    index = 1
+    for center in tqdm(grid_centers, desc="Processing Items"):
         # Compute beta ranges for each center
         print(center)
+        all_alpha_ranges = []
+        all_beta_ranges = []
+        positional_beta_ranges = []
         target_x = np.array([center[0], center[1], center[2]]).T.reshape((3, 1))
-        for sample_tuple in theta_phi_list:
+        for sample_tuple in tqdm(theta_phi_list, desc="Processing Items"):
             sampled_orientation = zyz_to_R(sample_tuple[0], sample_tuple[1], 0)
             beta_ranges, alpha_ranges = compute_beta_range(sampled_orientation, target_x, robot, C_dot_A, CA)
-            print(beta_ranges)
-            print(alpha_ranges)
-            # angle_ranges.append(beta_ranges)
-            # alpha_ranges=compute_alpha_range(sampled_orientation, target_x, robot, C_dot_A, CA)
+            all_alpha_ranges.append(alpha_ranges)
+            positional_beta_ranges.extend(beta_ranges)
+            positional_beta_ranges = union_ranges(positional_beta_ranges)
 
-            # now we can plot the orientational graph for point(target x rotate by Z1 by sampled_beta degree) as a line
-            # or several line segments in 3D space with theta=sampled_beta,phi=phi,psi in the alpha ranges
-            # this beta ranges means number of angles allowed
-            # for rotation around Z1, result in ft 6D position(x',y',z,sample_theta+beta,sample_phi,0)
-            # that can be restored to 6D position(x,0,z,sample_theta, sample_phi, 0) by rotating -beta degree
+            if len(beta_ranges) != 0:
+                for beta_range in beta_ranges:
+                    limit1 = beta_range[0] + sample_tuple[0] + np.pi
+                    limit2 = beta_range[1] + sample_tuple[0] + np.pi
+                    if limit1 < 0:
+                        limit1 += 2 * np.pi
+                    if limit1 > 2 * np.pi:
+                        limit1 -= 2 * np.pi
+                    if limit2 < 0:
+                        limit2 += 2 * np.pi
+                    if limit2 > 2 * np.pi:
+                        limit2 -= 2 * np.pi
+            all_beta_ranges.append(beta_ranges)
 
-            # this alpha ranges means number of angles allowed
-            # for rotation around Z7, result in ft 6D position(x,0,z,sample_theta,sample_phi,alpha)
-            # that can be restored to 6D position(x,0,z,sample_theta, sample_phi, 0) by rotating -alpha degree
-            # which represents ft orientations for point x,0,z when sample_theta,sample_phi is determined.
-        """
-                sampled_psi_list = sample_points_in_ranges(orientation_beta_ranges, adjacency_threshold)
-                for psi in sampled_psi_list:
-                    # print(psi, sample_theta, sample_phi)
-                    orientational_nodes.append(zyz_to_R(sample_theta, sample_phi,0))
-        udg = create_graph_from_numbers(orientational_nodes)
-        nudg= nx.number_of_edges(udg)
-        #print(udg.edges)
-        output_connected = erode_and_dilate_until_vanished(udg)
-        print(output_connected)
-        orientational_connectivity += nudg*output_connected
-        """
+        # plot_shifted_arcs_on_sphere(theta_phi_list, all_beta_ranges, samples_per_arc=40)
+        # TODO: plot out alpha ranges as a 2D map
+        print(all_alpha_ranges)
+        all_wedge_faces = get_extruded_wedges(
+            theta_phi_list,
+            all_beta_ranges,
+            samples_per_arc=40,
+            extrude_radius=2 * np.pi,
+        )
+        shape_area = 0
+        if len(all_wedge_faces) == 0:
+            orientational_connectivity.append(0)
+            # print(0)
+        else:
+            binary_volume = wedge_faces_to_binary_volume(all_wedge_faces, NX=50, NY=50, NZ=50)
+            shape_area, connected_connectivity, general_connectivity = connectivity_analysis(binary_volume,
+                                                                                             kernel_size, Lambda)
+            orientational_connectivity.append(general_connectivity)
+            # print(general_connectivity)
+        update_top_5(shape_area, index, all_beta_ranges, all_alpha_ranges)
+        index += 1
 
-        random_matrix = np.random.randn(3, 3)
-        q, r = np.linalg.qr(random_matrix)
-        if np.linalg.det(q) < 0:
-            q[:, -1] = -q[:, -1]
-        r = q
-        beta_ranges = compute_beta_range(r, target_x, robot, C_dot_A, CA)
-        # print(beta_ranges)
-        if len(beta_ranges) != 0: reachable_points += 1
-        angle_ranges.append(beta_ranges)
-    #print(f'gross orientational connectivity is{orientational_connectivity}')
-    #print(f'average orientational connectivity is{orientational_connectivity / len(grid_centers)}')
-    # print(reachable_points)
+        if len(positional_beta_ranges) != 0: reachable_points += 1
+        angle_ranges.append(positional_beta_ranges)
 
-    # Generate grid of squares
-    """
+    # plot 3D positional ftw
+    print(get_top_5())
+    color_list = ['b', 'r', 'g', 'y', 'c']
+    for i in range(5):
+        beta_range_to_plot = get_top_5()[i][2]
+        alpha_range_to_plot = get_top_5()[i][3]
+        all_wedge_faces = get_extruded_wedges(
+            theta_phi_list,
+            beta_range_to_plot,
+            samples_per_arc=40,
+            extrude_radius=2 * np.pi,
+            do_plot=True,
+            color=color_list[i]
+        )
+        plot_bar_graph_transposed_same_color(theta_phi_list, alpha_range_to_plot)
+
+
     grid_squares = generate_square_grid(n_x, n_z, x_range, z_range)
     arc_color = 'blue'
     # Plot setup
@@ -1139,17 +1192,9 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     ax = fig.add_subplot(111, projection='3d')
 
     # Set plot range
-    ax.set_xlim([-7, 7])
-    ax.set_ylim([-7, 7])
-    ax.set_zlim([-7, 7])
-    #    for i, square in enumerate(grid_squares):
-    #   center = grid_centers[i]
-    #    if center[2] > 0:  # Upper half, keep only one quarter
-    #        for beta_range in angle_ranges[i]:
-    #            draw_rotated_grid(ax, square, [0.25 * beta_range[0], 0.25 * beta_range[1]], arc_color)
-    #    else:  # Lower half, remove one quarter
-    #        for beta_range in angle_ranges[i]:
-    #            draw_rotated_grid(ax, square, [0.75 * beta_range[0], 0.75 * beta_range[1]], arc_color)
+    ax.set_xlim([-max_length, max_length])
+    ax.set_ylim([-max_length, max_length])
+    ax.set_zlim([-max_length, max_length])
 
     # Draw arcs for each square grid by rotating the entire grid square、
     for i, square in enumerate(grid_squares):
@@ -1161,7 +1206,30 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
     plt.show()
-    """
+
+    # draw positional fault tolerant grids used for orientational demo
+    grid_squares = generate_square_grid(n_x, n_z, x_range, z_range)
+    # Plot setup
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+    # Set plot range
+    ax.set_xlim([-max_length, max_length])
+    ax.set_ylim([-max_length, max_length])
+    ax.set_zlim([-max_length, max_length])
+
+    # Draw squares only if the angle_ranges[i] is non-empty
+    for i, square in enumerate(grid_squares):
+        if angle_ranges[i]:  # Check if the list is non-empty
+            # Plot the square grid directly
+            square_poly = Poly3DCollection([square], color='blue', alpha=0.5)
+            ax.add_collection3d(square_poly)
+
+    # Set plot labels and show the plot
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')
+    plt.show()
 
     binary_matrix, x_edges, y_edges, z_edges = generate_binary_matrix(
         n_x, n_z, x_range, z_range, grid_size, angle_ranges
@@ -1170,6 +1238,10 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     # grayscale_matrix = convert_plot_to_voxel_matrix(ax)
     shape_area, connected_connectivity, general_connectivity = connectivity_analysis(binary_matrix,
                                                                                      kernel_size, Lambda)
+    print(f'sampled {positional_samples} points with {reachable_points} positional fault tolerant')
+    print(
+        f'average orientation connectivity over {orientation_samples} is {np.sum(orientational_connectivity) / orientation_samples}')
+    print(f'positional connectivity:{general_connectivity}')
     return general_connectivity
 
 
