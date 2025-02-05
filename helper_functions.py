@@ -6,6 +6,46 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from scipy.spatial import SphericalVoronoi
 import trimesh
 
+step_size = 0.01
+terminate_threshold = 9.0 / 5.0 * step_size
+
+
+def union_ranges(ranges):
+    """
+    Computes the union of a list of ranges, with special handling for ranges that wrap around
+    [-π, π]. If such ranges are detected, they are replaced by modified ranges.
+
+    Parameters:
+        ranges (list of tuples): List of ranges, where each range is represented as (a, b).
+
+    Returns:
+        list of tuples: The merged union of ranges as a list of non-overlapping ranges.
+    """
+    if not ranges:
+        return []
+
+    # Optional: Validate input ranges
+    for a, b in ranges:
+        if a > b:
+            raise ValueError(f"Invalid range: ({a}, {b}). Start must be <= end.")
+
+    # Sort the ranges by their starting point (and by end if start points are the same)
+    ranges = sorted(ranges, key=lambda x: (x[0], x[1]))
+
+    # Initialize the merged ranges with the first range
+    merged = [ranges[0]]
+    merge_threshold = terminate_threshold
+    for current in ranges[1:]:
+        last = merged[-1]
+
+        # If the current range overlaps or touches the last merged range, merge them
+        if current[0] <= last[1] or (current[0] - last[1] <= merge_threshold):  # Handle small gaps
+            merged[-1] = (last[0], max(last[1], current[1]))
+        else:
+            # No overlap, add the current range as a new entry
+            merged.append(current)
+    return merged
+
 
 def plot_shifted_arcs_on_sphere(angles, theta_ranges_per_point, samples_per_arc=50):
     """
@@ -308,6 +348,7 @@ def build_truncated_wedge(region_vertices, rmin, rmax, R_outer=1.0):
 
 def get_extruded_wedges(theta_phi_list,
                         theta_ranges_all,
+                        alpha_lists,
                         samples_per_arc=50,
                         extrude_radius=2 * np.pi,
                         do_plot=False,
@@ -337,16 +378,29 @@ def get_extruded_wedges(theta_phi_list,
     for i, intervals in enumerate(theta_ranges_all):
         if not intervals:
             continue
-        # We'll use phi_i from the generator
+        # We'll use phi_i from the i-th point
         theta_i, phi_i = theta_phi_list[i]
+
         for (tmin, tmax) in intervals:
+            # Sample points along the arc in theta
             thetas = np.linspace(tmin, tmax, samples_per_arc)
+            # Track visited regions for this arc so we only union once per region
+            visited_for_this_arc = set()
+
             for t in thetas:
                 x_arc, y_arc, z_arc = spherical_to_cartesian(t, phi_i)
                 p_arc = np.array([x_arc, y_arc, z_arc])
-                # find which region p_arc belongs to
+                # Find which Voronoi region p_arc belongs to
                 r_idx = find_voronoi_region(sv, p_arc)
+                visited_for_this_arc.add(r_idx)
+
+            # Union alpha_lists[r_idx] with alpha_lists[i] for each visited region
+            for r_idx in visited_for_this_arc:
                 visited_region_indices.add(r_idx)
+                # Concatenate existing intervals from alpha_lists[r_idx] and alpha_lists[i]
+                combined = alpha_lists[r_idx] + alpha_lists[i]
+                # Use the union_ranges(...) function to merge them
+                alpha_lists[r_idx] = union_ranges(combined)
 
     # 4) Build the wedge faces for each visited region
     all_wedge_faces = []
@@ -382,8 +436,7 @@ def get_extruded_wedges(theta_phi_list,
         ax.set_zlabel("Z")
         ax.set_title(f"Voronoi Regions Covered by Arcs, Extruded to r={extrude_radius}")
         plt.show()
-
-    return all_wedge_faces
+    return all_wedge_faces, alpha_lists
 
 
 def wedge_faces_to_binary_volume(all_wedge_faces, NX=50, NY=50, NZ=50):
@@ -453,3 +506,49 @@ def track_top_5():
         return sorted(top_5, key=lambda x: x[0], reverse=True)  # Return sorted top-5 list
 
     return update, get_top_5
+
+
+def normalize_and_map_colors(values, cmap_name='rainbow'):
+    """
+    Normalizes a list of values to the range [0, 1] and maps them to colors from a given colormap.
+
+    Parameters:
+        values (list or np.array): List of numerical values.
+        cmap_name (str): Name of the colormap to use (default is 'viridis').
+
+    Returns:
+        list: List of RGB color tuples corresponding to the normalized values.
+        matplotlib.cm.ScalarMappable: A colormap mappable for the colorbar.
+    """
+    values = np.array(values)  # Convert to NumPy array
+    min_val, max_val = np.min(values), np.max(values)
+
+    # Normalize values to [0,1] range
+    if max_val - min_val > 0:
+        normalized_values = (values - min_val) / (max_val - min_val)
+    else:
+        normalized_values = np.zeros_like(values)  # If all values are the same, use zero.
+
+    # Get colormap
+    cmap = plt.get_cmap(cmap_name)
+
+    # Map normalized values to colors
+    colors = [cmap(val) for val in normalized_values]
+
+    # Create a mappable object for colorbar
+    norm = plt.Normalize(vmin=min_val, vmax=max_val)
+    sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+    sm.set_array([])  # Required for colorbar to work properly
+
+    return colors, sm
+"""
+### Example Usage:
+values = [10, 20, 30, 40, 50, 60, 70]
+colors, sm = normalize_and_map_colors(values)
+
+fig, ax = plt.subplots()
+sc = ax.scatter(values, np.zeros_like(values), c=colors, s=100)
+cbar = plt.colorbar(sm, ax=ax, label='Value Spectrum')  # Ensure colorbar is linked to the mappable
+
+plt.show()
+"""

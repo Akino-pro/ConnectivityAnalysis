@@ -1,9 +1,6 @@
-# 1. Goldberg polyhedron
-# 2. add codes to find the alpha range of 7th joint
-# 3. visualize positional and orientational workspace
 import time
 
-from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection, Line3DCollection
 from tqdm import tqdm
 
 import numpy as np
@@ -16,10 +13,9 @@ from spatial3R_ftw_draw import generate_grid_centers, generate_square_grid, draw
 from Three_dimension_connectivity_measure import connectivity_analysis
 from spatial3R_ftw_draw import generate_binary_matrix
 from scipy.spatial.transform import Rotation as R
-from graph_connectivity_analysis import erode_and_dilate_until_vanished, fibonacci_sphere_distance
+
 from helper_functions import plot_shifted_arcs_on_sphere, fibonacci_sphere_angles, get_extruded_wedges, \
-    wedge_faces_to_binary_volume, track_top_5
-import networkx as nx
+    wedge_faces_to_binary_volume, track_top_5, union_ranges
 
 from test_the_end import plot_bar_graph_transposed_same_color
 
@@ -34,12 +30,12 @@ max_ssm = 16
 positional_samples = 72
 orientation_samples = 64
 theta_phi_list = fibonacci_sphere_angles(orientation_samples)
-#print(theta_phi_list)
+# print(theta_phi_list)
 """
 theta_ranges_all = [[] for _ in range(orientation_samples)]
 theta_ranges_all[0] = [(0, 1), (2, 3)]
 theta_ranges_all[1] = [(1.5, 1.8)]
-theta_ranges_all[2] = [(4.5, 5.5), (5.9, 6.2)]
+theta_ranges_all[2] = [(4.5, 5.5), (5.9, 6.2)]w
 theta_ranges_all[3] = [(0, 2 * np.pi)]
 
 #plot_shifted_arcs_on_sphere(theta_phi_list, theta_ranges_all, samples_per_arc=40)
@@ -383,43 +379,6 @@ def extend_ranges(union_ranges):
     elif has_positive_pi_range is not None:
         extended_ranges.append([has_positive_pi_range, np.pi])
     return extended_ranges
-
-
-def union_ranges(ranges):
-    """
-    Computes the union of a list of ranges, with special handling for ranges that wrap around
-    [-π, π]. If such ranges are detected, they are replaced by modified ranges.
-
-    Parameters:
-        ranges (list of tuples): List of ranges, where each range is represented as (a, b).
-
-    Returns:
-        list of tuples: The merged union of ranges as a list of non-overlapping ranges.
-    """
-    if not ranges:
-        return []
-
-    # Optional: Validate input ranges
-    for a, b in ranges:
-        if a > b:
-            raise ValueError(f"Invalid range: ({a}, {b}). Start must be <= end.")
-
-    # Sort the ranges by their starting point (and by end if start points are the same)
-    ranges = sorted(ranges, key=lambda x: (x[0], x[1]))
-
-    # Initialize the merged ranges with the first range
-    merged = [ranges[0]]
-    merge_threshold = terminate_threshold
-    for current in ranges[1:]:
-        last = merged[-1]
-
-        # If the current range overlaps or touches the last merged range, merge them
-        if current[0] <= last[1] or (current[0] - last[1] <= merge_threshold):  # Handle small gaps
-            merged[-1] = (last[0], max(last[1], current[1]))
-        else:
-            # No overlap, add the current range as a new entry
-            merged.append(current)
-    return merged
 
 
 def find_critical_points(ssm_theta_list):
@@ -1105,6 +1064,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     max_length = 0
     for i in range(7):
         max_length += np.sqrt(np.power(d[i], 2) + np.power(l[i], 2))
+    print(max_length)
     x_range = (0, max_length)  # Range for x-axis
     z_range = (-max_length, max_length)  # Range for z-axis
     grid_size = (64, 64, 64)
@@ -1144,14 +1104,16 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
             all_beta_ranges.append(beta_ranges)
 
         # plot_shifted_arcs_on_sphere(theta_phi_list, all_beta_ranges, samples_per_arc=40)
-        # TODO: plot out alpha ranges as a 2D map
-        print(all_alpha_ranges)
-        all_wedge_faces = get_extruded_wedges(
+
+        all_wedge_faces, all_alpha_ranges = get_extruded_wedges(
             theta_phi_list,
             all_beta_ranges,
+            all_alpha_ranges,
             samples_per_arc=40,
             extrude_radius=2 * np.pi,
         )
+        print(all_alpha_ranges)
+
         shape_area = 0
         if len(all_wedge_faces) == 0:
             orientational_connectivity.append(0)
@@ -1169,21 +1131,24 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
         angle_ranges.append(positional_beta_ranges)
 
     # plot 3D positional ftw
-    print(get_top_5())
+    top_5_grids = get_top_5()
+    print(top_5_grids)
     color_list = ['b', 'r', 'g', 'y', 'c']
+    index_list_to_color = []
     for i in range(5):
-        beta_range_to_plot = get_top_5()[i][2]
-        alpha_range_to_plot = get_top_5()[i][3]
-        all_wedge_faces = get_extruded_wedges(
+        index_list_to_color.append(top_5_grids[i][1])
+        beta_range_to_plot = top_5_grids[i][2]
+        alpha_range_to_plot = top_5_grids[i][3]
+        all_wedge_faces, alpha_range_to_plot = get_extruded_wedges(
             theta_phi_list,
             beta_range_to_plot,
+            alpha_range_to_plot,
             samples_per_arc=40,
             extrude_radius=2 * np.pi,
             do_plot=True,
             color=color_list[i]
         )
         plot_bar_graph_transposed_same_color(theta_phi_list, alpha_range_to_plot)
-
 
     grid_squares = generate_square_grid(n_x, n_z, x_range, z_range)
     arc_color = 'blue'
@@ -1220,16 +1185,32 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
 
     # Draw squares only if the angle_ranges[i] is non-empty
     for i, square in enumerate(grid_squares):
+        color = 'k'
+        for j in range(5):
+            if i == index_list_to_color[j]:
+                color = color_list[j]
+        alpha_level = 0.3
         if angle_ranges[i]:  # Check if the list is non-empty
+            alpha_level = 1.0
             # Plot the square grid directly
-            square_poly = Poly3DCollection([square], color='blue', alpha=0.5)
-            ax.add_collection3d(square_poly)
+        square_poly = Poly3DCollection([square], color=color, alpha=alpha_level)
+        ax.add_collection3d(square_poly)
+    frame_points = [
+        (x_range[0], 0, z_range[0]), (x_range[1], 0, z_range[0]),
+        (x_range[1], 0, z_range[1]), (x_range[0], 0, z_range[1]),
+        (x_range[0], 0, z_range[0])  # Closing the loop
+    ]
+
+    frame = Line3DCollection([frame_points], colors='k', linewidths=2)
+    ax.add_collection3d(frame)
 
     # Set plot labels and show the plot
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
     plt.show()
+
+    print(angle_ranges)
 
     binary_matrix, x_edges, y_edges, z_edges = generate_binary_matrix(
         n_x, n_z, x_range, z_range, grid_size, angle_ranges
@@ -1263,29 +1244,18 @@ ap = ssm_estimation(512, d, alpha, l, CA)
 """
 
 # 72 98 128 162 200 242 288 338 392
+
+
 alpha = [-62 * np.pi / 180, -79 * np.pi / 180, 90 * np.pi / 180, 29 * np.pi / 180, 81 * np.pi / 180, -80 * np.pi / 180,
          -90 * np.pi / 180]
-# l = [0.8208970624546458, 0.17586976764525408, 0.9444232782190134, 0.638882188359731]
-# d = [-0.19528312746924503, -0.7458185218572451, -0.5671355232019555, -0.6448212471876422]
-# CA = [(-1.0164484727118497, 1.0164484727118497), (-2.9905042393967816, 0.942118647580509),
-#     (0.5725921882509168, 1.4935540364595248), (0.1414561277832811, 2.3221616710024895)]
-# ap = ssm_estimation(72, d, alpha, l, CA)
-# alpha = [-1.1809311206221138, 0.776922502833985, -0.5242992337964443, 0.8058636927088405]
 l = [0.4, 0.8, 0.2, 1, 0.6, 0.4, 0.2]
 d = [-0.4, -0.6, 0.2, 0.6, -0.8, 0.2, 0.8]
 CA = [(-107 * np.pi / 180, 107 * np.pi / 180), (-164 * np.pi / 180, 141 * np.pi / 180),
       (-132 * np.pi / 180, 132 * np.pi / 180), (-151 * np.pi / 180, 102 * np.pi / 180),
       (-115 * np.pi / 180, 149 * np.pi / 180), (-75 * np.pi / 180, 129 * np.pi / 180),
       (16 * np.pi / 180, 193 * np.pi / 180)]
-ap = ssm_estimation(positional_samples, d, alpha, l, CA)
-# print(beta_ranges)
-
-# print(x)
-# print(new_x)
-# print(delta_x)
-# print(x_next)
-# print(theta)
-# print(new_theta)
-# print(delta_theta)
-# (theta_next)
-# print(J_plus)
+CA2 = [(-97 * np.pi / 180, 97 * np.pi / 180), (-154 * np.pi / 180, 131 * np.pi / 180),
+       (-122 * np.pi / 180, 122 * np.pi / 180), (-141 * np.pi / 180, 92 * np.pi / 180),
+       (-105 * np.pi / 180, 139 * np.pi / 180), (-65 * np.pi / 180, 119 * np.pi / 180),
+       (26 * np.pi / 180, 183 * np.pi / 180)]
+ap = ssm_estimation(positional_samples, d, alpha, l, CA2)

@@ -5,6 +5,8 @@ from scipy.linalg import null_space
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 
+from helper_functions import normalize_and_map_colors
+
 step_size = 0.01
 # terminate_threshold = step_size / 2.0
 terminate_threshold = 9.0 / 5.0 * step_size
@@ -16,16 +18,17 @@ r2 = 0.6
 r3 = 0.7
 
 # L = [0.4888656043245976, 1.3992499610293656, 1.1118844346460368]
-#L = [1, 1, 1]
-#L = [0.009651087409352832, 1.6279980832723875, 1.3623508293182596]
-#CA = [(-2.312033825326607, 2.312033825326607), (-2.1986530478299358, 1.3083974620434837),
- #     (-3.119803865520389, 0.38031991292340495)]
+# L = [1, 1, 1]
+# L = [0.009651087409352832, 1.6279980832723875, 1.3623508293182596]
+# CA = [(-2.312033825326607, 2.312033825326607), (-2.1986530478299358, 1.3083974620434837),
+#     (-3.119803865520389, 0.38031991292340495)]
 # L=[1.42,1,0.58]
-L=[1.4142135623730951, 1.4142135623730951, 0.816496580927726]
+L = [1, 1, 1]
 #CA = [(-18.2074 * np.pi / 180, 18.2074 * np.pi / 180), (-111.3415 * np.pi / 180, 111.3415 * np.pi / 180),
 #    (-111.3415 * np.pi / 180, 111.3415 * np.pi / 180)]
-#CA=[(-3.031883452592004, 3.031883452592004), (-1.619994146091692, -0.8276157453255935), (-1.6977602095460234, -0.7265946655975718)]
-CA=[(-3.124681302246617, 3.124681302246617), (-1.4415636177812134, -1.279211595348536), (-1.7248730619372978, 0.5619657181265192)]
+# CA=[(-3.031883452592004, 3.031883452592004), (-1.619994146091692, -0.8276157453255935), (-1.6977602095460234, -0.7265946655975718)]
+CA = [(-0.7391244590957556, 0.7391244590957556), (-0.7422740927125862, 1.9756037937159996),
+      (-2.11211741668124, 2.12020510030)]
 """
 CA = [(-30 * np.pi / 180, 30 * np.pi / 180), (-120 * np.pi / 180, 60 * np.pi / 180),
       (-130 * np.pi / 180, 130 * np.pi / 180)]
@@ -52,6 +55,7 @@ def reliability_computation(r1, r2, r3):
 
 
 cr_list = reliability_computation(r1, r2, r3)
+print(cr_list)
 
 
 def forward_kinematics_3R(theta, L):
@@ -554,8 +558,10 @@ def wedge_to_poly3d(wedge, z_value):
 
 
 num_reliable_ranges = 7
-color_list = ['red', 'green', 'blue', 'purple', 'orange', 'cyan', 'magenta']
-z_levels = cr_list
+color_list, sm = normalize_and_map_colors(cr_list)
+final_wedges = []
+final_colors = []
+#z_levels = cr_list
 # np.linspace(-3, 3, num_reliable_ranges)
 x_values = np.linspace(0, 3, sample_num)
 y_values = np.zeros(sample_num)
@@ -570,8 +576,8 @@ for i in range(len(points)):
     beta_ranges, reliable_beta_ranges = compute_beta_range(x, y)  # Get multiple beta ranges
     for b_r_index in range(len(reliable_beta_ranges)):
         b_r = reliable_beta_ranges[b_r_index]
-        #z_level = z_levels[b_r_index]
-        z_level=b_r_index
+        # z_level = z_levels[b_r_index]
+        z_level = b_r_index*2
         color = color_list[b_r_index]
         for beta_range in b_r:
             # Compute angles in degrees (as required by Wedge)
@@ -582,19 +588,23 @@ for i in range(len(points)):
             outer_radius = x + ring_width / 2
 
             wedge = Wedge(
-                center=(0, 0),  # All rings centered at origin (0, 0)
-                r=outer_radius,  # Outer radius: x + ring_width / 2
-                theta1=theta1, theta2=theta2,  # Start and end angles for full circle
-                width=ring_width  # Thickness of the ring
+                center=(0, 0),
+                r=outer_radius,
+                theta1=theta1, theta2=theta2,
+                width=ring_width,
+                facecolor=color,  # Set face color to match 3D plot
+                edgecolor=color
             )
 
             if x == 0 and y == 0:
-                # Special case: (0, 0) - Draw a circle instead of a ring
+                # Special case for (0,0) - Draw a circle instead of a ring
                 wedge = Wedge(
-                    center=(0, 0),  # All rings centered at origin (0, 0)
-                    r=outer_radius,  # Outer radius: x + ring_width / 2
-                    theta1=theta1, theta2=theta2,  # Start and end angles for full circle
-                    width=ring_width / 2  # Thickness of the ring
+                    center=(0, 0),
+                    r=outer_radius,
+                    theta1=theta1, theta2=theta2,
+                    width=ring_width / 2,
+                    facecolor=color,  # Set face color
+                    edgecolor=color
                 )
             poly3d = wedge_to_poly3d(wedge, z_level)
             # Add the wedge to the plot
@@ -604,14 +614,20 @@ for i in range(len(points)):
                     [poly3d],
                     facecolor=color,
                     edgecolor=color,
-                    alpha=0.6
+                    alpha=1.0
                 )
             )
+
+            if b_r_index == len(reliable_beta_ranges) - 1:
+                final_wedges.append(wedge)
+                final_colors.append(color)
+
+
 
 # Set the plot limits to range from -3 to 3 for both x and y axes
 ax.set_xlim(-3, 3)
 ax.set_ylim(-3, 3)
-ax.set_zlim(0, 6)
+ax.set_zlim(0, 12)
 
 ax.set_xlabel("X-axis")
 ax.set_ylabel("Y-axis")
@@ -622,4 +638,30 @@ ax.set_aspect('equal')
 
 # Add title and display the plot
 plt.title("Planar3R Reliable work spaces")
+cbar = plt.colorbar(sm, ax=ax, label='Reliability Spectrum')  # Ensure colorbar is linked to the mappable
+# Define the new labels and corresponding tick positions
+z_tick_labels = ['r1', 'r2', 'r3', 'r1r2', 'r1r3', 'r2r3', 'r1r2r3']
+z_tick_positions = [0, 2, 4, 6, 8, 10, 12]  # These match your z_level values
+
+# Set the new labels on the Z-axis
+ax.set_zticks(z_tick_positions)
+ax.set_zticklabels(z_tick_labels)
+fig2, ax2d = plt.subplots(figsize=(6, 6))
+
+for wedge, color in zip(final_wedges, final_colors):
+    ax2d.add_patch(wedge)  # Add the stored wedge
+    wedge.set_facecolor(color)  # Ensure colors match
+    wedge.set_edgecolor(color)
+
+# Configure the 2D plot
+ax2d.set_xlim(-3, 3)
+ax2d.set_ylim(-3, 3)
+ax2d.set_aspect('equal')
+ax2d.set_xlabel("X-axis")
+ax2d.set_ylabel("Y-axis")
+ax2d.set_title("Fault tolerant workspace")
+fig2.show()
 plt.show()
+
+
+

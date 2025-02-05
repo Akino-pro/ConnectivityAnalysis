@@ -208,7 +208,7 @@ def compute_post_failure_workspace(L, joint_limits, locked_joint_idx, pfs, champ
 
 
 start_time = time.time()
-"""
+
 # @measure_time
 def planar_3R_connectivity_analysis(L, joint_limits, pfs, championship):
     # for jm in joint_limits:
@@ -251,9 +251,9 @@ def planar_3R_connectivity_analysis(L, joint_limits, pfs, championship):
     # print(f"Total execution time: {total_time:.4f} seconds")
 
     # Display the final intersected binary image using OpenCV
-    #cv2.imshow("Fault-Tolerant Workspace", fault_tolerant_workspace)
-    #cv2.waitKey(0)
-    #cv2.destroyAllWindows()
+    cv2.imshow("Fault-Tolerant Workspace", fault_tolerant_workspace)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
     #shape_area = np.sum(fault_tolerant_workspace == 255)
     shape_area, connected_connectivity, general_connectivity = connectivity_analysis(fault_tolerant_workspace,
                                                                                      kernel_size, Lambda)
@@ -263,11 +263,11 @@ def planar_3R_connectivity_analysis(L, joint_limits, pfs, championship):
     # return connected_connectivity
     #return shape_area
     return general_connectivity
+
+
+
+
 """
-
-
-
-
 # @measure_time
 def planar_3R_connectivity_analysis(L, joint_limits, pfs, championship):
     pre_failure_workspace = compute_workspace(L, joint_limits, resolution=int(sample_density * 0.5))
@@ -319,16 +319,16 @@ def planar_3R_connectivity_analysis(L, joint_limits, pfs, championship):
 
     return reliable_connectivity
 
-
+"""
 
 #planar_3R_connectivity_analysis([1.4142135623730951, 1.4142135623730951, 0.816496580927726],
 #                               [(-3.031883452592004, 3.031883452592004), (-1.619994146091692, -0.8276157453255935), (-1.6977602095460234, -0.7265946655975718)], pfs=20, championship=0)
 #planar_3R_connectivity_analysis([1.0, 1.0, 1.0],
 #                                [(-3.031883452592004, 3.031883452592004), (-1.619994146091692, -0.8276157453255935), (-1.6977602095460234, -0.7265946655975718)], pfs=60,
  #                               championship=0)
-#planar_3R_connectivity_analysis([1.0, 1.0, 1.0],
-#                                [(-18.2074 * np.pi / 180, 18.2074 * np.pi / 180),
- #                                (-111.3415 * np.pi / 180, 111.3415 * np.pi / 180),
- #                                (-111.3415 * np.pi / 180, 111.3415 * np.pi / 180)], pfs=60,
-  #                              championship=0)
+planar_3R_connectivity_analysis([1.0, 1.0, 1.0],
+                                [(-18.2074 * np.pi / 180, 18.2074 * np.pi / 180),
+                                 (-111.3415 * np.pi / 180, 111.3415 * np.pi / 180),
+                                (-111.3415 * np.pi / 180, 111.3415 * np.pi / 180)], pfs=60,
+                                championship=0)
 

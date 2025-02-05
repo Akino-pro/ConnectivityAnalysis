@@ -1,9 +1,12 @@
 import heapq
+import math
 
 import numpy as np
 from matplotlib import pyplot as plt
+from mpl_toolkits.mplot3d.art3d import Line3DCollection, Poly3DCollection
 
 from helper_functions import get_extruded_wedges, fibonacci_sphere_angles
+from spatial3R_ftw_draw import generate_square_grid
 
 
 def track_top_5():
@@ -19,6 +22,8 @@ def track_top_5():
         return sorted(top_5, key=lambda x: x[0], reverse=True)  # Return sorted top-5 list
 
     return update, get_top_5
+
+
 """
 
 # Example usage:
@@ -31,48 +36,54 @@ for index, (num, prop) in enumerate(
 print(get_top_5())  # Output: Top 5 highest numbers with their indices and properties sorted
 """
 
+
 def plot_bar_graph_transposed_same_color(theta_phi_list, ranges_list):
     """
     Plots a transposed bar graph where the vertical axis represents (theta, phi) tuples,
-    and the horizontal bars represent disjoint ranges from 0 to 2π, using the same color.
+    and the horizontal bars represent disjoint ranges from -π to π, using the same color.
 
     Parameters:
     - theta_phi_list: List of tuples (theta, phi) defining categories.
     - ranges_list: List of corresponding range lists in [[[x1, x2], [y1, y2]], ...] format.
 
     Example:
-    theta_phi_list = [(1, 0.5), (2, 1)]
-    ranges_list = [[[1, 2], [3, 4]], [[0, np.pi], [np.pi, 2*np.pi]]]
+    theta_phi_list = [(1, 0.5), (2, 1), (3, 1.5), ...]
+    ranges_list = [[[1, 2], [3, 4]], [[0, np.pi], [np.pi, 2*np.pi]], ...]
     plot_bar_graph_transposed_same_color(theta_phi_list, ranges_list)
     """
 
-    fig, ax = plt.subplots(figsize=(10, 5))
-    x_labels = [f"({theta:.2f}, {phi:.2f})" for theta, phi in theta_phi_list]
+    fig, ax = plt.subplots(figsize=(12, 6))
+    num_columns = len(theta_phi_list)
 
-    for i, ranges in enumerate(ranges_list):
+    # Control labeling density
+    max_labels = 20
+    step = max(1, math.ceil(num_columns / max_labels))  # Avoid division by zero
+
+    # Generate x-labels with controlled density
+    x_labels = [f"({theta:.2f}, {phi:.2f})" if i % step == 0 else "" for i, (theta, phi) in enumerate(theta_phi_list)]
+    x_positions = np.arange(num_columns)  # Positions of bars on x-axis
+
+    for i, (x_pos, ranges) in enumerate(zip(x_positions, ranges_list)):
         if ranges:  # Plot bars for valid ranges
             for start, end in ranges:
-                ax.bar(x_labels[i], end - start, bottom=start, align='center', color='gray')
+                ax.bar(x_pos, end - start, bottom=start, align='center', color='gray', edgecolor='black')
         else:  # Draw an empty column as a placeholder
-            ax.bar(x_labels[i], 0, bottom=0, align='center', color='white', edgecolor='black')
+            ax.bar(x_pos, 0, bottom=0, align='center', color='white', edgecolor='black')
 
-    ax.set_ylabel("Range (-π to 2π)")
+    ax.set_ylabel("Range (-π to π)")
     ax.set_xlabel("Theta, Phi Tuples")
+    ax.set_xticks(x_positions)
+    ax.set_xticklabels(x_labels, rotation=45, ha='right')  # Angled labels for better visibility
     ax.set_ylim(-np.pi, np.pi)
-    ax.set_yticks(np.linspace(-np.pi,  np.pi, 5))
+    ax.set_yticks(np.linspace(-np.pi, np.pi, 5))
     ax.set_title("Transposed Bar Graph of (Theta, Phi) Mapping to Ranges (Single Color)")
+
     plt.grid(axis='y', linestyle='--', alpha=0.6)
-    plt.xticks(rotation=45, ha='right')
     plt.show()
 
 
 """
-# Example usage
-theta_phi_list = [(1, 1), (1, 0.5), (2, 1)]
-ranges_list = [[], [[1, 2], [3, 4]], [[0, np.pi], [np.pi, 2 * np.pi]]]
 
-plot_bar_graph_transposed_same_color(theta_phi_list, ranges_list)
-"""
 orientation_samples = 64
 theta_phi_list = fibonacci_sphere_angles(orientation_samples)
 color_list = ['b', 'r', 'g', 'y', 'c']
@@ -80,12 +91,64 @@ target=[(24999, 17, [[(-3.141592653589793, 1.3416571868452363), [1.7155376684948
 for i in range(5):
     beta_range_to_plot = target[i][2]
     alpha_range_to_plot = target[i][3]
-    all_wedge_faces = get_extruded_wedges(
+    all_wedge_faces,alpha_range_to_plot = get_extruded_wedges(
         theta_phi_list,
         beta_range_to_plot,
+        alpha_range_to_plot,
         samples_per_arc=40,
         extrude_radius=2 * np.pi,
         do_plot=True,
         color=color_list[i]
     )
     plot_bar_graph_transposed_same_color(theta_phi_list, alpha_range_to_plot)
+
+"""
+"""
+n_z = 12
+n_x = 6
+max_length = 5.286553237016408
+x_range = (0, max_length)  # Range for x-axis
+z_range = (-max_length, max_length)  # Range for z-axis
+color_list = ['b', 'r', 'g', 'y', 'c']
+#index_list_to_color = [17, 6, 18, 7, 30]
+index_list_to_color = [17, 7, 18, 6, 16]
+grid_squares = generate_square_grid(n_x, n_z, x_range, z_range)
+# Plot setup
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+
+# Set plot range
+ax.set_xlim([-max_length, max_length])
+ax.set_ylim([-max_length, max_length])
+ax.set_zlim([-max_length, max_length])
+angle_ranges = [[] for _ in range(72)]
+index_not_empty = [6, 5, 4,3, 18, 17,16,15, 29,28]
+for index in index_not_empty:
+    angle_ranges[index] = [-np.pi, np.pi]
+# Draw squares only if the angle_ranges[i] is non-empty
+for i, square in enumerate(grid_squares):
+    color = 'k'
+    for j in range(5):
+        if i == index_list_to_color[j]:
+            color = color_list[j]
+    alpha = 0.3
+    if angle_ranges[i]:  # Check if the list is non-empty
+        alpha = 1.0
+        # Plot the square grid directly
+    square_poly = Poly3DCollection([square], color=color, alpha=alpha)
+    ax.add_collection3d(square_poly)
+frame_points = [
+    (x_range[0], 0, z_range[0]), (x_range[1], 0, z_range[0]),
+    (x_range[1], 0, z_range[1]), (x_range[0], 0, z_range[1]),
+    (x_range[0], 0, z_range[0])  # Closing the loop
+]
+
+frame = Line3DCollection([frame_points], colors='k', linewidths=2)
+ax.add_collection3d(frame)
+
+# Set plot labels and show the plot
+ax.set_xlabel('X')
+ax.set_ylabel('Y')
+ax.set_zlabel('Z')
+plt.show()
+"""
