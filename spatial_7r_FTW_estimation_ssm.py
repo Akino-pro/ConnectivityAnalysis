@@ -15,7 +15,8 @@ from spatial3R_ftw_draw import generate_binary_matrix
 from scipy.spatial.transform import Rotation as R
 
 from helper_functions import plot_shifted_arcs_on_sphere, fibonacci_sphere_angles, get_extruded_wedges, \
-    wedge_faces_to_binary_volume, track_top_5, union_ranges
+    wedge_faces_to_binary_volume, track_top_5, union_ranges, normalize_and_map_colors, \
+    plot_voronoi_regions_on_sphere, compute_length_of_ranges
 
 from test_the_end import plot_bar_graph_transposed_same_color
 
@@ -27,8 +28,8 @@ terminate_threshold = 9.0 / 5.0 * step_size
 # terminate_threshold = step_size * 0.5
 ssm_finding_num = 10
 max_ssm = 16
-positional_samples = 72
-orientation_samples = 64
+positional_samples = 18
+orientation_samples = 25
 theta_phi_list = fibonacci_sphere_angles(orientation_samples)
 # print(theta_phi_list)
 """
@@ -1075,9 +1076,10 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     orientational_connectivity = []
     update_top_5, get_top_5 = track_top_5()
     index = 0
-    debug=[grid_centers[7]]
-    #for center in tqdm(grid_centers, desc="Processing Items"):
-    for center in tqdm(debug, desc="Processing Items"):
+    # debug = [grid_centers[7]]
+    shape_volumns = []
+    # for center in tqdm(grid_centers, desc="Processing Items"):
+    for center in tqdm(grid_centers, desc="Processing Items"):
         # Compute beta ranges for each center
         print(center)
         all_alpha_ranges = []
@@ -1119,36 +1121,45 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
         shape_area = 0
         if len(all_wedge_faces) == 0:
             orientational_connectivity.append(0)
+            shape_volumns.append(0)
             # print(0)
         else:
             binary_volume = wedge_faces_to_binary_volume(all_wedge_faces, NX=50, NY=50, NZ=50)
             shape_area, connected_connectivity, general_connectivity = connectivity_analysis(binary_volume,
                                                                                              kernel_size, Lambda)
             orientational_connectivity.append(general_connectivity)
+            shape_volumns.append(shape_area)
             # print(general_connectivity)
         update_top_5(shape_area, index, all_beta_ranges, all_alpha_ranges)
         index += 1
 
         if len(positional_beta_ranges) != 0: reachable_points += 1
         angle_ranges.append(positional_beta_ranges)
-
     # plot 3D positional ftw
     top_5_grids = get_top_5()
     print(top_5_grids)
-    color_list = ['b', 'r', 'g', 'y', 'c']
+    # color_list = ['b', 'r', 'g', 'y', 'c']
     index_list_to_color = []
+    color_list, sm = normalize_and_map_colors(shape_volumns)
     for i in range(5):
         index_list_to_color.append(top_5_grids[i][1])
         beta_range_to_plot = top_5_grids[i][2]
         alpha_range_to_plot = top_5_grids[i][3]
+        color_list_ori, sm_ori=compute_length_of_ranges(alpha_range_to_plot)
+        plot_voronoi_regions_on_sphere(theta_phi_list,
+                                       beta_range_to_plot,
+                                       color_list_ori,
+                                       sm_ori,
+                                       samples_per_arc=50,
+                                       alpha=0.3)
         all_wedge_faces, alpha_range_to_plot = get_extruded_wedges(
             theta_phi_list,
             beta_range_to_plot,
             alpha_range_to_plot,
             samples_per_arc=40,
             extrude_radius=2 * np.pi,
-            do_plot=True,
-            color=color_list[i]
+            do_plot=False,
+            color=color_list[top_5_grids[i][1]]
         )
         plot_bar_graph_transposed_same_color(theta_phi_list, alpha_range_to_plot)
     """
@@ -1191,10 +1202,10 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
 
     # Draw squares only if the angle_ranges[i] is non-empty
     for i, square in enumerate(grid_squares):
-        color = 'k'
-        for j in range(5):
-            if i == index_list_to_color[j]:
-                color = color_list[j]
+        color = color_list[i]
+        # for j in range(5):
+        #    if i == index_list_to_color[j]:
+        #        color = color_list[j]
         alpha_level = 0.3
         if angle_ranges[i]:  # Check if the list is non-empty
             alpha_level = 1.0
@@ -1209,14 +1220,14 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
 
     frame = Line3DCollection([frame_points], colors='k', linewidths=2)
     ax.add_collection3d(frame)
-
+    cbar = plt.colorbar(sm, ax=ax, label='orientation FTW volume Spectrum')
     # Set plot labels and show the plot
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
     plt.show()
 
-    print(angle_ranges)
+    # print(angle_ranges)
 
     binary_matrix, x_edges, y_edges, z_edges = generate_binary_matrix(
         n_x, n_z, x_range, z_range, grid_size, angle_ranges
