@@ -110,8 +110,8 @@ max_length = 5.286553237016408
 x_range = (0, max_length)  # Range for x-axis
 z_range = (-max_length, max_length)  # Range for z-axis
 color_list = ['b', 'r', 'g', 'y', 'c']
-#index_list_to_color = [17, 6, 18, 7, 30]
-index_list_to_color = [17, 7, 18, 6, 16]
+index_list_to_color = [16, 5, 17, 6, 29]
+#index_list_to_color = [16, 6, 17, 5, 15]
 grid_squares = generate_square_grid(n_x, n_z, x_range, z_range)
 # Plot setup
 fig = plt.figure()
@@ -151,4 +151,5 @@ ax.set_xlabel('X')
 ax.set_ylabel('Y')
 ax.set_zlabel('Z')
 plt.show()
+
 """

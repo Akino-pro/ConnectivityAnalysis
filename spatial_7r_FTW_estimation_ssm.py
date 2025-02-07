@@ -1074,8 +1074,10 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     reachable_points = 0
     orientational_connectivity = []
     update_top_5, get_top_5 = track_top_5()
-    index = 1
-    for center in tqdm(grid_centers, desc="Processing Items"):
+    index = 0
+    debug=[grid_centers[7]]
+    #for center in tqdm(grid_centers, desc="Processing Items"):
+    for center in tqdm(debug, desc="Processing Items"):
         # Compute beta ranges for each center
         print(center)
         all_alpha_ranges = []
@@ -1149,7 +1151,9 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
             color=color_list[i]
         )
         plot_bar_graph_transposed_same_color(theta_phi_list, alpha_range_to_plot)
-
+    """
+    positional ftw plot
+    """
     grid_squares = generate_square_grid(n_x, n_z, x_range, z_range)
     arc_color = 'blue'
     # Plot setup
@@ -1171,7 +1175,9 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
     plt.show()
-
+    """
+    sampled_plane plot
+    """
     # draw positional fault tolerant grids used for orientational demo
     grid_squares = generate_square_grid(n_x, n_z, x_range, z_range)
     # Plot setup
@@ -1258,4 +1264,4 @@ CA2 = [(-97 * np.pi / 180, 97 * np.pi / 180), (-154 * np.pi / 180, 131 * np.pi /
        (-122 * np.pi / 180, 122 * np.pi / 180), (-141 * np.pi / 180, 92 * np.pi / 180),
        (-105 * np.pi / 180, 139 * np.pi / 180), (-65 * np.pi / 180, 119 * np.pi / 180),
        (26 * np.pi / 180, 183 * np.pi / 180)]
-ap = ssm_estimation(positional_samples, d, alpha, l, CA2)
+ap = ssm_estimation(positional_samples, d, alpha, l, CA)

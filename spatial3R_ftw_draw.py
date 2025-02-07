@@ -33,8 +33,7 @@ def rotate_around_z(vertices, angle):
 
 # Function to draw an arc by rotating a grid square around the Z-axis
 def draw_rotated_grid(ax, square, angle_range, color):
-
-    angles = np.linspace(angle_range[0], angle_range[1], 360)
+    angles = np.linspace(angle_range[0], np.min([angle_range[1], np.pi / 2]), 360)
 
     # Loop through each angle to rotate the square around the Z-axis
     for angle in angles:
@@ -44,7 +43,7 @@ def draw_rotated_grid(ax, square, angle_range, color):
         face = [rotated_vertices[j] for j in range(4)]
 
         # Add the polygon to the plot with a single color
-        ax.add_collection3d(Poly3DCollection([face], color=color))
+        ax.add_collection3d(Poly3DCollection([face], color=color, edgecolor='k'))
 
 
 def generate_grid_centers(n_x, n_z, num_points, x_range, z_range):
@@ -72,8 +71,6 @@ def generate_grid_centers(n_x, n_z, num_points, x_range, z_range):
     return np.array(centers)
 
 
-
-
 def sample_square_points(vertices, num_points=10):
     """Sample points within the square defined by four vertices."""
     points = []
@@ -83,6 +80,7 @@ def sample_square_points(vertices, num_points=10):
         edge_points = np.linspace(start, end, num_points)
         points.extend(edge_points)
     return np.array(points)
+
 
 # Generate scatter points for each rotated square
 def generate_rotated_scatter_points(grid_squares, angle_range, num_samples=5):
@@ -99,6 +97,8 @@ def generate_rotated_scatter_points(grid_squares, angle_range, num_samples=5):
 
     # Flatten the list of arrays into a single array of points
     return np.vstack(scatter_points)
+
+
 """
 def generate_binary_matrix(n_x, n_z, x_range, z_range, grid_size, angle_ranges):
     
@@ -183,6 +183,8 @@ def generate_binary_matrix(n_x, n_z, x_range, z_range, grid_size, angle_ranges):
 
     return binary_matrix, x_edges, y_edges, z_edges
 """
+
+
 def generate_binary_matrix(n_x, n_z, x_range, z_range, grid_size, angle_ranges):
     """Generate a binary matrix representing the object based on angle ranges per grid square."""
     # Generate x and z values for the grid in x-z plane
@@ -265,6 +267,3 @@ def generate_binary_matrix(n_x, n_z, x_range, z_range, grid_size, angle_ranges):
     z_edges = np.linspace(z_range[0], z_range[1], grid_size[2] + 1)
 
     return binary_matrix, x_edges, y_edges, z_edges
-
-
-

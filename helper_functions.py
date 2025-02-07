@@ -552,3 +552,6 @@ cbar = plt.colorbar(sm, ax=ax, label='Value Spectrum')  # Ensure colorbar is lin
 
 plt.show()
 """
+
+
+
