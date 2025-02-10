@@ -8,6 +8,7 @@ from roboticstoolbox import DHRobot, RevoluteDH
 import matplotlib.pyplot as plt
 from spatialmath import SE3
 
+from helper_functions import normalize_and_map_colors, update_or_add_square, sorted_indices, union_ranges
 from spatial3R_ftw_draw import generate_grid_centers, generate_square_grid, draw_rotated_grid
 from Three_dimension_connectivity_measure import connectivity_analysis
 from spatial3R_ftw_draw import generate_binary_matrix
@@ -52,6 +53,7 @@ def reliability_computation(r1, r2, r3, r4):
 
 
 cr_list = reliability_computation(r1, r2, r3, r4)
+#print(cr_list)
 
 
 def convert_to_C_dot_A(CA):
@@ -234,11 +236,11 @@ def find_ranges(nums):
     return ranges
 
 
-def extend_ranges(union_ranges):
+def extend_ranges(unioned_ranges):
     extended_ranges = []
     has_negative_pi_range = None
     has_positive_pi_range = None
-    for tr in union_ranges:
+    for tr in unioned_ranges:
         if tr[0] == -np.pi and tr[1] == np.pi:
             return [[- np.pi, np.pi]]
         elif tr[0] == -np.pi:
@@ -256,33 +258,6 @@ def extend_ranges(union_ranges):
     elif has_positive_pi_range is not None:
         extended_ranges.append([has_positive_pi_range, np.pi])
     return extended_ranges
-
-
-def union_ranges(ranges):
-    if not ranges:
-        return []
-
-    # Optional: Validate input ranges
-    for a, b in ranges:
-        if a > b:
-            raise ValueError(f"Invalid range: ({a}, {b}). Start must be <= end.")
-
-    # Sort the ranges by their starting point (and by end if start points are the same)
-    ranges = sorted(ranges, key=lambda x: (x[0], x[1]))
-
-    # Initialize the merged ranges with the first range
-    merged = [ranges[0]]
-    merge_threshold = terminate_threshold
-    for current in ranges[1:]:
-        last = merged[-1]
-
-        # If the current range overlaps or touches the last merged range, merge them
-        if current[0] <= last[1] or (current[0] - last[1] <= merge_threshold):  # Handle small gaps
-            merged[-1] = (last[0], max(last[1], current[1]))
-        else:
-            # No overlap, add the current range as a new entry
-            merged.append(current)
-    return merged
 
 
 def find_critical_points(ssm_theta_list):
@@ -973,30 +948,60 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
                                                                all_reliable_beta_ranges)
 
     grid_squares = generate_square_grid(n_x, n_z, x_range, z_range)
-    color_list = ['b', 'r', 'g', 'y', 'c']
-    for you in range(5):
+
+    color_list, sm = normalize_and_map_colors(cr_list)
+    fig2 = plt.figure()
+    ax2 = fig2.add_subplot(111, projection='3d')
+    ax2.set_xlim([0, max_length])
+    ax2.set_ylim([-max_length, max_length])
+    ax2.set_zlim([-max_length, max_length])
+    ax2.set_box_aspect([1, 1, 2])
+    cbar = plt.colorbar(sm, ax=ax2, label='Reliability Spectrum')
+    frame_points = [
+        (x_range[0], 0, z_range[0]), (x_range[1], 0, z_range[0]),
+        (x_range[1], 0, z_range[1]), (x_range[0], 0, z_range[1]),
+        (x_range[0], 0, z_range[0])  # Closing the loop
+    ]
+
+    frame = Line3DCollection([frame_points], colors='k', linewidths=2)
+    ax2.add_collection3d(frame)
+    plt.ion()
+    indices = sorted_indices(cr_list)
+    for you in indices:
         ftw_points_count = 0
         arc_color = color_list[you]
+        """
         # Plot setup
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d')
-
+        
         # Set plot range
-        ax.set_xlim([-4, 4])
-        ax.set_ylim([-4, 4])
-        ax.set_zlim([-4, 4])
-        for i, square in enumerate(grid_squares):
+        ax.set_xlim([-3, 3])  # todo: optimized
+        ax.set_ylim([-3, 3])
+        ax.set_zlim([-3, 3])
+        for i, square in tqdm(enumerate(grid_squares), desc="Processing Items"):
             for beta_range in all_reliable_beta_ranges[you][i]:
+                # draw_wedge(ax, square, beta_range, arc_color)
                 draw_rotated_grid(ax, square, beta_range, arc_color)
 
         # ax.plot([-4, 0], [0, 0], [0, 0], color='black', linewidth=2)  # X-axis
         # ax.plot([0, 0], [0, 4], [0, 0], color='black', linewidth=2)  # Y-axis
         # ax.plot([0, 0], [0, 0], [0, 4], color='black', linewidth=2)  # Z-axis
 
+        ax.view_init(elev=30, azim=135)
+
         ax.set_xlabel('X')
         ax.set_ylabel('Y')
         ax.set_zlabel('Z')
-        plt.show()
+        plt.draw()
+        print("Press 'q' to continue...")
+        while True:
+            key = plt.waitforbuttonpress()
+            if key:  # Any key will work, but we can restrict it if needed
+                break
+
+        plt.close(fig)
+        """
 
         grid_squares = generate_square_grid(n_x, n_z, x_range, z_range)
         # Plot setup
@@ -1004,14 +1009,15 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
         ax = fig.add_subplot(111, projection='3d')
 
         # Set plot range
-        ax.set_xlim([-4, 4])
-        ax.set_ylim([-4, 4])
-        ax.set_zlim([-4, 4])
+        ax.set_xlim([0, max_length])
+        ax.set_ylim([-max_length, max_length])
+        ax.set_zlim([-max_length, max_length])
+        ax.set_box_aspect([1, 1, 2])
 
         # Draw squares only if the angle_ranges[i] is non-empty
         for i, square in enumerate(grid_squares):
             color = 'k'
-            alpha_level = 0.3
+            alpha_level = 0
             if all_reliable_beta_ranges[you][i]:  # Check if the list is non-empty
                 color = color_list[you]
                 alpha_level = 1.0
@@ -1019,7 +1025,9 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
                 # Plot the square grid directly
             square_poly = Poly3DCollection([square], color=color, alpha=alpha_level)
             ax.add_collection3d(square_poly)
-
+            #square_poly_copy = Poly3DCollection([square], color=color, alpha=alpha_level)
+            #ax2.add_collection3d(square_poly_copy)
+            update_or_add_square(ax2, square, color, alpha_level)
         frame_points = [
             (x_range[0], 0, z_range[0]), (x_range[1], 0, z_range[0]),
             (x_range[1], 0, z_range[1]), (x_range[0], 0, z_range[1]),
@@ -1033,9 +1041,20 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
         ax.set_xlabel('X')
         ax.set_ylabel('Y')
         ax.set_zlabel('Z')
-        plt.show()
-        print(f'we have {ftw_points_count} grids over {grid_sample_num} fault tolerant')
+        plt.draw()
+        print("Press 'q' to continue...")
+        while True:
+            key = plt.waitforbuttonpress()
+            if key:
+                break
 
+        plt.close(fig)
+        print(f'we have {ftw_points_count} grids over {grid_sample_num} fault tolerant')
+    ax2.set_xlabel('X')
+    ax2.set_ylabel('Y')
+    ax2.set_zlabel('Z')
+    plt.ioff()
+    plt.show()
     reliable_connectivity = 0
 
     for index, angle_ranges in enumerate(all_reliable_beta_ranges):
@@ -1047,21 +1066,21 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
                                                                                          kernel_size, Lambda)
         reliable_connectivity += cr_list[index] * general_connectivity
         print(general_connectivity)
-    print(reliable_connectivity)
+    print(f' The general reliable connectivity considering top 5 cases is{reliable_connectivity}.')
     return reliable_connectivity
 
 
-# CA = [(-146 * np.pi / 180, 146 * np.pi / 180), (-234 * np.pi / 180, 10 * np.pi / 180),
-#      (-115 * np.pi / 180, 132 * np.pi / 180), (-101 * np.pi / 180, 118 * np.pi / 180)]
+CA = [(-146 * np.pi / 180, 146 * np.pi / 180), (-234 * np.pi / 180, 10 * np.pi / 180),
+      (-115 * np.pi / 180, 132 * np.pi / 180), (-101 * np.pi / 180, 118 * np.pi / 180)]
 # CA =  [(-0.34476583954363793, 0.34476583954363793), (-3.8557928335253506, 0.5727802075632915),
 #                   (-2.0120387975312504, 0.8610682582634244), (-1.6048847508602293, 2.1951493670529656)]
 # CA = [(-2.017801347479772, 2.017801347479772), (-3.0735622252855346, -1.8767802693000228), (-2.3001230516678093, -1.0323465272698482), (-1.091382218006809, 0.5810127777635778)]
-CA = [(-0.8730382117746103, 0.8730382117746103), (-3.07870404714172, 2.979105017877223),
-      (-2.965730966059918, 2.831650417251087), (0.6494635825661303, 2.9645940008572973)]
+#CA = [(-0.8730382117746103, 0.8730382117746103), (-3.07870404714172, 2.979105017877223),
+#      (-2.965730966059918, 2.831650417251087), (0.6494635825661303, 2.9645940008572973)]
 alpha = [85 * np.pi / 180, -53 * np.pi / 180, -89 * np.pi / 180, 68 * np.pi / 180]
 d = [-0.29, 0, 0.05, 1]
 l = [0.5, 0.48, 0.76, 0.95]
-ap = ssm_estimation(72, d, alpha, l, CA)
+ap = ssm_estimation(2048, d, alpha, l, CA)
 # d = [-0.019917995106395026, 0.6118090376463043, 0.05065138908443867, 0.45487466192184756]
 # alpha = [85 * np.pi / 180, -53 * np.pi / 180, -89 * np.pi / 180, 68 * np.pi / 180]
 # alpha=  [0.7334761894150401, -0.7205303423799283, -1.3089320990376847, 1.5510841614806563]

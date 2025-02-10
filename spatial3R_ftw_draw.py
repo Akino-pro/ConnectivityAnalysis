@@ -33,7 +33,7 @@ def rotate_around_z(vertices, angle):
 
 # Function to draw an arc by rotating a grid square around the Z-axis
 def draw_rotated_grid(ax, square, angle_range, color):
-    angles = np.linspace(angle_range[0], np.min([angle_range[1], np.pi / 2]), 360)
+    angles = np.linspace(angle_range[0], np.min([angle_range[1], np.pi / 2]), 135)  # todo；optimize
 
     # Loop through each angle to rotate the square around the Z-axis
     for angle in angles:

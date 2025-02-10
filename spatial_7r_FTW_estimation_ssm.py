@@ -28,10 +28,11 @@ terminate_threshold = 9.0 / 5.0 * step_size
 # terminate_threshold = step_size * 0.5
 ssm_finding_num = 10
 max_ssm = 16
-positional_samples = 18
-orientation_samples = 25
+positional_samples = 72  # 288
+orientation_samples = 64  # 64
 theta_phi_list = fibonacci_sphere_angles(orientation_samples)
 # print(theta_phi_list)
+
 """
 theta_ranges_all = [[] for _ in range(orientation_samples)]
 theta_ranges_all[0] = [(0, 1), (2, 3)]
@@ -1116,7 +1117,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
             samples_per_arc=40,
             extrude_radius=2 * np.pi,
         )
-        print(all_alpha_ranges)
+        # print(all_alpha_ranges)
 
         shape_area = 0
         if len(all_wedge_faces) == 0:
@@ -1145,13 +1146,8 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
         index_list_to_color.append(top_5_grids[i][1])
         beta_range_to_plot = top_5_grids[i][2]
         alpha_range_to_plot = top_5_grids[i][3]
-        color_list_ori, sm_ori=compute_length_of_ranges(alpha_range_to_plot)
-        plot_voronoi_regions_on_sphere(theta_phi_list,
-                                       beta_range_to_plot,
-                                       color_list_ori,
-                                       sm_ori,
-                                       samples_per_arc=50,
-                                       alpha=0.3)
+        """
+        # only use this to extend alpha range
         all_wedge_faces, alpha_range_to_plot = get_extruded_wedges(
             theta_phi_list,
             beta_range_to_plot,
@@ -1161,6 +1157,16 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
             do_plot=False,
             color=color_list[top_5_grids[i][1]]
         )
+        """
+        color_list_ori, sm_ori = compute_length_of_ranges(alpha_range_to_plot)
+        # plot orientation plot with only fault tolerant orientations with color =alpha range length
+        plot_voronoi_regions_on_sphere(theta_phi_list,
+                                       beta_range_to_plot,
+                                       color_list_ori,
+                                       sm_ori,
+                                       samples_per_arc=50,
+                                       alpha=0.3)
+
         plot_bar_graph_transposed_same_color(theta_phi_list, alpha_range_to_plot)
     """
     positional ftw plot
@@ -1196,9 +1202,13 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     ax = fig.add_subplot(111, projection='3d')
 
     # Set plot range
-    ax.set_xlim([-max_length, max_length])
+    ax.set_xlim([-0, max_length])
     ax.set_ylim([-max_length, max_length])
     ax.set_zlim([-max_length, max_length])
+    ax.set_box_aspect([1, 1, 2])
+    # ax.set_xlim([-3, 3])
+    # ax.set_ylim([-3, 3])
+    # ax.set_zlim([-3, 3])
 
     # Draw squares only if the angle_ranges[i] is non-empty
     for i, square in enumerate(grid_squares):
@@ -1206,7 +1216,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
         # for j in range(5):
         #    if i == index_list_to_color[j]:
         #        color = color_list[j]
-        alpha_level = 0.3
+        alpha_level = 0
         if angle_ranges[i]:  # Check if the list is non-empty
             alpha_level = 1.0
             # Plot the square grid directly

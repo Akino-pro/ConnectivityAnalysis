@@ -367,17 +367,16 @@ def plot_voronoi_regions_on_sphere(theta_phi_list,
     # --------------------------------------------------------------------------
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
-
     for r_idx, region in enumerate(sv.regions):
-        region_vertices = sv.vertices[region]  # Nx3 array
+        region_vertices = sv.vertices[region]
 
+        # Skip any region with < 3 vertices
+        if len(region_vertices) < 3:
+            continue
+        fc = region_colors[r_idx]
         # Determine face color
-        if r_idx in visited_region_indices:
-            fc = region_colors[r_idx]
-        else:
-            fc = 'none'  # unvisited: no fill
+        if r_idx in visited_region_indices: alpha = 0
 
-        # Construct the polygon for this region
         poly = Poly3DCollection([region_vertices],
                                 facecolor=fc,
                                 edgecolor='k',
@@ -401,7 +400,7 @@ def plot_voronoi_regions_on_sphere(theta_phi_list,
     ax.set_title("Spherical Voronoi Regions: Visited vs Unvisited")
 
     plt.show()
-    return ax
+    # return ax
 
 
 def spherical_to_cartesian(theta, phi):
@@ -679,3 +678,60 @@ def compute_length_of_ranges(ranges_list):
             length_list.append(list_sum)
     color_list, sm = normalize_and_map_colors(length_list, cmap_name='viridis')
     return color_list, sm
+
+
+def update_or_add_square(ax2, square, color, alpha_level):
+    """
+    Check if a square already exists in ax2.
+    - If found, update its color and transparency.
+    - If not found, add a new Poly3DCollection to ax2.
+    """
+    square_array = np.array(square)  # Convert to NumPy array for comparison
+
+    for collection in ax2.collections:
+        if isinstance(collection, Poly3DCollection):
+            # Extract vertices of existing collections
+            for path in collection.get_paths():
+                existing_verts = np.array(path.vertices)  # Convert to NumPy array
+
+                # Check if the square already exists in ax2
+                if existing_verts.shape == square_array.shape and np.allclose(existing_verts, square_array):
+                    collection.set_facecolor(color)  # Update color
+                    collection.set_alpha(alpha_level)  # Update transparency
+                    plt.draw()  # Refresh the plot
+                    return  # Stop function since update was successful
+
+    # If not found, add the new square
+    square_poly = Poly3DCollection([square], color=color, alpha=alpha_level)
+    ax2.add_collection3d(square_poly)
+
+
+def sorted_indices(lst):
+    return [i for i, _ in sorted(enumerate(lst), key=lambda x: x[1])]
+
+
+def union_ranges(ranges):
+    if not ranges:
+        return []
+
+    # Optional: Validate input ranges
+    for a, b in ranges:
+        if a > b:
+            raise ValueError(f"Invalid range: ({a}, {b}). Start must be <= end.")
+
+    # Sort the ranges by their starting point (and by end if start points are the same)
+    ranges = sorted(ranges, key=lambda x: (x[0], x[1]))
+
+    # Initialize the merged ranges with the first range
+    merged = [ranges[0]]
+    merge_threshold = terminate_threshold
+    for current in ranges[1:]:
+        last = merged[-1]
+
+        # If the current range overlaps or touches the last merged range, merge them
+        if current[0] <= last[1] or (current[0] - last[1] <= merge_threshold):  # Handle small gaps
+            merged[-1] = (last[0], max(last[1], current[1]))
+        else:
+            # No overlap, add the current range as a new entry
+            merged.append(current)
+    return merged
