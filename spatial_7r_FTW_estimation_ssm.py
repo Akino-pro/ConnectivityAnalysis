@@ -541,7 +541,7 @@ def find_random_ssm(r, x_target, all_ssm_theta_list, robot, C_dot_A, C_dot_A_7):
         all_dis.append(threshold)
         if threshold < lowest: lowest = threshold
 
-        if num == 2000 and not tf_reset:
+        if num == 3000 and not tf_reset:
             # check if the searching has been guided to an searched smm in 100 steps.
             for configuration in all_ssm_theta_list:
                 if np.linalg.norm(configuration - theta) <= terminate_threshold:
@@ -700,7 +700,7 @@ def find_random_ssm(r, x_target, all_ssm_theta_list, robot, C_dot_A, C_dot_A_7):
 
     """
     all_ssm_theta_list.extend(ssm_theta_list)
-    # print(f'found a new ssm with {num} points.')
+    print(f'found a new ssm with {num} points.')
     ssm_found = True
 
     ip_ranges = find_intersection_points(ssm_theta_list, C_dot_A)
