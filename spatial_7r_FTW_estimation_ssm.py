@@ -541,7 +541,14 @@ def find_random_ssm(r, x_target, all_ssm_theta_list, robot, C_dot_A, C_dot_A_7):
         all_dis.append(threshold)
         if threshold < lowest: lowest = threshold
 
-        if num == 3000 and not tf_reset:
+        if num == 2000:
+            # check if the searching has been guided to an searched smm in 100 steps.
+            for configuration in all_ssm_theta_list:
+                if np.linalg.norm(configuration - theta) <= terminate_threshold:
+                    # print('ssm guided to wrong direction.')
+                    return True, [], [[], [], [], [], [], [], []], all_ssm_theta_list, ssm_found, []
+
+        if num == 10000 and not tf_reset:
             # check if the searching has been guided to an searched smm in 100 steps.
             for configuration in all_ssm_theta_list:
                 if np.linalg.norm(configuration - theta) <= terminate_threshold:
@@ -700,7 +707,7 @@ def find_random_ssm(r, x_target, all_ssm_theta_list, robot, C_dot_A, C_dot_A_7):
 
     """
     all_ssm_theta_list.extend(ssm_theta_list)
-    print(f'found a new ssm with {num} points.')
+    #print(f'found a new ssm with {num} points.')
     ssm_found = True
 
     ip_ranges = find_intersection_points(ssm_theta_list, C_dot_A)
@@ -1066,7 +1073,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     max_length = 0
     for i in range(7):
         max_length += np.sqrt(np.power(d[i], 2) + np.power(l[i], 2))
-    print(max_length)
+    #print(max_length)
     x_range = (0, max_length)  # Range for x-axis
     z_range = (-max_length, max_length)  # Range for z-axis
     grid_size = (64, 64, 64)
@@ -1165,7 +1172,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
                                        color_list_ori,
                                        sm_ori,
                                        samples_per_arc=50,
-                                       alpha=0.3)
+                                       )
 
         plot_bar_graph_transposed_same_color(theta_phi_list, alpha_range_to_plot)
     """

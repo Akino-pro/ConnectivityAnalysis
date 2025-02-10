@@ -282,7 +282,6 @@ def plot_voronoi_regions_on_sphere(theta_phi_list,
                                    region_colors,
                                    sm_ori,
                                    samples_per_arc=50,
-                                   alpha=1.0
                                    ):
     """
     Plot spherical Voronoi regions on the unit sphere for all arcs
@@ -375,7 +374,8 @@ def plot_voronoi_regions_on_sphere(theta_phi_list,
             continue
         fc = region_colors[r_idx]
         # Determine face color
-        if r_idx in visited_region_indices: alpha = 0
+        alpha = 0
+        if r_idx in visited_region_indices: alpha = 1
 
         poly = Poly3DCollection([region_vertices],
                                 facecolor=fc,

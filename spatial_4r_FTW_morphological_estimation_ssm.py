@@ -970,7 +970,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     for you in indices:
         ftw_points_count = 0
         arc_color = color_list[you]
-        """
+
         # Plot setup
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d')
@@ -1001,7 +1001,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
                 break
 
         plt.close(fig)
-        """
+
 
         grid_squares = generate_square_grid(n_x, n_z, x_range, z_range)
         # Plot setup
