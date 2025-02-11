@@ -375,7 +375,7 @@ def plot_voronoi_regions_on_sphere(theta_phi_list,
         fc = region_colors[r_idx]
         # Determine face color
         alpha = 0
-        if r_idx in visited_region_indices: alpha = 1
+        if r_idx in visited_region_indices: alpha = 0.5
 
         poly = Poly3DCollection([region_vertices],
                                 facecolor=fc,
