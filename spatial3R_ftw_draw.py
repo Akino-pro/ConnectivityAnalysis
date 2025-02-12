@@ -22,6 +22,24 @@ def generate_square_grid(n_x, n_z, x_range, z_range):
     return squares
 
 
+def generate_2D_square_grid(n_x, n_z, x_range, z_range):
+    """Generate a grid of squares in the x-z plane."""
+    x_vals = np.linspace(x_range[0], x_range[1], n_x + 1)
+    z_vals = np.linspace(z_range[0], z_range[1], n_z + 1)
+    squares = []
+
+    for i in range(n_x):
+        for j in range(n_z):
+            # Define four corners of the square
+            bottom_left = [x_vals[i], z_vals[j]]
+            bottom_right = [x_vals[i + 1], z_vals[j]]
+            top_right = [x_vals[i + 1], z_vals[j + 1]]
+            top_left = [x_vals[i], z_vals[j + 1]]
+            squares.append([bottom_left, bottom_right, top_right, top_left])
+
+    return squares
+
+
 # Function to rotate a set of vertices around the Z-axis
 def rotate_around_z(vertices, angle):
     """Rotate vertices around the Z-axis by 'angle' (in radians)."""

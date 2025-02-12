@@ -28,7 +28,7 @@ terminate_threshold = 9.0 / 5.0 * step_size
 # terminate_threshold = step_size * 0.5
 ssm_finding_num = 10
 max_ssm = 16
-positional_samples = 72  # 288
+positional_samples = 288  # 288
 orientation_samples = 64  # 64
 theta_phi_list = fibonacci_sphere_angles(orientation_samples)
 # print(theta_phi_list)
@@ -1195,6 +1195,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
             draw_rotated_grid(ax, square, beta_range, arc_color)
 
     # Set plot labels and show the plot
+    ax.view_init(elev=30, azim=135)
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
@@ -1219,12 +1220,13 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
 
     # Draw squares only if the angle_ranges[i] is non-empty
     for i, square in enumerate(grid_squares):
-        color = color_list[i]
+        color = 'k'
         # for j in range(5):
         #    if i == index_list_to_color[j]:
         #        color = color_list[j]
         alpha_level = 0
         if angle_ranges[i]:  # Check if the list is non-empty
+            color = color_list[i]
             alpha_level = 1.0
             # Plot the square grid directly
         square_poly = Poly3DCollection([square], color=color, alpha=alpha_level)

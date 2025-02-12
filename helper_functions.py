@@ -2,6 +2,7 @@ import heapq
 
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.patches import Polygon
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from scipy.spatial import SphericalVoronoi
 import trimesh
@@ -704,6 +705,38 @@ def update_or_add_square(ax2, square, color, alpha_level):
     # If not found, add the new square
     square_poly = Poly3DCollection([square], color=color, alpha=alpha_level)
     ax2.add_collection3d(square_poly)
+
+
+def update_or_add_square_2d(ax2, square, color, alpha_level):
+    """
+    Check if a square already exists in ax2.
+    - If found, update its color and transparency.
+    - If not found, add a new Polygon to ax2.
+
+    Parameters:
+    - ax2: Matplotlib 2D Axes object.
+    - square: List of (x, y) tuples representing the square's corners.
+    - color: Color of the square.
+    - alpha_level: Transparency level (0 = fully transparent, 1 = opaque).
+    """
+    square_array = np.array(square)  # Convert input square to a NumPy array
+
+    # Iterate over existing patches to check if the square already exists
+    for patch in ax2.patches:
+        if isinstance(patch, Polygon):
+            existing_verts = np.array(patch.get_xy())  # Get existing polygon vertices
+
+            # Check if the polygon matches the given square
+            if existing_verts.shape == square_array.shape and np.allclose(existing_verts, square_array):
+                patch.set_facecolor(color)  # Update color
+                patch.set_alpha(alpha_level)  # Update transparency
+                plt.draw()  # Refresh the plot
+                return  # Stop function since update was successful
+
+    # If not found, add the new square
+    square_poly = Polygon(square, closed=True, facecolor=color, alpha=alpha_level, edgecolor="black")
+    ax2.add_patch(square_poly)
+    plt.draw()  # Refresh plot
 
 
 def sorted_indices(lst):
