@@ -27,6 +27,7 @@ r2 = 0.6
 r3 = 0.7
 r4 = 0.8
 
+#1,2,3,4,12,13,14,23,24,34,123,124,134,234,1234
 
 def reliability_computation(r1, r2, r3, r4):
     reliability_list = [r2 * r3 * r4, r1 * r3 * r4, r1 * r2 * r4, r1 * r2 * r3,
@@ -942,6 +943,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     max_length = 0
     for i in range(4):
         max_length += np.sqrt(np.power(d[i], 2) + np.power(l[i], 2))
+    print(max_length)
     x_range = (0, max_length)  # Range for x-axis
     z_range = (-max_length, max_length)  # Range for z-axis
     grid_size = (64, 64, 64)
@@ -965,6 +967,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
 
     plt.ion()
     indices = sorted_indices(cr_list)
+    index_dict = {}
     for you in indices:
         ftw_points_count = 0
         """
@@ -1050,14 +1053,23 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
             if all_reliable_beta_ranges[you][i]:
                 color = color_list[you]
                 ftw_points_count += 1
-                update_or_add_square_2d(ax2, square, color, alpha_level)
 
             polygon = patches.Polygon(square, facecolor=color, edgecolor='k', alpha=alpha_level, linewidth=1.5)
             ax.add_patch(polygon)
+            update_or_add_square_2d(ax2, square, color, alpha_level,i,index_dict=index_dict)
 
         # Set plot labels and show the plot
         ax.set_xlabel('X')
         ax.set_ylabel('Z')
+        frame_points = [
+            (x_range[0], z_range[0]), (x_range[1], z_range[0]),
+            (x_range[1], z_range[1]), (x_range[0], z_range[1]),
+            (x_range[0], z_range[0])  # Closing the loop
+        ]
+
+        # Draw frame
+        frame_x, frame_z = zip(*frame_points)
+        ax.plot(frame_x, frame_z, color='k', linewidth=2)
         plt.draw()
         print("Press 'q' to continue...")
         while True:
@@ -1069,8 +1081,15 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
 
     ax2.set_xlabel('X')
     ax2.set_ylabel('Z')
-    # ax2.set_ylabel('Y')
-    # ax2.set_zlabel('Z')
+    frame_points = [
+        (x_range[0], z_range[0]), (x_range[1], z_range[0]),
+        (x_range[1], z_range[1]), (x_range[0], z_range[1]),
+        (x_range[0], z_range[0])  # Closing the loop
+    ]
+
+    # Draw frame
+    frame_x, frame_z = zip(*frame_points)
+    ax2.plot(frame_x, frame_z, color='k', linewidth=2)
     plt.ioff()
     plt.show()
     reliable_connectivity = 0

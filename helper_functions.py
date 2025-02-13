@@ -2,6 +2,7 @@ import heapq
 
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib import patches
 from matplotlib.patches import Polygon
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from scipy.spatial import SphericalVoronoi
@@ -370,12 +371,11 @@ def plot_voronoi_regions_on_sphere(theta_phi_list,
     for r_idx, region in enumerate(sv.regions):
         region_vertices = sv.vertices[region]
 
-
         fc = region_colors[r_idx]
         # Determine face color
         alpha = 0.5
-        #alpha = 0
-        #if r_idx in visited_region_indices: #alpha = 0.5
+        # alpha = 0
+        # if r_idx in visited_region_indices: #alpha = 0.5
 
         poly = Poly3DCollection([region_vertices],
                                 facecolor=fc,
@@ -706,36 +706,50 @@ def update_or_add_square(ax2, square, color, alpha_level):
     ax2.add_collection3d(square_poly)
 
 
-def update_or_add_square_2d(ax2, square, color, alpha_level):
+def update_or_add_square_2d(ax2, square, color, alpha_level, index, index_dict):
     """
-    Check if a square already exists in ax2.
+    Check if a square with the given index exists in ax2.
     - If found, update its color and transparency.
-    - If not found, add a new Polygon to ax2.
+    - If not found, add a new Polygon to ax2 and store its reference.
 
     Parameters:
     - ax2: Matplotlib 2D Axes object.
-    - square: List of (x, y) tuples representing the square's corners.
+    - square: List of (x, z) tuples representing the square's corners.
     - color: Color of the square.
     - alpha_level: Transparency level (0 = fully transparent, 1 = opaque).
+    - index: Unique identifier for the square.
+    - index_dict: Dictionary mapping indices to existing patches in ax2.
     """
-    square_array = np.array(square)  # Convert input square to a NumPy array
+    square_array = np.array(square)  # Convert input square to NumPy array
 
-    # Iterate over existing patches to check if the square already exists
-    for patch in ax2.patches:
-        if isinstance(patch, Polygon):
+    # Check if the index already exists in the dictionary
+    if index in index_dict:
+        patch = index_dict[index]
+        if isinstance(patch, patches.Polygon):
             existing_verts = np.array(patch.get_xy())  # Get existing polygon vertices
 
-            # Check if the polygon matches the given square
-            if existing_verts.shape == square_array.shape and np.allclose(existing_verts, square_array):
-                patch.set_facecolor(color)  # Update color
-                patch.set_alpha(alpha_level)  # Update transparency
-                plt.draw()  # Refresh the plot
-                return  # Stop function since update was successful
+            # Ensure correct shape comparison (ignore the extra closing vertex)
+            if existing_verts.shape[0] == 5 and existing_verts[:-1].shape == square_array.shape:
+                if np.allclose(existing_verts[:-1], square_array):
+                    if color == 'w':
+                        return  # Skip updating but don't exit the function
 
-    # If not found, add the new square
-    square_poly = Polygon(square, closed=True, facecolor=color, alpha=alpha_level, edgecolor="black")
+                    patch.set_facecolor(color)  # Update color
+                    patch.set_alpha(alpha_level)  # Ensure transparency is updated
+                    plt.draw()  # Refresh the plot
+                    return  # Stop function since update was successful
+
+    # If the square is not found or index is new, add the new square
+    square_poly = patches.Polygon(
+        square,
+        facecolor=color,
+        edgecolor="black",  # Keep edges visible
+        alpha=alpha_level,
+        linewidth=1.5
+    )
     ax2.add_patch(square_poly)
-    plt.draw()  # Refresh plot
+    index_dict[index] = square_poly  # Store the new patch reference in the dictionary
+    plt.draw()
 
 
 def sorted_indices(lst):

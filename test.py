@@ -1,168 +1,150 @@
+import ast
+
 import numpy as np
-import matplotlib.pyplot as plt
-from scipy.spatial import distance
-from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+from matplotlib import pyplot as plt, patches
+
+from helper_functions import normalize_and_map_colors, sorted_indices, update_or_add_square_2d
+from spatial3R_ftw_draw import generate_2D_square_grid
+
+with open("my_list.txt", "r") as file:
+    content = file.read()
+    all_reliable_beta_ranges = ast.literal_eval(content)
+
+r1 = 0.5
+r2 = 0.6
+r3 = 0.7
+r4 = 0.8
 
 
-def fibonacci_sphere_angles(n):
+# 1,2,3,4,12,13,14,23,24,34,123,124,134,234,1234
+# [3, 2, 1, 9, 8, 0, 7, 6, 13, 5, 4, 12, 11, 10, 14]
+# 4,3,2,34,24,1,23,14,234,13,12,134,124,123
+def reliability_computation(r1, r2, r3, r4):
+    reliability_list = [r2 * r3 * r4, r1 * r3 * r4, r1 * r2 * r4, r1 * r2 * r3,
+                        r1 * r3 * r4 + r2 * r3 * r4 - r1 * r2 * r3 * r4,
+                        r1 * r2 * r4 + r2 * r3 * r4 - r1 * r2 * r3 * r4,
+                        r1 * r2 * r3 + r2 * r3 * r4 - r1 * r2 * r3 * r4,
+                        r1 * r2 * r4 + r1 * r3 * r4 - r1 * r2 * r3 * r4,
+                        r1 * r2 * r3 + r1 * r3 * r4 - r1 * r2 * r3 * r4,
+                        r1 * r2 * r3 + r1 * r2 * r4 - r1 * r2 * r3 * r4,
+                        r1 * r2 * r4 + r1 * r3 * r4 + r2 * r3 * r4 - 2 * r1 * r2 * r3 * r4,
+                        r1 * r2 * r3 + r1 * r3 * r4 + r2 * r3 * r4 - 2 * r1 * r2 * r3 * r4,
+                        r1 * r2 * r3 + r1 * r2 * r4 + r2 * r3 * r4 - 2 * r1 * r2 * r3 * r4,
+                        r1 * r2 * r3 + r1 * r2 * r4 + r1 * r3 * r4 - 2 * r1 * r2 * r3 * r4,
+                        r1 * r2 * r3 + r1 * r2 * r4 + r1 * r3 * r4 + r2 * r3 * r4 - 3 * r1 * r2 * r3 * r4]
+    # reliability_list = [r1 * r2 * r4 + r1 * r3 * r4 + r2 * r3 * r4 - 2 * r1 * r2 * r3 * r4,
+    #                    r1 * r2 * r3 + r1 * r3 * r4 + r2 * r3 * r4 - 2 * r1 * r2 * r3 * r4,
+    #                    r1 * r2 * r3 + r1 * r2 * r4 + r2 * r3 * r4 - 2 * r1 * r2 * r3 * r4,
+    #                    r1 * r2 * r3 + r1 * r2 * r4 + r1 * r3 * r4 - 2 * r1 * r2 * r3 * r4,
+    #                    r1 * r2 * r3 + r1 * r2 * r4 + r1 * r3 * r4 + r2 * r3 * r4 - 3 * r1 * r2 * r3 * r4]
+    conditional_reliability_list = []
+    for p in reliability_list:
+        conditional_reliability_list.append(
+            (p - r1 * r2 * r3 * r4) /
+            (r1 * r2 * r3 + r1 * r2 * r4 + r1 * r3 * r4 + r2 * r3 * r4 - 4 * r1 * r2 * r3 * r4))
+    return conditional_reliability_list
+
+
+N = 5000
+n_z = int(np.sqrt(2 * N))
+n_x = int(n_z / 2)  # Number of grid divisions along z-axis
+max_length = 3.1989682240512938
+x_range = (0, max_length)  # Range for x-axis
+z_range = (-max_length, max_length)  #
+cr_list = reliability_computation(r1, r2, r3, r4)
+color_list, sm = normalize_and_map_colors(cr_list)
+fig, ax2 = plt.subplots()
+ax2.set_xlim([0, max_length])
+ax2.set_ylim([-max_length, max_length])
+ax2.set_aspect(1)
+cbar = plt.colorbar(sm, ax=ax2, label='Reliability Spectrum')
+
+plt.ion()
+indices = sorted_indices(cr_list)
+index_dict = {}
+for you in indices:
+    ftw_points_count = 0
     """
-    Generate spherical coordinates (theta, phi) for points evenly distributed on a sphere using the Fibonacci Sphere Algorithm.
+    arc_color = color_list[you]
 
-    Args:
-    - n (int): Number of points.
+    # Plot setup
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
 
-    Returns:
-    - angles (list of tuples): List of (theta, phi) in radians.
-        - theta: Azimuthal angle (0 to 2π).
-        - phi: Polar angle (-π/2 to π/2).
+    # Set plot range
+    ax.set_xlim([-3, 3])  # todo: optimized
+    ax.set_ylim([-3, 3])
+    ax.set_zlim([-3, 3])
+    for i, square in tqdm(enumerate(grid_squares), desc="Processing Items"):
+        for beta_range in all_reliable_beta_ranges[you][i]:
+            # draw_wedge(ax, square, beta_range, arc_color)
+            draw_rotated_grid(ax, square, beta_range, arc_color)
+
+
+    ax.view_init(elev=30, azim=135)
+
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')
+    plt.draw()
+    print("Press 'q' to continue...")
+    while True:
+        key = plt.waitforbuttonpress()
+        if key:  # Any key will work, but we can restrict it if needed
+            break
+
+    plt.close(fig)
     """
-    angles = []
-    phi = (1 + np.sqrt(5)) / 2  # Golden ratio
 
-    for i in range(n):
-        z = 1 - (2 * i) / (n - 1)  # z ranges from 1 to -1
-        phi_angle = np.arcsin(z)  # Polar angle (-π/2 to π/2)
-        theta_angle = 2 * np.pi * i / phi  # Azimuthal angle (0 to 2π)
-        angles.append((theta_angle % (2 * np.pi), phi_angle))
+    # also plot a 2D view of it
+    twod_squares = generate_2D_square_grid(n_x, n_z, x_range, z_range)
+    fig, ax = plt.subplots()
+    ax.set_xlim([0, max_length])
+    ax.set_ylim([-max_length, max_length])
+    ax.set_aspect(1)
 
-    return angles
+    for i, square in enumerate(twod_squares):
+        color = 'w'
+        alpha_level = 1.0
+        if all_reliable_beta_ranges[you][i]:
+            color = color_list[you]
+            ftw_points_count += 1
 
+        polygon = patches.Polygon(square, facecolor=color, edgecolor='k', alpha=alpha_level, linewidth=0.5)
+        ax.add_patch(polygon)
+        update_or_add_square_2d(ax2, square, color, alpha_level, i, index_dict)
 
-def spherical_to_cartesian(radius, angles):
-    """
-    Convert spherical coordinates to Cartesian coordinates.
+    # Set plot labels and show the plot
+    ax.set_xlabel('X')
+    ax.set_ylabel('Z')
+    frame_points = [
+        (x_range[0], z_range[0]), (x_range[1], z_range[0]),
+        (x_range[1], z_range[1]), (x_range[0], z_range[1]),
+        (x_range[0], z_range[0])  # Closing the loop
+    ]
 
-    Args:
-    - radius (float): Radius of the sphere.
-    - angles (list of tuples): List of (theta, phi) in radians.
+    # Draw frame
+    frame_x, frame_z = zip(*frame_points)
+    ax.plot(frame_x, frame_z, color='k', linewidth=2)
+    plt.draw()
+    print("Press 'q' to continue...")
+    while True:
+        key = plt.waitforbuttonpress()
+        if key:
+            break
 
-    Returns:
-    - ndarray: Array of Cartesian coordinates (x, y, z).
-    """
-    cartesian_coords = []
-    for theta, phi in angles:
-        x = radius * np.cos(phi) * np.cos(theta)
-        y = radius * np.cos(phi) * np.sin(theta)
-        z = radius * np.sin(phi)
-        cartesian_coords.append([x, y, z])
-    return np.array(cartesian_coords)
+    plt.close(fig)
 
+ax2.set_xlabel('X')
+ax2.set_ylabel('Z')
+frame_points = [
+    (x_range[0], z_range[0]), (x_range[1], z_range[0]),
+    (x_range[1], z_range[1]), (x_range[0], z_range[1]),
+    (x_range[0], z_range[0])  # Closing the loop
+]
 
-def find_neighbors_with_threshold(points, k=6, threshold=0.1):
-    """
-    Find neighbors of each point within a sphere, considering a distance threshold.
-
-    Parameters:
-        points (ndarray): Array of shape (N, 3) representing points on the sphere.
-        k (int): Number of nearest neighbors to include initially.
-        threshold (float): Distance threshold to include additional neighbors.
-
-    Returns:
-        list: A list of arrays where each array contains the indices of the neighbors for a point.
-    """
-    from scipy.spatial import cKDTree
-
-    tree = cKDTree(points)
-    distances, indices = tree.query(points, k=k + 1)  # k+1 includes the point itself
-
-    neighbors = []
-    for i, (dist, idx) in enumerate(zip(distances, indices)):
-        # Start with k nearest neighbors
-        valid_neighbors = idx[1:]  # Exclude the point itself (idx[0] is the point itself)
-
-        # Find additional neighbors within the distance threshold
-        additional_neighbors = tree.query_ball_point(points[i], r=dist[-1] + threshold)
-
-        # Combine and deduplicate neighbors
-        combined_neighbors = np.unique(np.concatenate((valid_neighbors, additional_neighbors)))
-        combined_neighbors = combined_neighbors[combined_neighbors != i]  # Exclude the point itself
-        neighbors.append(combined_neighbors)
-    return neighbors
-
-
-def create_polyhedra_with_closest_midpoints(points, neighbors, m=3):
-    """
-    Create polyhedra for each point on the sphere, connecting midpoints to their closest neighbors.
-
-    Parameters:
-        points (ndarray): Array of shape (N, 3) representing points on the sphere.
-        neighbors (list): List of arrays where each array contains the indices of neighbors for a point.
-        m (int): Number of closest midpoint connections to retain.
-
-    Returns:
-        list: A list of polyhedra (vertices and facets).
-    """
-    polyhedra = []
-
-    for i, point in enumerate(points):
-        midpoints = []
-        for j in neighbors[i]:
-            midpoint = (point + points[j]) / 2
-            midpoints.append(midpoint)
-        midpoints = np.array(midpoints)
-
-        # Find closest connections between midpoints
-        dist_matrix = distance.cdist(midpoints, midpoints)
-        np.fill_diagonal(dist_matrix, np.inf)  # Ignore self-connections
-
-        closest_connections = []
-        for idx, row in enumerate(dist_matrix):
-            closest_indices = np.argsort(row)[:m]  # Take m closest neighbors
-            for ci in closest_indices:
-                if {idx, ci} not in closest_connections:  # Ensure undirected uniqueness
-                    closest_connections.append({idx, ci})
-
-        # Construct facets using closest connections
-        center = [0, 0, 0]  # Sphere's center
-        facets = []
-        for connection in closest_connections:
-            idx1, idx2 = list(connection)
-            facets.append([midpoints[idx1], midpoints[idx2], center])
-
-        polyhedra.append({"vertices": np.vstack((midpoints, center)), "facets": facets})
-
-    return polyhedra
-
-
-def plot_polyhedra(ax, polyhedra, indices, points):
-    """
-    Plot specified polyhedra based on given indices.
-
-    Parameters:
-        ax: Matplotlib 3D axis.
-        polyhedra: List of polyhedra data (vertices and facets).
-        indices: List of indices for polyhedra to plot.
-        points: Array of sampled points on the sphere.
-    """
-    for i in indices:
-        polyhedron = polyhedra[i]
-        facets = polyhedron["facets"]
-
-        # Plot each facet
-        poly3d = Poly3DCollection(facets, alpha=0.5, edgecolor='k')
-        ax.add_collection3d(poly3d)
-
-    # Plot sampled points as red dots
-    ax.scatter(points[:, 0], points[:, 1], points[:, 2], color='red', s=20)
-
-
-# Main Execution
-radius = 2 * np.pi
-num_points = 100
-angles = fibonacci_sphere_angles(num_points)
-points = spherical_to_cartesian(radius, angles)
-neighbors = find_neighbors_with_threshold(points, k=4, threshold=0.1)
-polyhedra = create_polyhedra_with_closest_midpoints(points, neighbors, m=2)
-
-# Plotting
-fig = plt.figure(figsize=(10, 10))
-ax = fig.add_subplot(111, projection='3d')
-plot_indices = [0]  # Specify indices of polyhedra to visualize
-plot_polyhedra(ax, polyhedra, plot_indices, points)
-
-# Plot Settings
-ax.set_xlim([-radius, radius])
-ax.set_ylim([-radius, radius])
-ax.set_zlim([-radius, radius])
-ax.set_box_aspect([1, 1, 1])
+# Draw frame
+frame_x, frame_z = zip(*frame_points)
+ax2.plot(frame_x, frame_z, color='k', linewidth=2)
+plt.ioff()
 plt.show()
