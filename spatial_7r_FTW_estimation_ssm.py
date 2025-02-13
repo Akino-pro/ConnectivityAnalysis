@@ -1,5 +1,6 @@
 import time
 
+from matplotlib import patches
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection, Line3DCollection
 from tqdm import tqdm
 
@@ -9,7 +10,7 @@ from roboticstoolbox import DHRobot, RevoluteDH
 import matplotlib.pyplot as plt
 from spatialmath import SE3
 
-from spatial3R_ftw_draw import generate_grid_centers, generate_square_grid, draw_rotated_grid
+from spatial3R_ftw_draw import generate_grid_centers, generate_square_grid, draw_rotated_grid, generate_2D_square_grid
 from Three_dimension_connectivity_measure import connectivity_analysis
 from spatial3R_ftw_draw import generate_binary_matrix
 from scipy.spatial.transform import Rotation as R
@@ -28,8 +29,8 @@ terminate_threshold = 9.0 / 5.0 * step_size
 # terminate_threshold = step_size * 0.5
 ssm_finding_num = 10
 max_ssm = 16
-positional_samples = 288  # 288
-orientation_samples = 64  # 64
+positional_samples = 18  # 288
+orientation_samples = 25  # 64
 theta_phi_list = fibonacci_sphere_angles(orientation_samples)
 # print(theta_phi_list)
 
@@ -1082,7 +1083,8 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     angle_ranges = []
     reachable_points = 0
     orientational_connectivity = []
-    update_top_5, get_top_5 = track_top_5()
+    all_data=[]
+    #update_top_5, get_top_5 = track_top_5()
     index = 0
     # debug = [grid_centers[7]]
     shape_volumns = []
@@ -1137,22 +1139,24 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
                                                                                              kernel_size, Lambda)
             orientational_connectivity.append(general_connectivity)
             shape_volumns.append(shape_area)
+            all_data.append((shape_area, index, all_beta_ranges, all_alpha_ranges))
             # print(general_connectivity)
-        update_top_5(shape_area, index, all_beta_ranges, all_alpha_ranges)
+        #all_data.append((shape_area, index, all_beta_ranges, all_alpha_ranges))
+        #update_top_5(shape_area, index, all_beta_ranges, all_alpha_ranges)
         index += 1
 
         if len(positional_beta_ranges) != 0: reachable_points += 1
         angle_ranges.append(positional_beta_ranges)
     # plot 3D positional ftw
-    top_5_grids = get_top_5()
-    print(top_5_grids)
+    #top_5_grids = get_top_5()
+    print(all_data)
     # color_list = ['b', 'r', 'g', 'y', 'c']
     index_list_to_color = []
     color_list, sm = normalize_and_map_colors(shape_volumns)
-    for i in range(5):
-        index_list_to_color.append(top_5_grids[i][1])
-        beta_range_to_plot = top_5_grids[i][2]
-        alpha_range_to_plot = top_5_grids[i][3]
+    for single_data in all_data:
+        index_list_to_color.append(single_data[1])
+        beta_range_to_plot = single_data[2]
+        alpha_range_to_plot = single_data[3]
         """
         # only use this to extend alpha range
         all_wedge_faces, alpha_range_to_plot = get_extruded_wedges(
@@ -1221,30 +1225,48 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     # Draw squares only if the angle_ranges[i] is non-empty
     for i, square in enumerate(grid_squares):
         color = 'k'
-        # for j in range(5):
-        #    if i == index_list_to_color[j]:
-        #        color = color_list[j]
         alpha_level = 0
         if angle_ranges[i]:  # Check if the list is non-empty
             color = color_list[i]
             alpha_level = 1.0
             # Plot the square grid directly
-        square_poly = Poly3DCollection([square], color=color, alpha=alpha_level)
+        square_poly = Poly3DCollection([square], facecolor=color, edgecolor='k', alpha=alpha_level)
         ax.add_collection3d(square_poly)
-    frame_points = [
-        (x_range[0], 0, z_range[0]), (x_range[1], 0, z_range[0]),
-        (x_range[1], 0, z_range[1]), (x_range[0], 0, z_range[1]),
-        (x_range[0], 0, z_range[0])  # Closing the loop
-    ]
 
-    frame = Line3DCollection([frame_points], colors='k', linewidths=2)
-    ax.add_collection3d(frame)
     cbar = plt.colorbar(sm, ax=ax, label='orientation FTW volume Spectrum')
     # Set plot labels and show the plot
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
     plt.show()
+    # 2D view
+    color_list, sm = normalize_and_map_colors(shape_volumns)
+    twod_squares = generate_2D_square_grid(n_x, n_z, x_range, z_range)
+    fig, ax = plt.subplots()
+    ax.set_xlim([0, max_length])
+    ax.set_ylim([-max_length, max_length])
+    ax.set_aspect(1)
+
+    for i, square in enumerate(twod_squares):
+        color = 'w'
+        alpha_level = 1.0
+        if angle_ranges[i]:
+            color = color_list[i]
+        polygon = patches.Polygon(square, facecolor=color, edgecolor='k', alpha=alpha_level, linewidth=1.5)
+        ax.add_patch(polygon)
+
+    # Set plot labels and show the plot
+    ax.set_xlabel('X')
+    ax.set_ylabel('Z')
+    cbar = plt.colorbar(sm, ax=ax, label='orientation FTW volume Spectrum')
+    plt.draw()
+    print("Press 'q' to continue...")
+    while True:
+        key = plt.waitforbuttonpress()
+        if key:
+            break
+
+    plt.close(fig)
 
     # print(angle_ranges)
 

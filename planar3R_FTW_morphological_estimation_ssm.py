@@ -24,11 +24,11 @@ r3 = 0.7
 #     (-3.119803865520389, 0.38031991292340495)]
 # L=[1.42,1,0.58]
 L = [1, 1, 1]
-#CA = [(-18.2074 * np.pi / 180, 18.2074 * np.pi / 180), (-111.3415 * np.pi / 180, 111.3415 * np.pi / 180),
-#    (-111.3415 * np.pi / 180, 111.3415 * np.pi / 180)]
+CA = [(-18.2074 * np.pi / 180, 18.2074 * np.pi / 180), (-111.3415 * np.pi / 180, 111.3415 * np.pi / 180),
+(-111.3415 * np.pi / 180, 111.3415 * np.pi / 180)]
 # CA=[(-3.031883452592004, 3.031883452592004), (-1.619994146091692, -0.8276157453255935), (-1.6977602095460234, -0.7265946655975718)]
-CA = [(-0.7391244590957556, 0.7391244590957556), (-0.7422740927125862, 1.9756037937159996),
-      (-2.11211741668124, 2.12020510030)]
+#CA = [(-0.7391244590957556, 0.7391244590957556), (-0.7422740927125862, 1.9756037937159996),
+#      (-2.11211741668124, 2.12020510030)]
 """
 CA = [(-30 * np.pi / 180, 30 * np.pi / 180), (-120 * np.pi / 180, 60 * np.pi / 180),
       (-130 * np.pi / 180, 130 * np.pi / 180)]
@@ -631,7 +631,7 @@ ax.set_zlim(0, 12)
 
 ax.set_xlabel("X-axis")
 ax.set_ylabel("Y-axis")
-ax.set_zlabel("Z-axis")
+ax.set_zlabel("Failable Joints")
 
 # Set aspect ratio to be equal for correct visualization of circles
 ax.set_aspect('equal')
@@ -640,7 +640,7 @@ ax.set_aspect('equal')
 plt.title("Planar3R Reliable work spaces")
 cbar = plt.colorbar(sm, ax=ax, label='Reliability Spectrum')  # Ensure colorbar is linked to the mappable
 # Define the new labels and corresponding tick positions
-z_tick_labels = ['r1', 'r2', 'r3', 'r1r2', 'r1r3', 'r2r3', 'r1r2r3']
+z_tick_labels = ['J1', 'J2', 'J3', 'J1J2', 'J1J3', 'J2J3', 'J1J2J3']
 z_tick_positions = [0, 2, 4, 6, 8, 10, 12]  # These match your z_level values
 
 # Set the new labels on the Z-axis
