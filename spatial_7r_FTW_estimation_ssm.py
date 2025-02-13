@@ -1149,7 +1149,8 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
         angle_ranges.append(positional_beta_ranges)
     # plot 3D positional ftw
     #top_5_grids = get_top_5()
-    print(all_data)
+    with open("my_list.txt", "w") as file:
+        file.write(str(all_data))
     # color_list = ['b', 'r', 'g', 'y', 'c']
     index_list_to_color = []
     color_list, sm = normalize_and_map_colors(shape_volumns)
@@ -1238,6 +1239,14 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
+    frame_points = [
+        (x_range[0],0, z_range[0]), (x_range[1],0, z_range[0]),
+        (x_range[1],0, z_range[1]), (x_range[0],0, z_range[1]),
+        (x_range[0],0, z_range[0])  # Closing the loop
+    ]
+
+    frame = Line3DCollection([frame_points], colors='k', linewidths=2)
+    ax.add_collection3d(frame)
     plt.show()
     # 2D view
     color_list, sm = normalize_and_map_colors(shape_volumns)
@@ -1258,6 +1267,15 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     # Set plot labels and show the plot
     ax.set_xlabel('X')
     ax.set_ylabel('Z')
+    frame_points = [
+        (x_range[0], z_range[0]), (x_range[1], z_range[0]),
+        (x_range[1], z_range[1]), (x_range[0], z_range[1]),
+        (x_range[0], z_range[0])  # Closing the loop
+    ]
+
+    # Draw frame
+    frame_x, frame_z = zip(*frame_points)
+    ax.plot(frame_x, frame_z, color='k', linewidth=2)
     cbar = plt.colorbar(sm, ax=ax, label='orientation FTW volume Spectrum')
     plt.draw()
     print("Press 'q' to continue...")
