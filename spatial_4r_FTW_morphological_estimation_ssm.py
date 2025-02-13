@@ -953,6 +953,8 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
                                                                all_reliable_beta_ranges)
 
     grid_squares = generate_square_grid(n_x, n_z, x_range, z_range)
+    with open("my_list.txt", "w") as file:
+        file.write(str(all_reliable_beta_ranges))
 
     color_list, sm = normalize_and_map_colors(cr_list)
     fig, ax2 = plt.subplots()
@@ -965,8 +967,9 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     indices = sorted_indices(cr_list)
     for you in indices:
         ftw_points_count = 0
+        """
         arc_color = color_list[you]
-
+        
         # Plot setup
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d')
@@ -980,9 +983,6 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
                 # draw_wedge(ax, square, beta_range, arc_color)
                 draw_rotated_grid(ax, square, beta_range, arc_color)
 
-        # ax.plot([-4, 0], [0, 0], [0, 0], color='black', linewidth=2)  # X-axis
-        # ax.plot([0, 0], [0, 4], [0, 0], color='black', linewidth=2)  # Y-axis
-        # ax.plot([0, 0], [0, 0], [0, 4], color='black', linewidth=2)  # Z-axis
 
         ax.view_init(elev=30, azim=135)
 
@@ -997,6 +997,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
                 break
 
         plt.close(fig)
+        """
 
         grid_squares = generate_square_grid(n_x, n_z, x_range, z_range)
 
