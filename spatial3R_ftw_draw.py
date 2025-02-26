@@ -22,6 +22,21 @@ def generate_square_grid(n_x, n_z, x_range, z_range):
     return squares
 
 
+def generate_square_grid_centers(n_x, n_z, x_range, z_range):
+    """Generate grid of square centers in the x-z plane."""
+    x_vals = np.linspace(x_range[0], x_range[1], n_x + 1)
+    z_vals = np.linspace(z_range[0], z_range[1], n_z + 1)
+    centers = []
+
+    for i in range(n_x):
+        for j in range(n_z):
+            center_x = (x_vals[i] + x_vals[i + 1]) / 2
+            center_z = (z_vals[j] + z_vals[j + 1]) / 2
+            centers.append([center_x, 0, center_z])
+
+    return centers
+
+
 def generate_2D_square_grid(n_x, n_z, x_range, z_range):
     """Generate a grid of squares in the x-z plane."""
     x_vals = np.linspace(x_range[0], x_range[1], n_x + 1)
@@ -51,7 +66,15 @@ def rotate_around_z(vertices, angle):
 
 # Function to draw an arc by rotating a grid square around the Z-axis
 def draw_rotated_grid(ax, square, angle_range, color):
-    angles = np.linspace(angle_range[0], np.min([angle_range[1], np.pi / 2]), 135)  # todo；optimize
+    intersected_lower = angle_range[0]
+    intersected_upper = np.min([angle_range[1], np.pi / 2])
+    if angle_range[0] >= np.pi / 2: return
+    # if square[0][2] >= 0:
+    #    if angle_range[0] >= 0 or angle_range[1] <= -np.pi / 2: return
+    #    intersected_lower = np.max([angle_range[0], -np.pi / 2])
+    #    intersected_upper = np.min([angle_range[1], 0])
+
+    angles = np.linspace(intersected_lower, intersected_upper, 270)
 
     # Loop through each angle to rotate the square around the Z-axis
     for angle in angles:
@@ -61,7 +84,57 @@ def draw_rotated_grid(ax, square, angle_range, color):
         face = [rotated_vertices[j] for j in range(4)]
 
         # Add the polygon to the plot with a single color
-        ax.add_collection3d(Poly3DCollection([face], color=color, edgecolor='k'))
+        ax.add_collection3d(Poly3DCollection([face], color="#E0FFFF", edgecolor="#00008B", linewidth=0.1))
+
+
+def draw_rotated_grid_by_range_only(ax, square, angle_range, color):
+    intersected_lower = angle_range[0]
+    intersected_upper = angle_range[1]
+    angles = np.linspace(intersected_lower, intersected_upper, int((angle_range[1]-angle_range[0])/(np.pi/180))*3)
+
+    # Loop through each angle to rotate the square around the Z-axis
+    for angle in angles:
+        rotated_vertices = rotate_around_z(np.array(square), angle)
+
+        # Create the rotated face (polygon) for the square
+        face = [rotated_vertices[j] for j in range(4)]
+
+        # Add the polygon to the plot with a single color
+        ax.add_collection3d(Poly3DCollection([face], color=color, edgecolor=color, linewidth=0.5))
+
+def draw_rotated_grid_by_range_only_transparent(ax, square, angle_range, color, center):
+    intersected_lower = angle_range[0]
+    intersected_upper = angle_range[1]
+
+    angles = np.linspace(intersected_lower, intersected_upper, int((angle_range[1]-angle_range[0])/(np.pi/180))*3)
+    # Loop through each angle to rotate the square around the Z-axis
+
+    rotated_vertices = rotate_around_z(np.array(square), intersected_lower)
+    face = [rotated_vertices[j] for j in range(4)]
+    ax.add_collection3d(Poly3DCollection([face], color=color, edgecolor=color, linewidth=0.5,alpha=0.2))
+    rotated_vertices = rotate_around_z(np.array(square), intersected_upper)
+    face = [rotated_vertices[j] for j in range(4)]
+    ax.add_collection3d(Poly3DCollection([face], color=color, edgecolor=color, linewidth=0.5,alpha=0.2))
+
+    # Prepare curves for vertices and center
+    vertex_curves = [[], [], [], []]
+    center_curve = []
+
+    for angle in angles:
+        rotated_vertices = rotate_around_z(np.array(square), angle)
+        for idx in range(4):
+            vertex_curves[idx].append(rotated_vertices[idx])
+        rotated_center = rotate_around_z(np.array([center]), angle)[0]
+        center_curve.append(rotated_center)
+
+    # Plot the curves for each vertex
+    for vertex_curve in vertex_curves:
+        vertex_curve = np.array(vertex_curve)
+        ax.plot(vertex_curve[:, 0], vertex_curve[:, 1], vertex_curve[:, 2], color='black', linewidth=0.8)
+
+    # Plot the curve for the center
+    center_curve = np.array(center_curve)
+    ax.plot(center_curve[:, 0], center_curve[:, 1], center_curve[:, 2], color='black', linewidth=2.0)
 
 
 def generate_grid_centers(n_x, n_z, num_points, x_range, z_range):

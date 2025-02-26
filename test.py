@@ -2,9 +2,10 @@ import ast
 
 import numpy as np
 from matplotlib import pyplot as plt, patches
+from tqdm import tqdm
 
 from helper_functions import normalize_and_map_colors, sorted_indices, update_or_add_square_2d
-from spatial3R_ftw_draw import generate_2D_square_grid
+from spatial3R_ftw_draw import generate_2D_square_grid, draw_rotated_grid, generate_square_grid
 
 with open("my_list.txt", "r") as file:
     content = file.read()
@@ -53,18 +54,21 @@ x_range = (0, max_length)  # Range for x-axis
 z_range = (-max_length, max_length)  #
 cr_list = reliability_computation(r1, r2, r3, r4)
 color_list, sm = normalize_and_map_colors(cr_list)
-fig, ax2 = plt.subplots()
-ax2.set_xlim([0, max_length])
-ax2.set_ylim([-max_length, max_length])
-ax2.set_aspect(1)
-cbar = plt.colorbar(sm, ax=ax2, label='Reliability Spectrum')
+# fig, ax2 = plt.subplots()
+# ax2.set_xlim([0, max_length])
+# ax2.set_ylim([-max_length, max_length])
+# ax2.set_aspect(1)
+# cbar = plt.colorbar(sm, ax=ax2, label='Reliability Spectrum')
 
-plt.ion()
+# plt.ion()
 indices = sorted_indices(cr_list)
 index_dict = {}
+indices = [indices[len(indices)-1]]
+print(indices)
+grid_squares = generate_square_grid(n_x, n_z, x_range, z_range)
 for you in indices:
     ftw_points_count = 0
-    """
+
     arc_color = color_list[you]
 
     # Plot setup
@@ -72,20 +76,28 @@ for you in indices:
     ax = fig.add_subplot(111, projection='3d')
 
     # Set plot range
-    ax.set_xlim([-3, 3])  # todo: optimized
-    ax.set_ylim([-3, 3])
-    ax.set_zlim([-3, 3])
+    ax.set_xlim([-2, 2])  # todo: optimized
+    ax.set_ylim([-2, 2])
+    ax.set_zlim([-2, 2])
+    ax.set_xticks(np.arange(-2, 3, 1))
+    ax.set_yticks(np.arange(-2, 3, 1))
+    ax.set_zticks(np.arange(-2, 3, 1))
     for i, square in tqdm(enumerate(grid_squares), desc="Processing Items"):
         for beta_range in all_reliable_beta_ranges[you][i]:
             # draw_wedge(ax, square, beta_range, arc_color)
             draw_rotated_grid(ax, square, beta_range, arc_color)
 
-
     ax.view_init(elev=30, azim=135)
 
-    ax.set_xlabel('X')
-    ax.set_ylabel('Y')
-    ax.set_zlabel('Z')
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    ax.set_zlabel('z')
+    ax.set_xlabel("x", fontsize=18)
+    ax.set_ylabel("y", fontsize=18)
+    ax.set_zlabel("z", fontsize=18)
+    ax.tick_params(axis='x', labelsize=18)  # Increase font size for X-axis ticks
+    ax.tick_params(axis='y', labelsize=18)
+    ax.tick_params(axis='z', labelsize=18)
     plt.draw()
     print("Press 'q' to continue...")
     while True:
@@ -94,8 +106,8 @@ for you in indices:
             break
 
     plt.close(fig)
-    """
 
+    """
     # also plot a 2D view of it
     twod_squares = generate_2D_square_grid(n_x, n_z, x_range, z_range)
     fig, ax = plt.subplots()
@@ -134,17 +146,17 @@ for you in indices:
             break
 
     plt.close(fig)
-
-ax2.set_xlabel('X')
-ax2.set_ylabel('Z')
-frame_points = [
-    (x_range[0], z_range[0]), (x_range[1], z_range[0]),
-    (x_range[1], z_range[1]), (x_range[0], z_range[1]),
-    (x_range[0], z_range[0])  # Closing the loop
-]
+    """
+# ax2.set_xlabel('X')
+# ax2.set_ylabel('Z')
+# frame_points = [
+#    (x_range[0], z_range[0]), (x_range[1], z_range[0]),
+#    (x_range[1], z_range[1]), (x_range[0], z_range[1]),
+#    (x_range[0], z_range[0])  # Closing the loop
+# ]
 
 # Draw frame
-frame_x, frame_z = zip(*frame_points)
-ax2.plot(frame_x, frame_z, color='k', linewidth=2)
-plt.ioff()
-plt.show()
+# frame_x, frame_z = zip(*frame_points)
+# ax2.plot(frame_x, frame_z, color='k', linewidth=2)
+# plt.ioff()
+# plt.show()

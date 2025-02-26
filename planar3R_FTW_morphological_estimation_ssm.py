@@ -5,7 +5,7 @@ from scipy.linalg import null_space
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 
-from helper_functions import normalize_and_map_colors
+from helper_functions import normalize_and_map_colors, sorted_indices
 
 step_size = 0.01
 # terminate_threshold = step_size / 2.0
@@ -24,11 +24,11 @@ r3 = 0.7
 #     (-3.119803865520389, 0.38031991292340495)]
 # L=[1.42,1,0.58]
 L = [1, 1, 1]
-CA = [(-18.2074 * np.pi / 180, 18.2074 * np.pi / 180), (-111.3415 * np.pi / 180, 111.3415 * np.pi / 180),
-(-111.3415 * np.pi / 180, 111.3415 * np.pi / 180)]
+#CA = [(-18.2074 * np.pi / 180, 18.2074 * np.pi / 180), (-111.3415 * np.pi / 180, 111.3415 * np.pi / 180),
+ #     (-111.3415 * np.pi / 180, 111.3415 * np.pi / 180)]
 # CA=[(-3.031883452592004, 3.031883452592004), (-1.619994146091692, -0.8276157453255935), (-1.6977602095460234, -0.7265946655975718)]
-#CA = [(-0.7391244590957556, 0.7391244590957556), (-0.7422740927125862, 1.9756037937159996),
-#      (-2.11211741668124, 2.12020510030)]
+CA = [(-0.7391244590957556, 0.7391244590957556), (-0.7422740927125862, 1.9756037937159996),
+      (-2.11211741668124, 2.12020510030)]
 """
 CA = [(-30 * np.pi / 180, 30 * np.pi / 180), (-120 * np.pi / 180, 60 * np.pi / 180),
       (-130 * np.pi / 180, 130 * np.pi / 180)]
@@ -56,6 +56,8 @@ def reliability_computation(r1, r2, r3):
 
 cr_list = reliability_computation(r1, r2, r3)
 print(cr_list)
+indices = sorted_indices(cr_list)
+print(indices)
 
 
 def forward_kinematics_3R(theta, L):
@@ -561,12 +563,22 @@ num_reliable_ranges = 7
 color_list, sm = normalize_and_map_colors(cr_list)
 final_wedges = []
 final_colors = []
-#z_levels = cr_list
+# z_levels = cr_list
 # np.linspace(-3, 3, num_reliable_ranges)
 x_values = np.linspace(0, 3, sample_num)
 y_values = np.zeros(sample_num)
 points = np.column_stack((x_values, y_values))
 ring_width = x_values[1]
+
+fig3, ax2d3 = plt.subplots(figsize=(6, 6))
+
+# Set limits for the 2D plot
+ax2d3.set_xlim(-3, 3)
+ax2d3.set_ylim(-3, 3)
+ax2d3.set_aspect('equal')
+ax2d3.set_xlabel("x", fontsize=18)
+ax2d3.set_ylabel("y", fontsize=18)
+# ax2d3.set_title("2D relia")
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
 for i in range(len(points)):
@@ -574,10 +586,11 @@ for i in range(len(points)):
     x, y = point
     print(point)
     beta_ranges, reliable_beta_ranges = compute_beta_range(x, y)  # Get multiple beta ranges
-    for b_r_index in range(len(reliable_beta_ranges)):
+    # for b_r_index in range(len(reliable_beta_ranges)):
+    for b_r_index in indices:
         b_r = reliable_beta_ranges[b_r_index]
         # z_level = z_levels[b_r_index]
-        z_level = b_r_index*2
+        z_level = b_r_index * 2
         color = color_list[b_r_index]
         for beta_range in b_r:
             # Compute angles in degrees (as required by Wedge)
@@ -593,7 +606,20 @@ for i in range(len(points)):
                 theta1=theta1, theta2=theta2,
                 width=ring_width,
                 facecolor=color,  # Set face color to match 3D plot
-                edgecolor=color
+                edgecolor=color,
+                alpha=1.0,
+                zorder=b_r_index
+            )
+
+            wedge_2d = Wedge(
+                center=(0, 0),
+                r=outer_radius,
+                theta1=theta1, theta2=theta2,
+                width=ring_width,
+                facecolor=color,
+                edgecolor=color,
+                alpha=1.0,
+                zorder=b_r_index
             )
 
             if x == 0 and y == 0:
@@ -604,7 +630,20 @@ for i in range(len(points)):
                     theta1=theta1, theta2=theta2,
                     width=ring_width / 2,
                     facecolor=color,  # Set face color
-                    edgecolor=color
+                    edgecolor=color,
+                    alpha=1.0,
+                    zorder=b_r_index
+                )
+
+                wedge_2d = Wedge(
+                    center=(0, 0),
+                    r=outer_radius,
+                    theta1=theta1, theta2=theta2,
+                    width=ring_width / 2,
+                    facecolor=color,  # Set face color
+                    edgecolor=color,
+                    alpha=1.0,
+                    zorder=b_r_index
                 )
             poly3d = wedge_to_poly3d(wedge, z_level)
             # Add the wedge to the plot
@@ -618,29 +657,38 @@ for i in range(len(points)):
                 )
             )
 
+            ax2d3.add_patch(wedge_2d)  # Add wedge to 2D plot
+
             if b_r_index == len(reliable_beta_ranges) - 1:
                 final_wedges.append(wedge)
                 final_colors.append(color)
-
-
+ax2d3.tick_params(axis='x', labelsize=18)  # Increase font size for X-axis ticks
+ax2d3.tick_params(axis='y', labelsize=18)  # Increase font size for Y-axis ticks
+# cbar = plt.colorbar(sm, ax=ax2d3, label='Reliability Spectrum')  # Ensure colorbar is linked to the mappable
+fig3.show()
 
 # Set the plot limits to range from -3 to 3 for both x and y axes
 ax.set_xlim(-3, 3)
 ax.set_ylim(-3, 3)
 ax.set_zlim(0, 12)
 
-ax.set_xlabel("X-axis")
-ax.set_ylabel("Y-axis")
-ax.set_zlabel("Failable Joints")
+# ax.tick_params(axis='x', labelsize=14)
+# ax.tick_params(axis='y', labelsize=14)
+# ax.tick_params(axis='z', labelsize=14)
+
+# ax.set_xlabel("x")
+# x.set_ylabel("y")
+# ax.set_zlabel("Failable Joints")
 
 # Set aspect ratio to be equal for correct visualization of circles
 ax.set_aspect('equal')
 
 # Add title and display the plot
-plt.title("Planar3R Reliable work spaces")
-cbar = plt.colorbar(sm, ax=ax, label='Reliability Spectrum')  # Ensure colorbar is linked to the mappable
-# Define the new labels and corresponding tick positions
+# plt.title("Planar3R Reliable work spaces")
+cbar = plt.colorbar(sm, ax=ax)  # Ensure colorbar is linked to the mappable
+# Define the new labels and corresponding tick positionsq
 z_tick_labels = ['J1', 'J2', 'J3', 'J1J2', 'J1J3', 'J2J3', 'J1J2J3']
+ax.tick_params(axis='z', labelsize=18) 
 z_tick_positions = [0, 2, 4, 6, 8, 10, 12]  # These match your z_level values
 
 # Set the new labels on the Z-axis
@@ -656,12 +704,13 @@ for wedge, color in zip(final_wedges, final_colors):
 # Configure the 2D plot
 ax2d.set_xlim(-3, 3)
 ax2d.set_ylim(-3, 3)
+# ax.tick_params(axis='x', labelsize=14)
+# ax.tick_params(axis='y', labelsize=14)
 ax2d.set_aspect('equal')
-ax2d.set_xlabel("X-axis")
-ax2d.set_ylabel("Y-axis")
-ax2d.set_title("Fault tolerant workspace")
+ax2d.set_xlabel("x", fontsize=18)
+ax2d.set_ylabel("y", fontsize=18)
+ax2d.tick_params(axis='x', labelsize=18)  # Increase font size for X-axis ticks
+ax2d.tick_params(axis='y', labelsize=18)  # Increase font size for Y-axis ticks
+# ax2d.set_title("Fault tolerant workspace")
 fig2.show()
 plt.show()
-
-
-

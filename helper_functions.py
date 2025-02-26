@@ -393,11 +393,11 @@ def plot_voronoi_regions_on_sphere(theta_phi_list,
     ax.set_xlim([-limit, limit])
     ax.set_ylim([-limit, limit])
     ax.set_zlim([-limit, limit])
-    cbar = plt.colorbar(sm_ori, ax=ax, label='alpha ranges length Spectrum')
+    cbar = plt.colorbar(sm_ori, ax=ax) #label='alpha ranges length Spectrum')
     ax.set_xlabel("X")
     ax.set_ylabel("Y")
     ax.set_zlabel("Z")
-    ax.set_title("Spherical Voronoi Regions: Visited vs Unvisited")
+    #ax.set_title("Spherical Voronoi Regions: Visited vs Unvisited")
 
     plt.show()
     # return ax
@@ -457,9 +457,7 @@ def build_truncated_wedge(region_vertices, rmin, rmax, R_outer=1.0):
 
 
 def get_extruded_wedges(theta_phi_list,
-                        theta_ranges_all,
                         alpha_lists,
-                        samples_per_arc=50,
                         extrude_radius=2 * np.pi,
                         do_plot=False,
                         color='b'):
@@ -483,7 +481,7 @@ def get_extruded_wedges(theta_phi_list,
 
     # We'll keep a set of region indices that are visited by any arc
     visited_region_indices = set()
-
+    """
     # 3) For each point i, arcs in theta_ranges_all[i]
     for i, intervals in enumerate(theta_ranges_all):
         if not intervals:
@@ -511,10 +509,12 @@ def get_extruded_wedges(theta_phi_list,
                 combined = alpha_lists[r_idx] + alpha_lists[i]
                 # Use the union_ranges(...) function to merge them
                 alpha_lists[r_idx] = union_ranges(combined)
-
+    """
+    # 3) Identify regions with non-empty alpha lists
+    valid_region_indices = {i for i, alpha in enumerate(alpha_lists) if alpha}
     # 4) Build the wedge faces for each visited region
     all_wedge_faces = []
-    for r_idx in visited_region_indices:
+    for r_idx in valid_region_indices:
         region = sv.regions[r_idx]
         region_vertices = sv.vertices[region]  # Nx3 on the unit sphere
 
@@ -544,9 +544,9 @@ def get_extruded_wedges(theta_phi_list,
         ax.set_xlabel("X")
         ax.set_ylabel("Y")
         ax.set_zlabel("Z")
-        ax.set_title(f"Voronoi Regions Covered by Arcs, Extruded to r={extrude_radius}")
+        #ax.set_title(f"Voronoi Regions Covered by Arcs, Extruded to r={extrude_radius}")
         plt.show()
-    return all_wedge_faces, alpha_lists
+    return all_wedge_faces
 
 
 def wedge_faces_to_binary_volume(all_wedge_faces, NX=50, NY=50, NZ=50):
@@ -618,7 +618,7 @@ def track_top_5():
     return update, get_top_5
 
 
-def normalize_and_map_colors(values, cmap_name='rainbow'):
+def normalize_and_map_colors(values, cmap_name='plasma_r'):
     """
     Normalizes a list of values to the range [0, 1] and maps them to colors from a given colormap.
 
@@ -757,6 +757,7 @@ def sorted_indices(lst):
 
 
 def union_ranges(ranges):
+    #ranges = [sublist for sublist in ranges if sublist]
     if not ranges:
         return []
 

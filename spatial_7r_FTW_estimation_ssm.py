@@ -1119,11 +1119,9 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
 
         # plot_shifted_arcs_on_sphere(theta_phi_list, all_beta_ranges, samples_per_arc=40)
 
-        all_wedge_faces, all_alpha_ranges = get_extruded_wedges(
+        all_wedge_faces = get_extruded_wedges(
             theta_phi_list,
-            all_beta_ranges,
             all_alpha_ranges,
-            samples_per_arc=40,
             extrude_radius=2 * np.pi,
         )
         # print(all_alpha_ranges)
@@ -1334,4 +1332,5 @@ CA2 = [(-97 * np.pi / 180, 97 * np.pi / 180), (-154 * np.pi / 180, 131 * np.pi /
        (-122 * np.pi / 180, 122 * np.pi / 180), (-141 * np.pi / 180, 92 * np.pi / 180),
        (-105 * np.pi / 180, 139 * np.pi / 180), (-65 * np.pi / 180, 119 * np.pi / 180),
        (26 * np.pi / 180, 183 * np.pi / 180)]
+
 ap = ssm_estimation(positional_samples, d, alpha, l, CA)
