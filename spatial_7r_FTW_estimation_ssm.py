@@ -19,7 +19,7 @@ from helper_functions import plot_shifted_arcs_on_sphere, fibonacci_sphere_angle
     wedge_faces_to_binary_volume, track_top_5, union_ranges, normalize_and_map_colors, \
     plot_voronoi_regions_on_sphere, compute_length_of_ranges
 
-from test_the_end import plot_bar_graph_transposed_same_color
+from test_the_end import plot_alpha_ranges, plot_beta_ranges
 
 kernel_size = 1
 Lambda = 0.5
@@ -1177,7 +1177,8 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
                                        samples_per_arc=50,
                                        )
 
-        plot_bar_graph_transposed_same_color(theta_phi_list, alpha_range_to_plot)
+        plot_alpha_ranges(theta_phi_list, alpha_range_to_plot)
+        plot_beta_ranges(theta_phi_list, beta_range_to_plot)
     """
     positional ftw plot
     """
@@ -1274,7 +1275,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     # Draw frame
     frame_x, frame_z = zip(*frame_points)
     ax.plot(frame_x, frame_z, color='k', linewidth=2)
-    cbar = plt.colorbar(sm, ax=ax, label='orientation FTW volume Spectrum')
+    cbar = plt.colorbar(sm, ax=ax)
     plt.draw()
     print("Press 'q' to continue...")
     while True:

@@ -37,7 +37,7 @@ print(get_top_5())  # Output: Top 5 highest numbers with their indices and prope
 """
 
 
-def plot_bar_graph_transposed_same_color(theta_phi_list, ranges_list):
+def plot_alpha_ranges(theta_phi_list, ranges_list):
     """
     Plots a transposed bar graph where the vertical axis represents (theta, phi) tuples,
     and the horizontal bars represent disjoint ranges from -π to π, using the same color.
@@ -66,17 +66,62 @@ def plot_bar_graph_transposed_same_color(theta_phi_list, ranges_list):
     for i, (x_pos, ranges) in enumerate(zip(x_positions, ranges_list)):
         if ranges:  # Plot bars for valid ranges
             for start, end in ranges:
-                ax.bar(x_pos, end - start, bottom=start, align='center', color='gray', edgecolor='black')
+                ax.bar(x_pos, end - start, bottom=start, align='center', color='blue', edgecolor='blue')
         else:  # Draw an empty column as a placeholder
-            ax.bar(x_pos, 0, bottom=0, align='center', color='white', edgecolor='black')
+            ax.bar(x_pos, 0, bottom=0, align='center', color='white', edgecolor='white')
 
-    ax.set_ylabel("Range (-π to π)")
+    ax.set_ylabel("Alpha ranges")
     ax.set_xlabel("Theta, Phi Tuples")
     ax.set_xticks(x_positions)
     ax.set_xticklabels(x_labels, rotation=45, ha='right')  # Angled labels for better visibility
     ax.set_ylim(-np.pi, np.pi)
     ax.set_yticks(np.linspace(-np.pi, np.pi, 5))
-    ax.set_title("Transposed Bar Graph of (Theta, Phi) Mapping to Ranges (Single Color)")
+    #ax.set_title("Transposed Bar Graph of (Theta, Phi) Mapping to Ranges (Single Color)")
+
+    plt.grid(axis='y', linestyle='--', alpha=0.6)
+    plt.show()
+
+def plot_beta_ranges(theta_phi_list, ranges_list):
+    """
+    Plots a transposed bar graph where the vertical axis represents (theta, phi) tuples,
+    and the horizontal bars represent disjoint ranges from -π to π, using the same color.
+
+    Parameters:
+    - theta_phi_list: List of tuples (theta, phi) defining categories.
+    - ranges_list: List of corresponding range lists in [[[x1, x2], [y1, y2]], ...] format.
+
+    Example:
+    theta_phi_list = [(1, 0.5), (2, 1), (3, 1.5), ...]
+    ranges_list = [[[1, 2], [3, 4]], [[0, np.pi], [np.pi, 2*np.pi]], ...]
+    plot_bar_graph_transposed_same_color(theta_phi_list, ranges_list)
+    """
+
+    fig, ax = plt.subplots(figsize=(12, 6))
+    num_columns = len(theta_phi_list)
+
+    # Control labeling density
+    max_labels = 20
+    step = max(1, math.ceil(num_columns / max_labels))  # Avoid division by zero
+
+    # Generate x-labels with controlled density
+    x_labels = [f"({theta:.2f}, {phi:.2f})" if i % step == 0 else "" for i, (theta, phi) in enumerate(theta_phi_list)]
+    spacing_factor = 2
+    x_positions = np.arange(0, num_columns * spacing_factor, spacing_factor)   # Positions of bars on x-axis
+
+    for i, (x_pos, ranges) in enumerate(zip(x_positions, ranges_list)):
+        if ranges:  # Plot bars for valid ranges
+            for start, end in ranges:
+                ax.bar(x_pos, end - start, bottom=start, align='center', color='purple', edgecolor='purple')
+        else:  # Draw an empty column as a placeholder
+            ax.bar(x_pos, 0, bottom=0, align='center', color='white', edgecolor='white')
+
+    ax.set_ylabel("Beta ranges")
+    ax.set_xlabel("Theta, Phi Tuples")
+    ax.set_xticks(x_positions)
+    ax.set_xticklabels(x_labels, rotation=45, ha='right')  # Angled labels for better visibility
+    ax.set_ylim(-np.pi, np.pi)
+    ax.set_yticks(np.linspace(-np.pi, np.pi, 5))
+    #ax.set_title("Transposed Bar Graph of (Theta, Phi) Mapping to Ranges (Single Color)")
 
     plt.grid(axis='y', linestyle='--', alpha=0.6)
     plt.show()
