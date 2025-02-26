@@ -7,7 +7,6 @@ from mpl_toolkits.mplot3d.art3d import Line3DCollection
 from helper_functions import compute_length_of_ranges, plot_voronoi_regions_on_sphere, fibonacci_sphere_angles, \
     union_ranges
 from spatial3R_ftw_draw import generate_square_grid, draw_rotated_grid
-from test_the_end import plot_bar_graph_transposed_same_color
 def map_values_to_indices(size, index_list, values):
     """
     Creates a list of length `size`, where values from `values` are placed at

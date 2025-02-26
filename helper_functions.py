@@ -280,40 +280,28 @@ def plot_extruded_regions_covered_by_arcs(theta_phi_list,
 
 
 def plot_voronoi_regions_on_sphere(theta_phi_list,
-                                   theta_ranges_all,
                                    region_colors,
-                                   sm_ori,
-                                   samples_per_arc=50,
+                                   sm_ori
                                    ):
     """
-    Plot spherical Voronoi regions on the unit sphere for all arcs
-    specified in theta_ranges_all, using an assigned color per region.
+       Plot spherical Voronoi regions on the unit sphere using an assigned color per region.
 
-    - Edges are drawn in black (edgecolor='k').
-    - Only regions visited by the sampled arcs are filled with the corresponding
-      color from region_colors[r_idx].
-    - Unvisited regions are not filled (facecolor='none').
+       - Edges are drawn in black (edgecolor='k').
+       - Regions are filled with the corresponding color from region_colors[r_idx].
 
-    Args:
-        theta_phi_list (list of (float, float)):
-            Spherical coordinates (theta, phi) for each generator on the unit sphere.
-            (In radians, typically theta in [0, π], phi in [0, 2π].)
-        theta_ranges_all (list of list of (float, float)):
-            For each generator i, a list of arcs in θ:
-            each arc = (tmin, tmax). The φ = phi_i is fixed for that generator.
-        region_colors (list of color-like values):
-            A list of colors (strings, RGB tuples, etc.) of length = number of regions
-            (the same as the number of generator points). region_colors[i] is used to
-            color region i. Example: ['red', 'blue', 'green', ...].
-        samples_per_arc (int):
-            Number of sample points per arc. Default = 50.
-        alpha (float):
-            Alpha transparency for the polygon faces. Default = 1.0.
+       Args:
+           theta_phi_list (list of (float, float)):
+               Spherical coordinates (theta, phi) for each generator on the unit sphere.
+               (In radians, typically theta in [0, π], phi in [0, 2π].)
+           region_colors (list of color-like values):
+               A list of colors (strings, RGB tuples, etc.) of length = number of regions
+               (the same as the number of generator points). region_colors[i] is used to
+               color region i. Example: ['red', 'blue', 'green', ...].
 
-    Returns:
-        ax (matplotlib.axes._subplots.Axes3DSubplot):
-            The Matplotlib 3D axes object with the plotted Voronoi regions.
-    """
+       Returns:
+           ax (matplotlib.axes._subplots.Axes3DSubplot):
+               The Matplotlib 3D axes object with the plotted Voronoi regions.
+       """
 
     # --------------------------------------------------------------------------
     # 1) Convert (theta, phi) -> (x,y,z) on the unit sphere
@@ -328,7 +316,7 @@ def plot_voronoi_regions_on_sphere(theta_phi_list,
     points = np.array(points)
 
     # --------------------------------------------------------------------------
-    # 3) Build the SphericalVoronoi
+    # 2) Build the SphericalVoronoi
     # --------------------------------------------------------------------------
     sv = SphericalVoronoi(points, radius=1.0, center=[0, 0, 0])
     sv.sort_vertices_of_regions()
@@ -339,43 +327,14 @@ def plot_voronoi_regions_on_sphere(theta_phi_list,
         raise ValueError(f"region_colors must have length = {n_regions}, but got {len(region_colors)}")
 
     # --------------------------------------------------------------------------
-    # 4) Determine which regions are visited by the arcs
-    # --------------------------------------------------------------------------
-    visited_region_indices = set()
-
-    for i, intervals in enumerate(theta_ranges_all):
-        # If no arcs for this generator, skip
-        if not intervals:
-            continue
-
-        theta_i, phi_i = theta_phi_list[i]  # angles for generator i
-
-        for (tmin, tmax) in intervals:
-            # Sample the arc in theta
-            thetas = np.linspace(tmin, tmax, samples_per_arc)
-
-            for t in thetas:
-                x_arc, y_arc, z_arc = spherical_to_cartesian(t, phi_i)
-                p_arc = np.array([x_arc, y_arc, z_arc])
-                # Find which region p_arc belongs to
-                r_idx = find_voronoi_region(sv, p_arc)
-                visited_region_indices.add(r_idx)
-
-    # --------------------------------------------------------------------------
-    # 5) Plot the regions on the unit sphere
-    #    - If region is visited, fill it with region_colors[r_idx].
-    #    - Otherwise, facecolor='none' (transparent).
+    # 3) Plot the regions on the unit sphere
     # --------------------------------------------------------------------------
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
     for r_idx, region in enumerate(sv.regions):
         region_vertices = sv.vertices[region]
-
-        fc = region_colors[r_idx]
-        # Determine face color
-        alpha = 0.5
-        # alpha = 0
-        # if r_idx in visited_region_indices: #alpha = 0.5
+        fc = region_colors[r_idx]  # Assign color based on index
+        alpha = 0.5  # Transparency level
 
         poly = Poly3DCollection([region_vertices],
                                 facecolor=fc,
@@ -383,24 +342,17 @@ def plot_voronoi_regions_on_sphere(theta_phi_list,
                                 alpha=alpha)
         ax.add_collection3d(poly)
 
-    # Optional: plot the generator points (in red) for reference
-    # ax.scatter(points[:, 0], points[:, 1], points[:, 2],
-    #            s=40, c='r', label='Generators')
-
     # Set up the axes for a unit sphere
     ax.set_box_aspect((1, 1, 1))
     limit = 1.1
     ax.set_xlim([-limit, limit])
     ax.set_ylim([-limit, limit])
     ax.set_zlim([-limit, limit])
-    cbar = plt.colorbar(sm_ori, ax=ax) #label='alpha ranges length Spectrum')
+    cbar = plt.colorbar(sm_ori, ax=ax)
     ax.set_xlabel("X")
     ax.set_ylabel("Y")
     ax.set_zlabel("Z")
-    #ax.set_title("Spherical Voronoi Regions: Visited vs Unvisited")
-
     plt.show()
-    # return ax
 
 
 def spherical_to_cartesian(theta, phi):
@@ -618,7 +570,7 @@ def track_top_5():
     return update, get_top_5
 
 
-def normalize_and_map_colors(values, cmap_name='plasma_r'):
+def normalize_and_map_colors(values, cmap_name='rainbow'):
     """
     Normalizes a list of values to the range [0, 1] and maps them to colors from a given colormap.
 

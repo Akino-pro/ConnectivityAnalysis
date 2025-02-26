@@ -708,7 +708,7 @@ def find_random_ssm(r, x_target, all_ssm_theta_list, robot, C_dot_A, C_dot_A_7):
 
     """
     all_ssm_theta_list.extend(ssm_theta_list)
-    #print(f'found a new ssm with {num} points.')
+    # print(f'found a new ssm with {num} points.')
     ssm_found = True
 
     ip_ranges = find_intersection_points(ssm_theta_list, C_dot_A)
@@ -1074,7 +1074,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     max_length = 0
     for i in range(7):
         max_length += np.sqrt(np.power(d[i], 2) + np.power(l[i], 2))
-    #print(max_length)
+    # print(max_length)
     x_range = (0, max_length)  # Range for x-axis
     z_range = (-max_length, max_length)  # Range for z-axis
     grid_size = (64, 64, 64)
@@ -1083,8 +1083,8 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     angle_ranges = []
     reachable_points = 0
     orientational_connectivity = []
-    all_data=[]
-    #update_top_5, get_top_5 = track_top_5()
+    all_data = []
+    # update_top_5, get_top_5 = track_top_5()
     index = 0
     # debug = [grid_centers[7]]
     shape_volumns = []
@@ -1125,56 +1125,38 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
             extrude_radius=2 * np.pi,
         )
         # print(all_alpha_ranges)
-
-        shape_area = 0
+        shape_volumns.append(len(all_wedge_faces)*1.0/64.0)
         if len(all_wedge_faces) == 0:
             orientational_connectivity.append(0)
-            shape_volumns.append(0)
-            # print(0)
         else:
             binary_volume = wedge_faces_to_binary_volume(all_wedge_faces, NX=50, NY=50, NZ=50)
             shape_area, connected_connectivity, general_connectivity = connectivity_analysis(binary_volume,
                                                                                              kernel_size, Lambda)
             orientational_connectivity.append(general_connectivity)
-            shape_volumns.append(shape_area)
             all_data.append((shape_area, index, all_beta_ranges, all_alpha_ranges))
             # print(general_connectivity)
-        #all_data.append((shape_area, index, all_beta_ranges, all_alpha_ranges))
-        #update_top_5(shape_area, index, all_beta_ranges, all_alpha_ranges)
+        # all_data.append((shape_area, index, all_beta_ranges, all_alpha_ranges))
+        # update_top_5(shape_area, index, all_beta_ranges, all_alpha_ranges)
         index += 1
 
         if len(positional_beta_ranges) != 0: reachable_points += 1
         angle_ranges.append(positional_beta_ranges)
     # plot 3D positional ftw
-    #top_5_grids = get_top_5()
+    # top_5_grids = get_top_5()
     with open("my_list.txt", "w") as file:
         file.write(str(all_data))
-    # color_list = ['b', 'r', 'g', 'y', 'c']
     index_list_to_color = []
     color_list, sm = normalize_and_map_colors(shape_volumns)
     for single_data in all_data:
         index_list_to_color.append(single_data[1])
         beta_range_to_plot = single_data[2]
         alpha_range_to_plot = single_data[3]
-        """
-        # only use this to extend alpha range
-        all_wedge_faces, alpha_range_to_plot = get_extruded_wedges(
-            theta_phi_list,
-            beta_range_to_plot,
-            alpha_range_to_plot,
-            samples_per_arc=40,
-            extrude_radius=2 * np.pi,
-            do_plot=False,
-            color=color_list[top_5_grids[i][1]]
-        )
-        """
+
         color_list_ori, sm_ori = compute_length_of_ranges(alpha_range_to_plot)
         # plot orientation plot with only fault tolerant orientations with color =alpha range length
         plot_voronoi_regions_on_sphere(theta_phi_list,
-                                       beta_range_to_plot,
                                        color_list_ori,
-                                       sm_ori,
-                                       samples_per_arc=50,
+                                       sm_ori
                                        )
 
         plot_alpha_ranges(theta_phi_list, alpha_range_to_plot)
@@ -1233,15 +1215,15 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
         square_poly = Poly3DCollection([square], facecolor=color, edgecolor='k', alpha=alpha_level)
         ax.add_collection3d(square_poly)
 
-    cbar = plt.colorbar(sm, ax=ax, label='orientation FTW volume Spectrum')
+    cbar = plt.colorbar(sm, ax=ax)
     # Set plot labels and show the plot
     ax.set_xlabel('X')
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
     frame_points = [
-        (x_range[0],0, z_range[0]), (x_range[1],0, z_range[0]),
-        (x_range[1],0, z_range[1]), (x_range[0],0, z_range[1]),
-        (x_range[0],0, z_range[0])  # Closing the loop
+        (x_range[0], 0, z_range[0]), (x_range[1], 0, z_range[0]),
+        (x_range[1], 0, z_range[1]), (x_range[0], 0, z_range[1]),
+        (x_range[0], 0, z_range[0])  # Closing the loop
     ]
 
     frame = Line3DCollection([frame_points], colors='k', linewidths=2)
@@ -1329,9 +1311,32 @@ CA = [(-107 * np.pi / 180, 107 * np.pi / 180), (-164 * np.pi / 180, 141 * np.pi 
       (-132 * np.pi / 180, 132 * np.pi / 180), (-151 * np.pi / 180, 102 * np.pi / 180),
       (-115 * np.pi / 180, 149 * np.pi / 180), (-75 * np.pi / 180, 129 * np.pi / 180),
       (16 * np.pi / 180, 193 * np.pi / 180)]
-CA2 = [(-97 * np.pi / 180, 97 * np.pi / 180), (-154 * np.pi / 180, 131 * np.pi / 180),
-       (-122 * np.pi / 180, 122 * np.pi / 180), (-141 * np.pi / 180, 92 * np.pi / 180),
-       (-105 * np.pi / 180, 139 * np.pi / 180), (-65 * np.pi / 180, 119 * np.pi / 180),
-       (26 * np.pi / 180, 183 * np.pi / 180)]
+CA2 = [(-137 * np.pi / 180, 77 * np.pi / 180), (-194 * np.pi / 180, 111 * np.pi / 180),
+       (-162 * np.pi / 180, 102 * np.pi / 180), (-181 * np.pi / 180, 72 * np.pi / 180),
+       (-145 * np.pi / 180, 119 * np.pi / 180), (-105 * np.pi / 180, 99 * np.pi / 180),
+       (-26 * np.pi / 180, 163 * np.pi / 180)]
+
+CA3 = [(-167 * np.pi / 180, 47 * np.pi / 180), (-224 * np.pi / 180, 81 * np.pi / 180),
+       (-192 * np.pi / 180, 72 * np.pi / 180), (-211 * np.pi / 180, 42 * np.pi / 180),
+       (-175 * np.pi / 180, 89 * np.pi / 180), (-135 * np.pi / 180, 69 * np.pi / 180),
+       (-56 * np.pi / 180, 133 * np.pi / 180)]
+
+CA4 = [(-77 * np.pi / 180, 77 * np.pi / 180), (-134 * np.pi / 180, 111 * np.pi / 180),
+       (-102 * np.pi / 180, 102 * np.pi / 180), (-121 * np.pi / 180, 72 * np.pi / 180),
+       (-85 * np.pi / 180, 119 * np.pi / 180), (-45 * np.pi / 180, 99 * np.pi / 180),
+       (46 * np.pi / 180, 163 * np.pi / 180)]
+
+CA5 = [(-47 * np.pi / 180, 47 * np.pi / 180),
+       (-104 * np.pi / 180, 81 * np.pi / 180),
+       (-72 * np.pi / 180, 72 * np.pi / 180),
+       (-91 * np.pi / 180, 42 * np.pi / 180),
+       (-55 * np.pi / 180, 89 * np.pi / 180),
+       (-15 * np.pi / 180, 69 * np.pi / 180),
+       (76 * np.pi / 180, 133 * np.pi / 180)]
+
+CA6 = [(-77 * np.pi / 180, 77 * np.pi / 180), (-134 * np.pi / 180, 111 * np.pi / 180),
+       (-102 * np.pi / 180, 102 * np.pi / 180), (-121 * np.pi / 180, 72 * np.pi / 180),
+       (-85 * np.pi / 180, 119 * np.pi / 180), (-45 * np.pi / 180, 99 * np.pi / 180),
+       (46 * np.pi / 180, 163 * np.pi / 180)]
 
 ap = ssm_estimation(positional_samples, d, alpha, l, CA)
