@@ -1125,7 +1125,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
             extrude_radius=2 * np.pi,
         )
         # print(all_alpha_ranges)
-        shape_volumns.append(len(all_wedge_faces)*1.0/64.0)
+        shape_volumns.append(len(all_wedge_faces) * 1.0 / 64.0)
         if len(all_wedge_faces) == 0:
             orientational_connectivity.append(0)
         else:
@@ -1334,9 +1334,12 @@ CA5 = [(-47 * np.pi / 180, 47 * np.pi / 180),
        (-15 * np.pi / 180, 69 * np.pi / 180),
        (76 * np.pi / 180, 133 * np.pi / 180)]
 
-CA6 = [(-77 * np.pi / 180, 77 * np.pi / 180), (-134 * np.pi / 180, 111 * np.pi / 180),
-       (-102 * np.pi / 180, 102 * np.pi / 180), (-121 * np.pi / 180, 72 * np.pi / 180),
-       (-85 * np.pi / 180, 119 * np.pi / 180), (-45 * np.pi / 180, 99 * np.pi / 180),
-       (46 * np.pi / 180, 163 * np.pi / 180)]
+CA6 = [(-137 * np.pi / 180, 137 * np.pi / 180),
+       (-194 * np.pi / 180, 171 * np.pi / 180),
+       (-162 * np.pi / 180, 162 * np.pi / 180),
+       (-181 * np.pi / 180, 132 * np.pi / 180),
+       (-145 * np.pi / 180, 179 * np.pi / 180),
+       (-105 * np.pi / 180, 159 * np.pi / 180),
+       (-14 * np.pi / 180, 223 * np.pi / 180)]
 
 ap = ssm_estimation(positional_samples, d, alpha, l, CA)
