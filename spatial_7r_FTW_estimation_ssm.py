@@ -1074,7 +1074,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     max_length = 0
     for i in range(7):
         max_length += np.sqrt(np.power(d[i], 2) + np.power(l[i], 2))
-    # print(max_length)
+    print(max_length)
     x_range = (0, max_length)  # Range for x-axis
     z_range = (-max_length, max_length)  # Range for z-axis
     grid_size = (64, 64, 64)
@@ -1343,4 +1343,4 @@ CA6 = [(-137 * np.pi / 180, 137 * np.pi / 180),
        (-105 * np.pi / 180, 159 * np.pi / 180),
        (-14 * np.pi / 180, 223 * np.pi / 180)]
 #1,2,4,6
-ap = ssm_estimation(positional_samples, d, alpha, l, CA6)
+ap = ssm_estimation(positional_samples, d, alpha, l, CA)

@@ -61,7 +61,8 @@ def plot_alpha_ranges(theta_phi_list, ranges_list):
 
     # Generate x-labels with controlled density
     x_labels = [f"({theta:.2f}, {phi:.2f})" if i % step == 0 else "" for i, (theta, phi) in enumerate(theta_phi_list)]
-    x_positions = np.arange(num_columns)  # Positions of bars on x-axis
+    spacing_factor = 2
+    x_positions = np.arange(0, num_columns * spacing_factor, spacing_factor)  # Positions of bars on x-axis
 
     for i, (x_pos, ranges) in enumerate(zip(x_positions, ranges_list)):
         if ranges:  # Plot bars for valid ranges

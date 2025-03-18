@@ -334,7 +334,7 @@ def plot_voronoi_regions_on_sphere(theta_phi_list,
     for r_idx, region in enumerate(sv.regions):
         region_vertices = sv.vertices[region]
         fc = region_colors[r_idx]  # Assign color based on index
-        alpha = 0.5  # Transparency level
+        alpha = 1 # Transparency level
 
         poly = Poly3DCollection([region_vertices],
                                 facecolor=fc,
