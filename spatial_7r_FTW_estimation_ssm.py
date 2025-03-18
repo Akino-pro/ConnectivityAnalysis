@@ -29,8 +29,8 @@ terminate_threshold = 9.0 / 5.0 * step_size
 # terminate_threshold = step_size * 0.5
 ssm_finding_num = 10
 max_ssm = 16
-positional_samples = 18  # 288
-orientation_samples = 25  # 64
+positional_samples = 288  # 288
+orientation_samples = 64  # 64
 theta_phi_list = fibonacci_sphere_angles(orientation_samples)
 # print(theta_phi_list)
 
@@ -1130,9 +1130,10 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
             orientational_connectivity.append(0)
         else:
             binary_volume = wedge_faces_to_binary_volume(all_wedge_faces, NX=50, NY=50, NZ=50)
-            shape_area, connected_connectivity, general_connectivity = connectivity_analysis(binary_volume,
-                                                                                             kernel_size, Lambda)
-            orientational_connectivity.append(general_connectivity)
+            shape_area=np.sum(binary_volume)
+            #shape_area, connected_connectivity, general_connectivity = connectivity_analysis(binary_volume,
+            #                                                                                 kernel_size, Lambda)
+            #orientational_connectivity.append(general_connectivity)
             all_data.append((shape_area, index, all_beta_ranges, all_alpha_ranges))
             # print(general_connectivity)
         # all_data.append((shape_area, index, all_beta_ranges, all_alpha_ranges))
@@ -1304,9 +1305,9 @@ ap = ssm_estimation(512, d, alpha, l, CA)
 
 
 alpha = [-62 * np.pi / 180, -79 * np.pi / 180, 90 * np.pi / 180, 29 * np.pi / 180, 81 * np.pi / 180, -80 * np.pi / 180,
-         -90 * np.pi / 180]
-l = [0.4, 0.8, 0.2, 1, 0.6, 0.4, 0.2]
-d = [-0.4, -0.6, 0.2, 0.6, -0.8, 0.2, 0.8]
+         0]#was -90*np.pi/180
+l = [0.4, 0.8, 0.2, 1, 0.6, 0.4, 0]#last one was 0.2
+d = [-0.4, -0.6, 0.2, 0.6, -0.8, 0.2, 0]# was 0.8
 CA = [(-107 * np.pi / 180, 107 * np.pi / 180), (-164 * np.pi / 180, 141 * np.pi / 180),
       (-132 * np.pi / 180, 132 * np.pi / 180), (-151 * np.pi / 180, 102 * np.pi / 180),
       (-115 * np.pi / 180, 149 * np.pi / 180), (-75 * np.pi / 180, 129 * np.pi / 180),
@@ -1341,5 +1342,5 @@ CA6 = [(-137 * np.pi / 180, 137 * np.pi / 180),
        (-145 * np.pi / 180, 179 * np.pi / 180),
        (-105 * np.pi / 180, 159 * np.pi / 180),
        (-14 * np.pi / 180, 223 * np.pi / 180)]
-
-ap = ssm_estimation(positional_samples, d, alpha, l, CA)
+#1,2,4,6
+ap = ssm_estimation(positional_samples, d, alpha, l, CA6)
