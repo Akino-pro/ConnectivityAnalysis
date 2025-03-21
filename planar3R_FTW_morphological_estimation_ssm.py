@@ -1,4 +1,5 @@
 import numpy as np
+from matplotlib import patches
 from matplotlib.patches import Wedge
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from scipy.linalg import null_space
@@ -13,6 +14,9 @@ terminate_threshold = 9.0 / 5.0 * step_size
 ssm_finding_num = 20
 max_ssm = 2
 sample_num = 400
+#r1 =0.3
+#r2 =0.2
+#r3 =0.1
 r1 = 0.5
 r2 = 0.6
 r3 = 0.7
@@ -23,12 +27,14 @@ r3 = 0.7
 # CA = [(-2.312033825326607, 2.312033825326607), (-2.1986530478299358, 1.3083974620434837),
 #     (-3.119803865520389, 0.38031991292340495)]
 # L=[1.42,1,0.58]
-L = [1, 1, 1]
+L=[np.sqrt(0.5),np.sqrt(0.5),np.sqrt(2.0/3.0)]
+#L = [1, 1, 1]
 #CA = [(-18.2074 * np.pi / 180, 18.2074 * np.pi / 180), (-111.3415 * np.pi / 180, 111.3415 * np.pi / 180),
  #     (-111.3415 * np.pi / 180, 111.3415 * np.pi / 180)]
 # CA=[(-3.031883452592004, 3.031883452592004), (-1.619994146091692, -0.8276157453255935), (-1.6977602095460234, -0.7265946655975718)]
-CA = [(-0.7391244590957556, 0.7391244590957556), (-0.7422740927125862, 1.9756037937159996),
-      (-2.11211741668124, 2.12020510030)]
+#CA = [(-0.7391244590957556, 0.7391244590957556), (-0.7422740927125862, 1.9756037937159996),
+#      (-2.11211741668124, 2.12020510030)]
+CA=[(-0.5779611440942315, 0.5779611440942315), (-1.1887031063410372, 0.6453736884533061), (-1.7852473794934884, 1.8681718728028136)]
 """
 CA = [(-30 * np.pi / 180, 30 * np.pi / 180), (-120 * np.pi / 180, 60 * np.pi / 180),
       (-130 * np.pi / 180, 130 * np.pi / 180)]
@@ -560,6 +566,7 @@ def wedge_to_poly3d(wedge, z_value):
 
 
 num_reliable_ranges = 7
+cr_list.append(0)
 color_list, sm = normalize_and_map_colors(cr_list)
 final_wedges = []
 final_colors = []
@@ -573,11 +580,16 @@ ring_width = x_values[1]
 fig3, ax2d3 = plt.subplots(figsize=(6, 6))
 
 # Set limits for the 2D plot
-ax2d3.set_xlim(-3, 3)
-ax2d3.set_ylim(-3, 3)
+ax2d3.set_xlim(-np.sum(L), np.sum(L))
+ax2d3.set_ylim(-np.sum(L),np.sum(L))
 ax2d3.set_aspect('equal')
 ax2d3.set_xlabel("x", fontsize=25)
 ax2d3.set_ylabel("y", fontsize=25)
+tick_positions = [-2,-1, 0, 1,2]
+ax2d3.set_xticks(tick_positions)
+ax2d3.set_yticks(tick_positions)
+circle = patches.Circle((0, 0), np.sum(L), edgecolor=color_list[-1], facecolor=color_list[-1], linewidth=0, zorder=0)
+ax2d3.add_patch(circle)
 # ax2d3.set_title("2D relia")
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
@@ -608,7 +620,7 @@ for i in range(len(points)):
                 facecolor=color,  # Set face color to match 3D plot
                 edgecolor=color,
                 alpha=1.0,
-                zorder=b_r_index
+                zorder=b_r_index+1
             )
 
             wedge_2d = Wedge(
@@ -619,7 +631,7 @@ for i in range(len(points)):
                 facecolor=color,
                 edgecolor=color,
                 alpha=1.0,
-                zorder=b_r_index
+                zorder=b_r_index+1
             )
 
             if x == 0 and y == 0:
@@ -632,7 +644,7 @@ for i in range(len(points)):
                     facecolor=color,  # Set face color
                     edgecolor=color,
                     alpha=1.0,
-                    zorder=b_r_index
+                    zorder=b_r_index+1
                 )
 
                 wedge_2d = Wedge(
@@ -643,7 +655,7 @@ for i in range(len(points)):
                     facecolor=color,  # Set face color
                     edgecolor=color,
                     alpha=1.0,
-                    zorder=b_r_index
+                    zorder=b_r_index+1
                 )
             poly3d = wedge_to_poly3d(wedge, z_level)
             # Add the wedge to the plot
@@ -668,16 +680,20 @@ ax2d3.tick_params(axis='y', labelsize=18)  # Increase font size for Y-axis ticks
 fig3.show()
 
 # Set the plot limits to range from -3 to 3 for both x and y axes
-ax.set_xlim(-3, 3)
-ax.set_ylim(-3, 3)
+radius=np.sum(L)
+ax.set_xlim(-np.sum(L), np.sum(L))
+ax.set_ylim(-np.sum(L), np.sum(L))
 ax.set_zlim(0, 12)
+ax.set_xlabel("x")
+ax.set_ylabel("y")
+tick_positions = [-2, 0, 2]
+ax.set_xticks(tick_positions)
+ax.set_yticks(tick_positions)
 
 # ax.tick_params(axis='x', labelsize=14)
 # ax.tick_params(axis='y', labelsize=14)
 # ax.tick_params(axis='z', labelsize=14)
 
-# ax.set_xlabel("x")
-# x.set_ylabel("y")
 # ax.set_zlabel("Failable Joints")
 
 # Set aspect ratio to be equal for correct visualization of circles
@@ -686,8 +702,12 @@ ax.set_aspect('equal')
 # Add title and display the plot
 # plt.title("Planar3R Reliable work spaces")
 cbar = plt.colorbar(sm, ax=ax)  # Ensure colorbar is linked to the mappable
+tick_positions = np.arange(0.1, 1.1, 0.1)  # 1.1 ensures 1.0 is included
+cbar.set_ticks(tick_positions)
+cbar.set_ticklabels([f"{tick:.1f}" for tick in tick_positions])
 # Define the new labels and corresponding tick positionsq
-z_tick_labels = ['J1', 'J2', 'J3', 'J1J2', 'J1J3', 'J2J3', 'J1J2J3']
+z_tick_labels = [r'$\mathit{F}=\{1\}$', r'$\mathit{F}=\{2\}$', r'$\mathit{F}=\{3\}$',
+                 r'$\mathit{F}=\{1,2\}$', r'$\mathit{F}=\{1,3\}$', r'$\mathit{F}=\{2,3\}$', r'$\mathit{F}=\{1,2,3\}$']
 ax.tick_params(axis='z', labelsize=18) 
 z_tick_positions = [0, 2, 4, 6, 8, 10, 12]  # These match your z_level values
 
