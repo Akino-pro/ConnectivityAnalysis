@@ -1,3 +1,5 @@
+import json
+
 import numpy as np
 from matplotlib import patches
 from matplotlib.patches import Wedge
@@ -27,14 +29,14 @@ r3 = 0.7
 # CA = [(-2.312033825326607, 2.312033825326607), (-2.1986530478299358, 1.3083974620434837),
 #     (-3.119803865520389, 0.38031991292340495)]
 # L=[1.42,1,0.58]
-L=[np.sqrt(0.5),np.sqrt(0.5),np.sqrt(2.0/3.0)]
-#L = [1, 1, 1]
-#CA = [(-18.2074 * np.pi / 180, 18.2074 * np.pi / 180), (-111.3415 * np.pi / 180, 111.3415 * np.pi / 180),
- #     (-111.3415 * np.pi / 180, 111.3415 * np.pi / 180)]
+#L=[np.sqrt(0.5),np.sqrt(0.5),np.sqrt(2.0/3.0)]
+L = [1, 1, 1]
+CA = [(-18.2074 * np.pi / 180, 18.2074 * np.pi / 180), (-111.3415 * np.pi / 180, 111.3415 * np.pi / 180),
+      (-111.3415 * np.pi / 180, 111.3415 * np.pi / 180)]
 # CA=[(-3.031883452592004, 3.031883452592004), (-1.619994146091692, -0.8276157453255935), (-1.6977602095460234, -0.7265946655975718)]
 #CA = [(-0.7391244590957556, 0.7391244590957556), (-0.7422740927125862, 1.9756037937159996),
 #      (-2.11211741668124, 2.12020510030)]
-CA=[(-0.5779611440942315, 0.5779611440942315), (-1.1887031063410372, 0.6453736884533061), (-1.7852473794934884, 1.8681718728028136)]
+#CA=[(-0.5779611440942315, 0.5779611440942315), (-1.1887031063410372, 0.6453736884533061), (-1.7852473794934884, 1.8681718728028136)]
 """
 CA = [(-30 * np.pi / 180, 30 * np.pi / 180), (-120 * np.pi / 180, 60 * np.pi / 180),
       (-130 * np.pi / 180, 130 * np.pi / 180)]
@@ -321,6 +323,10 @@ def find_random_ssm(x_target, all_ssm_theta_list):
         num += 1
         ssm_theta_list.append(theta)
     all_ssm_theta_list.extend(ssm_theta_list)
+    if x_target[0]==2 and x_target[1]==0:
+        list_of_lists = [arr.flatten().tolist() for arr in ssm_theta_list]  # Convert np.array to list
+        with open('plot_list.txt', 'w') as file:
+            json.dump(list_of_lists, file, indent=4)
     print(f'found a new ssm with {num} points.')
     ssm_found = True
     """
