@@ -21,7 +21,7 @@ theta2_min, theta2_max = np.min(theta2), np.max(theta2)
 theta3_min, theta3_max = np.min(theta3), np.max(theta3)
 
 # Create 2D plot
-fig, ax = plt.subplots(figsize=(6, 6))
+fig, ax = plt.subplots(figsize=(10, 10))
 ax.scatter(theta2, theta3, c='k', marker='o', s=10)  # Plot all points in black
 
 # Identify extreme points
@@ -52,8 +52,8 @@ if extreme_theta3:
         ax.plot([t2, -np.pi], [t3, t3], linestyle="dashed", color="red", linewidth=1.5, alpha=0.7)
 
 # Set labels
-ax.set_xlabel(r"$\theta_2$", fontsize=18)
-ax.set_ylabel(r"$\theta_3$", fontsize=18)
+ax.set_xlabel(r"$\theta_2$", fontsize=30)
+ax.set_ylabel(r"$\theta_3$", fontsize=30)
 
 # Set limits
 ax.set_xlim([-np.pi, np.pi])
@@ -73,18 +73,18 @@ extra_labels_theta2 = [r"$a̲_2$", r"$\overline{a}_2$"]
 
 # Add extreme values and extra ticks for theta1
 theta2_ticks = default_ticks + [theta2_min, theta2_max] + extra_ticks_theta2
-theta2_labels = default_labels + [r"$\theta̲_2$", r"$\overline{\theta}_2$"] + extra_labels_theta2
+theta2_labels = default_labels + [r"$\theta̲_{2_\text{min}}$", r"$\overline{\theta}_{2_\text{max}}$"] + extra_labels_theta2
 
 # Add extreme values and extra ticks for theta2
 theta3_ticks = default_ticks + [theta3_min, theta3_max] + extra_ticks_theta3
-theta3_labels = default_labels + [r"$\theta̲_3$", r"$\overline{\theta}_3$"] + extra_labels_theta3
-
+theta3_labels = default_labels + [r"$\theta̲_{3_\text{min}}$", r"$\overline{\theta}_{3_\text{max}}$"] + extra_labels_theta3
+ax.set_aspect('equal')
 # Apply tick settings
 ax.set_xticks(theta2_ticks)
-ax.set_xticklabels(theta2_labels, fontsize=12)
+ax.set_xticklabels(theta2_labels, fontsize=25)
 
 ax.set_yticks(theta3_ticks)
-ax.set_yticklabels(theta3_labels, fontsize=12)
+ax.set_yticklabels(theta3_labels, fontsize=25)
 
 # Function to color specific ticks
 def color_ticks(axis, tick_values, min_val, max_val, extra_ticks, min_color, max_color, extra_color):

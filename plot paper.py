@@ -44,9 +44,9 @@ ax = fig.add_subplot(111, projection='3d')
 ax.scatter(theta1, theta2, theta3, c='k', marker='o',s=10)
 
 # Set labels
-ax.set_xlabel(r"$\theta_1$", fontsize=18)
-ax.set_ylabel(r"$\theta_2$", fontsize=18)
-ax.set_zlabel(r"$\theta_3$", fontsize=18)
+#ax.set_xlabel(r"$\theta_1$", fontsize=25)
+#ax.set_ylabel(r"$\theta_2$", fontsize=25)
+#ax.set_zlabel(r"$\theta_3$", fontsize=25)
 
 # Set limits
 ax.set_xlim([-np.pi, np.pi])
@@ -54,9 +54,10 @@ ax.set_ylim([-np.pi, np.pi])
 ax.set_zlim([-np.pi, np.pi])
 
 # Default tick positions for Theta1, Theta2, and Theta3
-default_ticks = [-np.pi, 0, np.pi]
-default_labels = ["$-\pi$", "$0$", "$\pi$"]
-
+#default_ticks = [-np.pi, 0, np.pi]
+#default_labels = ["$-\pi$", "$0$", "$\pi$"]
+default_ticks=[]
+default_labels=[]
 # Function to add custom min/max ticks to an axis
 def add_min_max_ticks(axis_ticks, axis_labels, min_val, max_val, min_label, max_label, extra_ticks=[], extra_labels=[]):
     if min_val not in axis_ticks:
@@ -81,7 +82,7 @@ def add_min_max_ticks(axis_ticks, axis_labels, min_val, max_val, min_label, max_
 theta1_ticks, theta1_labels = add_min_max_ticks(
     list(default_ticks), list(default_labels),
     theta1_min, theta1_max,
-    r"$\theta̲_1$", r"$\overline{\theta}_1$",
+    r"$\theta̲_{1_\text{min}}~$", r"$\overline{\theta}_{1_\text{max}}$",
     extra_ticks=[-0.5, 0.5],
     extra_labels=[r"$a̲_1$", r"$\overline{a}_1$"]
 )
@@ -90,7 +91,7 @@ theta1_ticks, theta1_labels = add_min_max_ticks(
 theta2_ticks, theta2_labels = add_min_max_ticks(
     list(default_ticks), list(default_labels),
     theta2_min, theta2_max,
-    r"$\theta̲_2$", r"$\overline{\theta}_2$",
+    r"$\quad\theta̲_{2_\text{min}}$", r"$\overline{\theta}_{2_\text{max}}$",
     extra_ticks=[-2.61, -1],
     extra_labels=[r"$a̲_2$", r"$\overline{a}_2$"]
 )
@@ -99,21 +100,21 @@ theta2_ticks, theta2_labels = add_min_max_ticks(
 theta3_ticks, theta3_labels = add_min_max_ticks(
     list(default_ticks), list(default_labels),
     theta3_min, theta3_max,
-    r"$\theta̲_3$", r"$\overline{\theta}_3$",
+    r"$\theta̲_{3_\text{min}}$", r"$\overline{\theta}_{3_\text{max}}$",
     extra_ticks=[-1, 1],
     extra_labels=[r"$a̲_3$", r"$\overline{a}_3$"]
 )
 
 # Apply tick settings
 ax.set_xticks(theta1_ticks)
-ax.set_xticklabels(theta1_labels, fontsize=12)
+ax.set_xticklabels(theta1_labels, fontsize=25)
 
 ax.set_yticks(theta2_ticks)
-ax.set_yticklabels(theta2_labels, fontsize=12)
+ax.set_yticklabels(theta2_labels, fontsize=25)
 
 ax.set_zticks(theta3_ticks)
-ax.set_zticklabels(theta3_labels, fontsize=12)
-
+ax.set_zticklabels(theta3_labels, fontsize=25)
+ax.set_aspect('equal')
 # Plot extreme points in different colors
 #for (t1, t2, t3), color in zip(extreme_points, color_cycle):
 #    ax.scatter(t1, t2, t3, color=color, s=100)  # Differentiate extreme points

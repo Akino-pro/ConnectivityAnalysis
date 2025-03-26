@@ -21,9 +21,9 @@ theta1_min, theta1_max = np.min(theta1), np.max(theta1)
 theta2_min, theta2_max = np.min(theta2), np.max(theta2)
 
 # Create 2D plot
-fig, ax = plt.subplots(figsize=(6, 6))
+fig, ax = plt.subplots(figsize=(10, 10))
 ax.scatter(theta1, theta2, c='k', marker='o', s=10)  # Plot all points in black
-
+ax.set_aspect('equal')
 # Identify extreme points
 extreme_points = []
 for i in range(points.shape[1]):
@@ -51,8 +51,8 @@ if extreme_theta2:
         ax.plot([t1, -np.pi], [t2, t2], linestyle="dashed", color="green", linewidth=1.5, alpha=0.7)
 
 # Set labels
-ax.set_xlabel(r"$\theta_1$", fontsize=18)
-ax.set_ylabel(r"$\theta_2$", fontsize=18)
+ax.set_xlabel(r"$\theta_1$", fontsize=30)
+ax.set_ylabel(r"$\theta_2$", fontsize=30)
 
 # Set limits
 ax.set_xlim([-np.pi, np.pi])
@@ -72,18 +72,18 @@ extra_labels_theta2 = [r"$a̲_2$", r"$\overline{a}_2$"]
 
 # Add extreme values and extra ticks for theta1
 theta1_ticks = default_ticks + [theta1_min, theta1_max] + extra_ticks_theta1
-theta1_labels = default_labels + [r"$\theta̲_1$", r"$\overline{\theta}_1$"] + extra_labels_theta1
+theta1_labels = default_labels + [r"$\theta̲_{1_\text{min}}$", r"$\overline{\theta}_{1_\text{max}}$"] + extra_labels_theta1
 
 # Add extreme values and extra ticks for theta2
 theta2_ticks = default_ticks + [theta2_min, theta2_max] + extra_ticks_theta2
-theta2_labels = default_labels + [r"$\theta̲_2$", r"$\overline{\theta}_2$"] + extra_labels_theta2
+theta2_labels = default_labels + [r"$\theta̲_{2_\text{min}}$", r"$\overline{\theta}_{2_\text{max}}$"] + extra_labels_theta2
 
 # Apply tick settings
 ax.set_xticks(theta1_ticks)
-ax.set_xticklabels(theta1_labels, fontsize=12)
+ax.set_xticklabels(theta1_labels, fontsize=25)
 
 ax.set_yticks(theta2_ticks)
-ax.set_yticklabels(theta2_labels, fontsize=12)
+ax.set_yticklabels(theta2_labels, fontsize=25)
 
 # Function to color specific ticks
 def color_ticks(axis, tick_values, min_val, max_val, extra_ticks, min_color, max_color, extra_color):
@@ -104,7 +104,7 @@ ax.fill_betweenx(
     y=np.linspace(extra_ticks_theta2[0], extra_ticks_theta2[1], 100),  # Range in theta2
     x1=extra_ticks_theta1[0],
     x2=extra_ticks_theta1[1],
-    color='red',
+    color='blue',
     alpha=0.1
 )
 
