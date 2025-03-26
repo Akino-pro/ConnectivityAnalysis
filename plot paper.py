@@ -145,11 +145,11 @@ for (t1, t2, t3), color in zip(extreme_points, color_cycle):
 # Add dashed blue lines from extreme values of theta2 to plane theta3=-π and π
 for i, theta1_extreme in enumerate([theta1_min, theta1_max]):  # Loop over extreme theta2 values
     corresponding_theta2 = theta2[np.argwhere(theta1 == theta1_extreme).flatten()[0]]  # Get corresponding theta1
-
+    corresponding_theta3 = theta3[np.argwhere(theta1 == theta1_extreme).flatten()[0]]
     ax.plot(
         [theta1_extreme, theta1_extreme],  # Use the theta1 value corresponding to the extreme theta2
         [corresponding_theta2, corresponding_theta2],  # Theta2 remains at extreme values
-        [-np.pi, np.pi],  # Line segment from -π to π
+        [-np.pi, corresponding_theta3],  # Line segment from -π to π
         linestyle="dashed", color="green", linewidth=2
     )
 
@@ -160,21 +160,15 @@ for i, theta1_extreme in enumerate([theta1_min, theta1_max]):  # Loop over extre
         linestyle="dashed", color="green", linewidth=2
     )
 
-    ax.plot(
-        [theta1_extreme, theta1_extreme],  # Use the theta1 value corresponding to the extreme theta2
-        [-np.pi, np.pi],  # Theta2 remains at extreme values
-        [np.pi, np.pi],  # Line segment from -π to π
-        linestyle="dashed", color="green", linewidth=2
-    )
 
 # Add dashed blue lines from extreme values of theta2 to plane theta3=-π and π
 for i, theta2_extreme in enumerate([theta2_min, theta2_max]):  # Loop over extreme theta2 values
     corresponding_theta1 = theta1[np.argwhere(theta2 == theta2_extreme).flatten()[0]]  # Get corresponding theta1
-
+    corresponding_theta3 = theta3[np.argwhere(theta2 == theta2_extreme).flatten()[0]]
     ax.plot(
         [corresponding_theta1, corresponding_theta1],  # Use the theta1 value corresponding to the extreme theta2
         [theta2_extreme, theta2_extreme],  # Theta2 remains at extreme values
-        [-np.pi, np.pi],  # Line segment from -π to π
+        [-np.pi, corresponding_theta3],  # Line segment from -π to π
         linestyle="dashed", color="blue", linewidth=2
     )
 
@@ -184,30 +178,18 @@ for i, theta2_extreme in enumerate([theta2_min, theta2_max]):  # Loop over extre
         [-np.pi, -np.pi],  # Line segment from -π to π
         linestyle="dashed", color="blue", linewidth=2
     )
-
-    ax.plot(
-        [-np.pi, np.pi],  # Use the theta1 value corresponding to the extreme theta2
-        [theta2_extreme, theta2_extreme],  # Theta2 remains at extreme values
-        [np.pi, np.pi],  # Line segment from -π to π
-        linestyle="dashed", color="blue", linewidth=2
-    )
 # Add dashed blue lines from extreme values of theta2 to plane theta3=-π and π
 for i, theta3_extreme in enumerate([theta3_min, theta3_max]):  # Loop over extreme theta2 values
     corresponding_theta1 = theta1[np.argwhere(theta3 == theta3_extreme).flatten()[0]]  # Get corresponding theta1
+    corresponding_theta2 = theta2[np.argwhere(theta3 == theta3_extreme).flatten()[0]]
 
     ax.plot(
         [corresponding_theta1, corresponding_theta1],  # Use the theta1 value corresponding to the extreme theta2
-        [-np.pi, np.pi],  # Theta2 remains at extreme values
+        [corresponding_theta2, np.pi],  # Theta2 remains at extreme values
         [theta3_extreme, theta3_extreme],  # Line segment from -π to π
         linestyle="dashed", color="red", linewidth=2
     )
 
-    ax.plot(
-        [-np.pi,np.pi],  # Use the theta1 value corresponding to the extreme theta2
-        [-np.pi, -np.pi],  # Theta2 remains at extreme values
-        [theta3_extreme, theta3_extreme],  # Line segment from -π to π
-        linestyle="dashed", color="red", linewidth=2
-    )
 
     ax.plot(
         [-np.pi, np.pi],  # Use the theta1 value corresponding to the extreme theta2
