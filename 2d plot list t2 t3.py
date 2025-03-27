@@ -65,11 +65,11 @@ default_labels = [r"$-\pi$", r"$0$", r"$\pi$"]
 
 # Extra ticks and labels for theta1
 extra_ticks_theta3 = [-1, 1]
-extra_labels_theta3 = [r"$a̲_3$", r"$\overline{a}_3$"]
+extra_labels_theta3 = [r"$\text{𝒂̲}_3$", r"$\text{𝒂̅}_3$"]
 
 # Extra ticks and labels for theta2
 extra_ticks_theta2 = [-2.61, -1]
-extra_labels_theta2 = [r"$a̲_2$", r"$\overline{a}_2$"]
+extra_labels_theta2 = [r"$\text{𝒂̲}_2$", r"$\text{𝒂̅}_2$"]
 
 # Add extreme values and extra ticks for theta1
 theta2_ticks = default_ticks + [theta2_min, theta2_max] + extra_ticks_theta2

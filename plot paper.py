@@ -84,7 +84,7 @@ theta1_ticks, theta1_labels = add_min_max_ticks(
     theta1_min, theta1_max,
     r"$\theta̲_{1_\text{min}}~$", r"$\overline{\theta}_{1_\text{max}}$",
     extra_ticks=[-0.5, 0.5],
-    extra_labels=[r"$a̲_1$", r"$\overline{a}_1$"]
+    extra_labels=[r"$\text{𝒂̲}_1$", r"$\text{𝒂̅}_1$"]
 )
 
 # Modify Theta2 ticks (Adding a^2_min, a^2_max)
@@ -93,7 +93,7 @@ theta2_ticks, theta2_labels = add_min_max_ticks(
     theta2_min, theta2_max,
     r"$\quad\theta̲_{2_\text{min}}$", r"$\overline{\theta}_{2_\text{max}}$",
     extra_ticks=[-2.61, -1],
-    extra_labels=[r"$a̲_2$", r"$\overline{a}_2$"]
+    extra_labels=[r"$\text{𝒂̲}_2$", r"$\text{𝒂̅}_2$"]
 )
 
 # Modify Theta3 ticks (Adding a_1^min, a_1^max for Theta3)
@@ -102,7 +102,7 @@ theta3_ticks, theta3_labels = add_min_max_ticks(
     theta3_min, theta3_max,
     r"$\theta̲_{3_\text{min}}$", r"$\overline{\theta}_{3_\text{max}}$",
     extra_ticks=[-1, 1],
-    extra_labels=[r"$a̲_3$", r"$\overline{a}_3$"]
+    extra_labels=[r"$\text{𝒂̲}_3$", r"$\text{𝒂̅}_3$"]
 )
 
 # Apply tick settings
