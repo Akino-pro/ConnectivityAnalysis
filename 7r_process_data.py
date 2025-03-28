@@ -3,9 +3,11 @@ import ast
 import numpy as np
 from matplotlib import pyplot as plt, patches
 from mpl_toolkits.mplot3d.art3d import Line3DCollection
+from tqdm import tqdm
 
+from Three_dimension_connectivity_measure import connectivity_analysis
 from helper_functions import compute_length_of_ranges, plot_voronoi_regions_on_sphere, fibonacci_sphere_angles, \
-    union_ranges, normalize_and_map_colors, computing_6d_volume
+    union_ranges, normalize_and_map_colors, computing_6d_volume, get_extruded_wedges, wedge_faces_to_binary_volume
 from spatial3R_ftw_draw import generate_square_grid, draw_rotated_grid, generate_2D_square_grid, generate_grid_centers
 from test_the_end import plot_alpha_ranges, plot_beta_ranges
 
@@ -59,12 +61,23 @@ with open("my_list.txt", "r") as file:
     all_data = ast.literal_eval(content)
 index_list_to_color = []
 angle_ranges = []
-for single_data in all_data:
+V=0
+CV=0
+for single_data in tqdm(all_data, desc="Processing Items"):
     index_list_to_color.append(single_data[1])
     beta_range_to_plot = single_data[2]
     alpha_range_to_plot = single_data[3]
-    computing_6d_volume(alpha_range_to_plot, beta_range_to_plot,grid_centers[single_data[1]], orientation_samples, Sx)
-    print(single_data[1])
+    all_wedge_faces = get_extruded_wedges(
+        theta_phi_list,
+        alpha_range_to_plot,
+        extrude_radius=2 * np.pi,
+    )
+    binary_volume = wedge_faces_to_binary_volume(all_wedge_faces, NX=50, NY=50, NZ=50)
+    shape_area, connected_connectivity, general_connectivity = connectivity_analysis(binary_volume,
+                                                                                1, 0.5)
+    vx=computing_6d_volume(alpha_range_to_plot, beta_range_to_plot,grid_centers[single_data[1]], orientation_samples, Sx)
+    V+=vx
+    CV+=vx*connected_connectivity
     zeros_list[single_data[1]]=sum(1 for sublist in alpha_range_to_plot if sublist)/orientation_samples
     color_list_ori, sm_ori = compute_length_of_ranges(alpha_range_to_plot)
     current_beta = []
@@ -73,6 +86,8 @@ for single_data in all_data:
         current_beta = union_ranges(current_beta)
     angle_ranges.append(current_beta)
     # plot orientation plot with only fault tolerant orientations with color =alpha range length
+print(f'The 6D volume of FT workspace is {V}.')
+print(f'The 6D connectivity*volume of FT workspace is {CV}.')
 colors,sm=normalize_and_map_colors(zeros_list, cmap_name='viridis')
 
 

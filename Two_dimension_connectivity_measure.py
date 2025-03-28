@@ -130,7 +130,7 @@ def connectivity_analysis(binary_image, kernel_size, lamda):
                 # cv2.waitKey(0)
                 # cv2.destroyAllWindows()
     if len(data_list) != 1:
-        #print(data_list)
+        print(data_list)
         y_values = np.exp(-lamda * np.array(data_list))
         integral = np.trapz(y_values)
         connected_connectivity = integral / (len(data_list) - 1)

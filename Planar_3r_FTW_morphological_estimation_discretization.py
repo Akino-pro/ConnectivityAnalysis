@@ -2,6 +2,8 @@ import threading
 import time  # Import time module for time measurement
 import matplotlib
 
+from helper_functions import plot_workspace
+
 matplotlib.use('Agg')  # Use Agg backend for non-interactive plotting
 import matplotlib.pyplot as plt
 import numpy as np
@@ -125,40 +127,6 @@ def compute_workspace(L, joint_limits, resolution=sample_density):
     return np.array(workspace)
 
 
-# @measure_time
-# Function to plot workspace using solid points
-def plot_workspace(workspace, color='k'):
-    """
-    Plot the workspace in 2D using solid points.
-
-    Parameters:
-    workspace : List of (x, y) positions representing the workspace
-    title : Title of the plot
-    color : Color of the workspace points
-    """
-    plt.figure(figsize=(8, 8))
-    # if not hasattr(thread_local, 'plt_fig'):
-    #    thread_local.plt_fig = plt.figure(figsize=(8, 8))
-    plt.plot(workspace[:, 0], workspace[:, 1], '.', color=color,
-             markersize=data_point_size)  # Solid points instead of scatter
-    plt.xlabel('X-axis')
-    plt.ylabel('Y-axis')
-    plt.xlim(-4, 4)
-    plt.ylim(-4, 4)
-    plt.gca().set_aspect('equal', adjustable='box')
-    plt.grid(True)
-    plt.axis('off')
-    plt.draw()  # Ensure the plot is rendered
-
-    # Get the RGBA buffer from the figure
-    buf = np.frombuffer(plt.gcf().canvas.buffer_rgba(), dtype=np.uint8)
-    img_data = buf.reshape(plt.gcf().canvas.get_width_height()[::-1] + (4,))  # RGBA (4 channels)
-
-    # Assuming binary image: check if R, G, and B channels are either 0 or 255
-    grayscale_matrix = (img_data[..., 0] == 255).astype(np.uint8) * 255  # Convert white (255) to 255, black to 0
-
-    plt.close()  # Close the plot
-    return grayscale_matrix
 
 
 # Compute the pre-failure workspace with 1.5x resolution
