@@ -5,8 +5,8 @@ from matplotlib import pyplot as plt, patches
 from mpl_toolkits.mplot3d.art3d import Line3DCollection
 
 from helper_functions import compute_length_of_ranges, plot_voronoi_regions_on_sphere, fibonacci_sphere_angles, \
-    union_ranges, normalize_and_map_colors
-from spatial3R_ftw_draw import generate_square_grid, draw_rotated_grid, generate_2D_square_grid
+    union_ranges, normalize_and_map_colors, computing_6d_volume
+from spatial3R_ftw_draw import generate_square_grid, draw_rotated_grid, generate_2D_square_grid, generate_grid_centers
 from test_the_end import plot_alpha_ranges, plot_beta_ranges
 
 
@@ -42,9 +42,17 @@ def map_values_to_indices(size, index_list, values):
                 value_index += 1
 
     return output
-
+N=288
+max_length = 4.461932111892875
+n_z = int(np.sqrt(2 * 288))
+n_x = int(n_z / 2)  # Number of grid divisions along z-axis
+x_range = (0, max_length)  # Range for x-axis
+z_range = (-max_length, max_length)  #
+twod_squares = generate_2D_square_grid(n_x, n_z, x_range, z_range)
+grid_centers = generate_grid_centers(n_x, n_z, N, x_range, z_range)
 orientation_samples = 64  # 64
-zeros_list = [0] * 288
+zeros_list = [0] * N
+Sx=(max_length*2*max_length)/N
 theta_phi_list = fibonacci_sphere_angles(orientation_samples)
 with open("my_list.txt", "r") as file:
     content = file.read()
@@ -55,8 +63,9 @@ for single_data in all_data:
     index_list_to_color.append(single_data[1])
     beta_range_to_plot = single_data[2]
     alpha_range_to_plot = single_data[3]
+    computing_6d_volume(alpha_range_to_plot, beta_range_to_plot,grid_centers[single_data[1]], orientation_samples, Sx)
     print(single_data[1])
-    zeros_list[single_data[1]]=sum(1 for sublist in alpha_range_to_plot if sublist)/64.0
+    zeros_list[single_data[1]]=sum(1 for sublist in alpha_range_to_plot if sublist)/orientation_samples
     color_list_ori, sm_ori = compute_length_of_ranges(alpha_range_to_plot)
     current_beta = []
     for item in beta_range_to_plot:
@@ -68,18 +77,10 @@ colors,sm=normalize_and_map_colors(zeros_list, cmap_name='viridis')
 
 
 
-
-max_length = 4.461932111892875
-n_z = int(np.sqrt(2 * 288))
-n_x = int(n_z / 2)  # Number of grid divisions along z-axis
-x_range = (0, max_length)  # Range for x-axis
-z_range = (-max_length, max_length)  #
-twod_squares = generate_2D_square_grid(n_x, n_z, x_range, z_range)
 fig, ax = plt.subplots()
 ax.set_xlim([0, max_length])
 ax.set_ylim([-max_length, max_length])
 ax.set_aspect(1)
-
 for i, square in enumerate(twod_squares):
     color = colors[i]
     alpha_level = 0

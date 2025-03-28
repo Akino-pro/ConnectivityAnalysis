@@ -7,6 +7,7 @@ from matplotlib.patches import Polygon
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from scipy.spatial import SphericalVoronoi
 import trimesh
+import scipy.integrate as spi
 
 step_size = 0.01
 terminate_threshold = 9.0 / 5.0 * step_size
@@ -734,3 +735,19 @@ def union_ranges(ranges):
             # No overlap, add the current range as a new entry
             merged.append(current)
     return merged
+
+def computing_6d_volume(alpha_ranges,beta_ranges,x,No,Sx):
+    VF=0
+    for i in range(No):
+        non_overlapping_beta_ranges=beta_ranges[i]
+        vx=0
+        for beta_range in non_overlapping_beta_ranges:
+            vx+=spi.quad(x[0]*Sx, beta_range[0], beta_range[1])[0]
+        non_overlapping_alpha_ranges=alpha_ranges[i]
+        vo=0
+        for alpha_range in non_overlapping_alpha_ranges:
+            vo += 4*np.pi*(np.power(alpha_range[1],3)-np.power(alpha_range[0],3))/(3*No)
+        VF+=(vx*vo)
+    return VF
+
+
