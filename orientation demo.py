@@ -61,7 +61,7 @@ def plot_voronoi_regions_on_sphere(theta_phi_list, radius=2*np.pi):
         ax.add_collection3d(poly)
 
     # Mark the centers (Voronoi generators) with red dots
-    ax.scatter(points[:, 0], points[:, 1], points[:, 2], color='k', s=10, label="Region Centers")
+    ax.scatter(points[:, 0], points[:, 1], points[:, 2], color='k', s=10, label="Grid Centers")
 
     # Set equal axis scaling
     set_axes_equal(ax, radius)
