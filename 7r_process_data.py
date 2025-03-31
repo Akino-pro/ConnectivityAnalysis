@@ -8,8 +8,12 @@ from tqdm import tqdm
 from Three_dimension_connectivity_measure import connectivity_analysis
 from helper_functions import compute_length_of_ranges, plot_voronoi_regions_on_sphere, fibonacci_sphere_angles, \
     union_ranges, normalize_and_map_colors, computing_6d_volume, get_extruded_wedges, wedge_faces_to_binary_volume
-from spatial3R_ftw_draw import generate_square_grid, draw_rotated_grid, generate_2D_square_grid, generate_grid_centers
+from spatial3R_ftw_draw import generate_square_grid, draw_rotated_grid, generate_2D_square_grid, generate_grid_centers, \
+    generate_binary_matrix
 from test_the_end import plot_alpha_ranges, plot_beta_ranges
+import matplotlib.pyplot as plt
+import logging
+logging.getLogger("PIL").setLevel(logging.WARNING)
 
 
 def map_values_to_indices(size, index_list, values):
@@ -63,6 +67,7 @@ index_list_to_color = []
 angle_ranges = []
 V=0
 CV=0
+sum_connectivity=[]
 for single_data in tqdm(all_data, desc="Processing Items"):
     index_list_to_color.append(single_data[1])
     beta_range_to_plot = single_data[2]
@@ -75,9 +80,9 @@ for single_data in tqdm(all_data, desc="Processing Items"):
     binary_volume = wedge_faces_to_binary_volume(all_wedge_faces, NX=50, NY=50, NZ=50)
     shape_area, connected_connectivity, general_connectivity = connectivity_analysis(binary_volume,
                                                                                 1, 0.5)
+    sum_connectivity.append(connected_connectivity)
     vx=computing_6d_volume(alpha_range_to_plot, beta_range_to_plot,grid_centers[single_data[1]], orientation_samples, Sx)
     V+=vx
-    CV+=vx*connected_connectivity
     zeros_list[single_data[1]]=sum(1 for sublist in alpha_range_to_plot if sublist)/orientation_samples
     color_list_ori, sm_ori = compute_length_of_ranges(alpha_range_to_plot)
     current_beta = []
@@ -87,7 +92,6 @@ for single_data in tqdm(all_data, desc="Processing Items"):
     angle_ranges.append(current_beta)
     # plot orientation plot with only fault tolerant orientations with color =alpha range length
 print(f'The 6D volume of FT workspace is {V}.')
-print(f'The 6D connectivity*volume of FT workspace is {CV}.')
 colors,sm=normalize_and_map_colors(zeros_list, cmap_name='viridis')
 
 
@@ -129,7 +133,7 @@ plt.close(fig)
 
 
 
-
+"""
 index_of_chioce=[0,1,2]
 for ind in index_of_chioce:
     color_list_ori,sm_ori=compute_length_of_ranges(all_data[ind][3])
@@ -139,8 +143,8 @@ for ind in index_of_chioce:
                                    )
     plot_alpha_ranges(theta_phi_list, all_data[ind][3])
     plot_beta_ranges(theta_phi_list,  all_data[ind][2])
-
-    """
+"""
+"""
     plot_voronoi_regions_on_sphere(theta_phi_list,
                                    beta_range_to_plot,
                                    color_list_ori,
@@ -149,9 +153,9 @@ for ind in index_of_chioce:
                                    )
 
     plot_bar_graph_transposed_same_color(theta_phi_list, alpha_range_to_plot)
-    """
 """
-positional ftw plot
+
+#positional ftw plot
 
 max_length = 4.461932111892875
 n_z = int(np.sqrt(2 * 288))
@@ -159,15 +163,19 @@ n_x = int(n_z / 2)  # Number of grid divisions along z-axis
 x_range = (0, max_length)  # Range for x-axis
 z_range = (-max_length, max_length)  #
 grid_squares = generate_square_grid(n_x, n_z, x_range, z_range)
-arc_color = 'blue'
+
 # Plot setup
+size=288
+new_list = [[] for _ in range(288)]
+counter=0
+for index in index_list_to_color:
+    new_list[index]=angle_ranges[counter]
+    counter+=1
+"""
+# Set plot range
+arc_color = 'blue'
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
-size=288
-value_ranges =[(9,13),(32,37),(55,61),(80,84),(104,107),130]
-values=angle_ranges
-new_list = map_values_to_indices(size, value_ranges, values)
-# Set plot range
 ax.set_xlim([-3, 3])
 ax.set_ylim([-3, 3])
 ax.set_zlim([-3, 3])
@@ -183,3 +191,13 @@ ax.set_ylabel('Y')
 ax.set_zlabel('Z')
 plt.show()
 """
+grid_size = (64, 64, 64)
+binary_matrix, x_edges, y_edges, z_edges = generate_binary_matrix(
+        n_x, n_z, x_range, z_range, grid_size, new_list
+    )
+shape_area, connected_connectivity, general_connectivity = connectivity_analysis(binary_matrix,1,0.5)
+
+C=0.5*(connected_connectivity+np.average(sum_connectivity))
+print(f'The 6D connectivity of FT workspace is {C}.')
+CV=C*V
+print(f'The 6D connectivity*volume of FT workspace is {CV}.')

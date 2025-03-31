@@ -38,7 +38,7 @@ def connectivity_analysis(binary_image, kernel_size, lamda):
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (kernel_size, kernel_size))
     #kernel = np.ones((kernel_size, kernel_size), np.uint8)
 
-    num_labels, labels_im = cv2.connectedComponents(img)
+    num_labels, labels_im = cv2.connectedComponents(img,connectivity=8)
     original_component_number = num_labels - 1
 
     while True:
@@ -46,7 +46,7 @@ def connectivity_analysis(binary_image, kernel_size, lamda):
         #cv2.imshow('erosion', img_erosion)
         #cv2.waitKey(0)
         #cv2.destroyAllWindows()
-        num_labels, labels_im = cv2.connectedComponents(img_erosion)
+        num_labels, labels_im = cv2.connectedComponents(img_erosion,connectivity=8)
         num_connected_components = num_labels - 1
         if original_component_number > 1:
             if num_connected_components == 1:
@@ -64,7 +64,7 @@ def connectivity_analysis(binary_image, kernel_size, lamda):
                 while current_components_number > 1:
                     img_dilation = cv2.dilate(current_image, kernel, iterations=1)
                     current_image = img_dilation
-                    num_labels, labels_im = cv2.connectedComponents(current_image)
+                    num_labels, labels_im = cv2.connectedComponents(current_image,connectivity=8)
                     current_components_number = num_labels - 1
                     dilation_number += 1
 
@@ -110,7 +110,7 @@ def connectivity_analysis(binary_image, kernel_size, lamda):
                     img_dilation = cv2.dilate(current_image, kernel, iterations=1)
                     img_stepwise_intersection = cv2.bitwise_and(img_dilation, img)
                     current_image = img_stepwise_intersection
-                    num_labels, labels_im = cv2.connectedComponents(current_image)
+                    num_labels, labels_im = cv2.connectedComponents(current_image,connectivity=8)
                     current_components_number = num_labels - 1
                     dilation_number += 1
 
@@ -130,7 +130,7 @@ def connectivity_analysis(binary_image, kernel_size, lamda):
                 # cv2.waitKey(0)
                 # cv2.destroyAllWindows()
     if len(data_list) != 1:
-        print(data_list)
+        #print(data_list)
         y_values = np.exp(-lamda * np.array(data_list))
         integral = np.trapz(y_values)
         connected_connectivity = integral / (len(data_list) - 1)
