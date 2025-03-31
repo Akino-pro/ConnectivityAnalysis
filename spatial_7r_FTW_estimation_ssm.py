@@ -1146,8 +1146,10 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     # top_5_grids = get_top_5()
     with open("my_list.txt", "w") as file:
         file.write(str(all_data))
+
     index_list_to_color = []
     color_list, sm = normalize_and_map_colors(shape_volumns)
+    """
     for single_data in all_data:
         index_list_to_color.append(single_data[1])
         beta_range_to_plot = single_data[2]
@@ -1162,9 +1164,9 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
 
         plot_alpha_ranges(theta_phi_list, alpha_range_to_plot)
         plot_beta_ranges(theta_phi_list, beta_range_to_plot)
-    """
-    positional ftw plot
-    """
+    
+    #positional ftw plot
+    
     grid_squares = generate_square_grid(n_x, n_z, x_range, z_range)
     arc_color = 'blue'
     # Plot setup
@@ -1188,8 +1190,8 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     ax.set_zlabel('Z')
     plt.show()
     """
-    sampled_plane plot
-    """
+    #sampled_plane plot
+
     # draw positional fault tolerant grids used for orientational demo
     grid_squares = generate_square_grid(n_x, n_z, x_range, z_range)
     # Plot setup

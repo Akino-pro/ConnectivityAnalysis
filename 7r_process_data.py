@@ -79,7 +79,7 @@ for single_data in tqdm(all_data, desc="Processing Items"):
     )
     binary_volume = wedge_faces_to_binary_volume(all_wedge_faces, NX=50, NY=50, NZ=50)
     shape_area, connected_connectivity, general_connectivity = connectivity_analysis(binary_volume,
-                                                                                2, 0.5)
+                                                                                1, 0.5)
     sum_connectivity.append(connected_connectivity)
     vx=computing_6d_volume(alpha_range_to_plot, beta_range_to_plot,grid_centers[single_data[1]], orientation_samples, Sx)
     V+=vx
