@@ -31,11 +31,11 @@ r3 = 0.7
 # L=[1.42,1,0.58]
 #L=[np.sqrt(0.5),np.sqrt(0.5),np.sqrt(2.0/3.0)]
 L = [1, 1, 1]
-#CA = [(-18.2074 * np.pi / 180, 18.2074 * np.pi / 180), (-111.3415 * np.pi / 180, 111.3415 * np.pi / 180),
-#      (-111.3415 * np.pi / 180, 111.3415 * np.pi / 180)]
+CA = [(-18.2074 * np.pi / 180, 18.2074 * np.pi / 180), (-111.3415 * np.pi / 180, 111.3415 * np.pi / 180),
+      (-111.3415 * np.pi / 180, 111.3415 * np.pi / 180)]
 # CA=[(-3.031883452592004, 3.031883452592004), (-1.619994146091692, -0.8276157453255935), (-1.6977602095460234, -0.7265946655975718)]
-CA = [(-0.7391244590957556, 0.7391244590957556), (-0.7422740927125862, 1.9756037937159996),
-      (-2.11211741668124, 2.12020510030)]
+#CA = [(-0.7391244590957556, 0.7391244590957556), (-0.7422740927125862, 1.9756037937159996),
+ #     (-2.11211741668124, 2.12020510030)]
 #CA=[(-0.5779611440942315, 0.5779611440942315), (-1.1887031063410372, 0.6453736884533061), (-1.7852473794934884, 1.8681718728028136)]
 """
 CA = [(-30 * np.pi / 180, 30 * np.pi / 180), (-120 * np.pi / 180, 60 * np.pi / 180),
@@ -599,6 +599,7 @@ ax2d3.add_patch(circle)
 # ax2d3.set_title("2D relia")
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
+N=0
 for i in range(len(points)):
     point = points[i]
     x, y = point
@@ -617,6 +618,8 @@ for i in range(len(points)):
 
             # Calculate the outer radius for the ring (x + ring_width / 2)
             outer_radius = x + ring_width / 2
+            inner_radius = np.max([0,x-ring_width/2])
+            if b_r_index == 6: N += np.pi * (outer_radius ** 2 -inner_radius**2)/(2*np.pi)*(beta_range[1]-beta_range[0])
 
             wedge = Wedge(
                 center=(0, 0),
@@ -704,6 +707,7 @@ ax.set_yticks(tick_positions)
 
 # Set aspect ratio to be equal for correct visualization of circles
 ax.set_aspect('equal')
+print(N)
 
 # Add title and display the plot
 # plt.title("Planar3R Reliable work spaces")

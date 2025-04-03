@@ -3,6 +3,7 @@ import heapq
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import patches
+from matplotlib.colors import LinearSegmentedColormap
 from matplotlib.patches import Polygon
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from scipy.spatial import SphericalVoronoi
@@ -350,9 +351,11 @@ def plot_voronoi_regions_on_sphere(theta_phi_list,
     ax.set_ylim([-limit, limit])
     ax.set_zlim([-limit, limit])
     cbar = plt.colorbar(sm_ori, ax=ax)
-    ax.set_xlabel("X")
-    ax.set_ylabel("Y")
-    ax.set_zlabel("Z")
+    tick_positions = [0, np.pi / 2, np.pi, 3 * np.pi / 2, 2 * np.pi]
+    tick_labels = ['0', r'$\frac{\pi}{2}$', r'$\pi$', r'$\frac{3\pi}{2}$', r'$2\pi$']
+
+    cbar.set_ticks(tick_positions)
+    cbar.set_ticklabels(tick_labels)
     plt.show()
 
 
@@ -570,38 +573,56 @@ def track_top_5():
 
     return update, get_top_5
 
+import matplotlib as mpl
+
 
 def normalize_and_map_colors(values, cmap_name='rainbow'):
     """
-    Normalizes a list of values to the range [0, 1] and maps them to colors from a given colormap.
+    Maps normalized values (0 to 1) to colors using a colormap.
 
     Parameters:
-        values (list or np.array): List of numerical values.
-        cmap_name (str): Name of the colormap to use (default is 'viridis').
+        values (list or np.array): Values in range [0, 1].
+        cmap_name (str): Colormap name.
 
     Returns:
-        list: List of RGB color tuples corresponding to the normalized values.
-        matplotlib.cm.ScalarMappable: A colormap mappable for the colorbar.
+        colors (list): RGBA colors.
+        ScalarMappable: For external use in colorbar.
     """
-    values = np.array(values)  # Convert to NumPy array
-    min_val, max_val = np.min(values), np.max(values)
-
-    # Normalize values to [0,1] range
-    if max_val - min_val > 0:
-        normalized_values = (values - min_val) / (max_val - min_val)
-    else:
-        normalized_values = np.zeros_like(values)  # If all values are the same, use zero.
-
-    # Get colormap
+    values = np.array(values)
     cmap = plt.get_cmap(cmap_name)
 
-    # Map normalized values to colors
-    colors = [cmap(val) for val in normalized_values]
+    # Map directly since values are normalized
+    colors = [cmap(val) for val in values]
 
-    # Create a mappable object for colorbar
-    norm = plt.Normalize(vmin=min_val, vmax=max_val)
+    # Create mappable for external colorbar
+    norm = mpl.colors.Normalize(vmin=0, vmax=1)
     sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
-    sm.set_array([])  # Required for colorbar to work properly
+    sm.set_array([])
+
+    return colors, sm
+
+def normalize_and_map_colors_green(values, cmap_name='rainbow', vmin=0, vmax=2*np.pi):
+    """
+    Maps unnormalized values to colors using a colormap.
+
+    Parameters:
+        values (list or np.array): Raw values (not normalized).
+        cmap_name (str or Colormap): Colormap instance or name.
+        vmin (float): Minimum value for normalization.
+        vmax (float): Maximum value for normalization.
+
+    Returns:
+        colors (list): RGBA colors.
+        ScalarMappable: For external use in colorbar.
+    """
+    values = np.array(values)
+    cmap = plt.get_cmap(cmap_name) if isinstance(cmap_name, str) else cmap_name
+
+    norm = mpl.colors.Normalize(vmin=vmin, vmax=vmax)
+    colors = [cmap(norm(val)) for val in values]
+
+    sm = plt.cm.ScalarMappable(norm=norm, cmap=cmap)
+    sm.set_array([])
 
     return colors, sm
 
@@ -618,8 +639,12 @@ cbar = plt.colorbar(sm, ax=ax, label='Value Spectrum')  # Ensure colorbar is lin
 plt.show()
 """
 
+def create_shallow_to_deep_green_colormap():
+    green_colors = ['#ccffcc', '#66cc66', '#339933', '#006600']  # light → deep green
+    return LinearSegmentedColormap.from_list('shallow_deep_green', green_colors, N=256)
 
 def compute_length_of_ranges(ranges_list):
+    shallow_deep_green_cmap = create_shallow_to_deep_green_colormap()
     length_list = []
     for ranges in ranges_list:
         if len(ranges) == 0:
@@ -629,7 +654,7 @@ def compute_length_of_ranges(ranges_list):
             for single_range in ranges:
                 list_sum += (single_range[1] - single_range[0])
             length_list.append(list_sum)
-    color_list, sm = normalize_and_map_colors(length_list, cmap_name='viridis')
+    color_list, sm = normalize_and_map_colors_green(length_list, cmap_name=shallow_deep_green_cmap)
     return color_list, sm
 
 

@@ -77,10 +77,10 @@ for single_data in tqdm(all_data, desc="Processing Items"):
         alpha_range_to_plot,
         extrude_radius=2 * np.pi,
     )
-    binary_volume = wedge_faces_to_binary_volume(all_wedge_faces, NX=50, NY=50, NZ=50)
-    shape_area, connected_connectivity, general_connectivity = connectivity_analysis(binary_volume,
-                                                                                1, 0.5)
-    sum_connectivity.append(connected_connectivity)
+    #binary_volume = wedge_faces_to_binary_volume(all_wedge_faces, NX=50, NY=50, NZ=50)
+    #shape_area, connected_connectivity, general_connectivity = connectivity_analysis(binary_volume,
+    #                                                                            1, 0.5)
+    #sum_connectivity.append(connected_connectivity)
     vx=computing_6d_volume(alpha_range_to_plot, beta_range_to_plot,grid_centers[single_data[1]], orientation_samples, Sx)
     V+=vx
     zeros_list[single_data[1]]=sum(1 for sublist in alpha_range_to_plot if sublist)/orientation_samples
@@ -92,7 +92,7 @@ for single_data in tqdm(all_data, desc="Processing Items"):
     angle_ranges.append(current_beta)
     # plot orientation plot with only fault tolerant orientations with color =alpha range length
 print(f'The 6D volume of FT workspace is {V}.')
-colors,sm=normalize_and_map_colors(zeros_list, cmap_name='viridis')
+colors,sm=normalize_and_map_colors(zeros_list, cmap_name='rainbow')
 
 
 
@@ -102,10 +102,10 @@ ax.set_ylim([-max_length, max_length])
 ax.set_aspect(1)
 for i, square in enumerate(twod_squares):
     color = colors[i]
-    alpha_level = 0
-    if i in index_list_to_color:
-        alpha_level = 1.0
-    polygon = patches.Polygon(square, facecolor=color, edgecolor='k', alpha=alpha_level, linewidth=1.5)
+    alpha_level = 1.0
+    if i not in index_list_to_color:
+        color='white'
+    polygon = patches.Polygon(square, facecolor=color, edgecolor='k', alpha=alpha_level, linewidth=1)
     ax.add_patch(polygon)
 
 # Set plot labels and show the plot
@@ -120,7 +120,10 @@ frame_points = [
 # Draw frame
 frame_x, frame_z = zip(*frame_points)
 ax.plot(frame_x, frame_z, color='k', linewidth=2)
-cbar = plt.colorbar(sm, ax=ax)
+tick_values = np.linspace(0, 1, 11)  # 0.0, 0.1, ..., 1.0
+tick_labels = [f'{int(t * 100)}%' for t in tick_values]
+cbar = plt.colorbar(sm, ticks=tick_values,ax=ax)
+cbar.ax.set_yticklabels(tick_labels)
 plt.draw()
 print("Press 'q' to continue...")
 while True:
@@ -133,7 +136,7 @@ plt.close(fig)
 
 
 
-"""
+
 index_of_chioce=[0,1,2]
 for ind in index_of_chioce:
     color_list_ori,sm_ori=compute_length_of_ranges(all_data[ind][3])
@@ -143,17 +146,10 @@ for ind in index_of_chioce:
                                    )
     plot_alpha_ranges(theta_phi_list, all_data[ind][3])
     plot_beta_ranges(theta_phi_list,  all_data[ind][2])
-"""
-"""
-    plot_voronoi_regions_on_sphere(theta_phi_list,
-                                   beta_range_to_plot,
-                                   color_list_ori,
-                                   sm_ori,
-                                   samples_per_arc=50,
-                                   )
 
-    plot_bar_graph_transposed_same_color(theta_phi_list, alpha_range_to_plot)
-"""
+
+
+
 
 #positional ftw plot
 

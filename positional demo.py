@@ -121,9 +121,9 @@ for beta_range in angle_ranges:
 ax.set_xticks([])
 ax.set_yticks([])
 ax.set_zticks([])
-ax.set_xlabel('x')
-ax.set_ylabel('y')
-ax.set_zlabel('z')
+ax.set_xlabel('x',fontsize=18)
+ax.set_ylabel('y',fontsize=18)
+ax.set_zlabel('z',fontsize=18)
 
 # Show legend and plot
 ax.legend()
