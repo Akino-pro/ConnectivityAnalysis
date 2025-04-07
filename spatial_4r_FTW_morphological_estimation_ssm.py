@@ -977,6 +977,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     index_dict = {}
     for you in indices:
         ftw_points_count = 0
+
         """
         arc_color = color_list[you]
         
@@ -1008,7 +1009,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
 
         plt.close(fig)
         """
-
+        """
         grid_squares = generate_square_grid(n_x, n_z, x_range, z_range)
 
         # Plot setup
@@ -1038,6 +1039,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
         ax.set_xlabel('X')
         ax.set_ylabel('Y')
         ax.set_zlabel('Z')
+        
         plt.draw()
         print("Press 'q' to continue...")
         while True:
@@ -1046,14 +1048,15 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
                 break
 
         plt.close(fig)
+        
         print(f'we have {ftw_points_count} grids over {grid_sample_num} fault tolerant')
         # also plot a 2D view of it
+        """
         twod_squares = generate_2D_square_grid(n_x, n_z, x_range, z_range)
-        fig, ax = plt.subplots()
-        ax.set_xlim([0, max_length])
-        ax.set_ylim([-max_length, max_length])
-        ax.set_aspect(1)
-
+        #fig, ax = plt.subplots()
+        #ax.set_xlim([0, max_length])
+        #ax.set_ylim([-max_length, max_length])
+        #ax.set_aspect(1)
         for i, square in enumerate(twod_squares):
             color = 'w'
             alpha_level = 1.0
@@ -1062,9 +1065,9 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
                 ftw_points_count += 1
 
             polygon = patches.Polygon(square, facecolor=color, edgecolor='k', alpha=alpha_level, linewidth=1.5)
-            ax.add_patch(polygon)
+            #ax.add_patch(polygon)
             update_or_add_square_2d(ax2, square, color, alpha_level,i,index_dict=index_dict)
-
+        """
         # Set plot labels and show the plot
         ax.set_xlabel('X')
         ax.set_ylabel('Z')
@@ -1077,6 +1080,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
         # Draw frame
         frame_x, frame_z = zip(*frame_points)
         ax.plot(frame_x, frame_z, color='k', linewidth=2)
+        
         plt.draw()
         print("Press 'q' to continue...")
         while True:
@@ -1085,6 +1089,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
                 break
 
         plt.close(fig)
+        """
 
     ax2.set_xlabel('X')
     ax2.set_ylabel('Z')
@@ -1124,7 +1129,7 @@ CA = [(-146 * np.pi / 180, 146 * np.pi / 180), (-234 * np.pi / 180, 10 * np.pi /
 alpha = [85 * np.pi / 180, -53 * np.pi / 180, -89 * np.pi / 180, 68 * np.pi / 180]
 d = [-0.29, 0, 0.05, 1]
 l = [0.5, 0.48, 0.76, 0.95]
-ap = ssm_estimation(72, d, alpha, l, CA)
+ap = ssm_estimation(2048, d, alpha, l, CA)
 # d = [-0.019917995106395026, 0.6118090376463043, 0.05065138908443867, 0.45487466192184756]
 # alpha = [85 * np.pi / 180, -53 * np.pi / 180, -89 * np.pi / 180, 68 * np.pi / 180]
 # alpha=  [0.7334761894150401, -0.7205303423799283, -1.3089320990376847, 1.5510841614806563]
