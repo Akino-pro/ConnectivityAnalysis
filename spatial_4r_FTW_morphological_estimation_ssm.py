@@ -347,7 +347,7 @@ def find_random_ssm(x_target, all_ssm_theta_list, robot, C_dot_A):
             num = 0
         ssm_theta_list.append(theta)
 
-    """
+
     points = np.array(ssm_theta_list)
 
     plt.figure()
@@ -401,7 +401,7 @@ def find_random_ssm(x_target, all_ssm_theta_list, robot, C_dot_A):
     plt.ylim([-np.pi, np.pi])
 
     plt.show()
-    """
+
 
     all_ssm_theta_list.extend(ssm_theta_list)
     # print(f'found a new ssm with {num} points.')
@@ -955,6 +955,9 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     grid_size = (64, 64, 64)
     grid_centers = generate_grid_centers(n_x, n_z, N, x_range, z_range)
     all_reliable_beta_ranges = [[] for _ in range(15)]
+
+
+
     #test_center=[1.5,0,-0.2]
     #all_reliable_beta_ranges = compute_reliable_beta_range(test_center[0],test_center[1],test_center[2], robot, C_dot_A, CA,
     #                                                       all_reliable_beta_ranges)
@@ -1067,7 +1070,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
                 color = color_list[you]
                 ftw_points_count += 1
 
-            polygon = patches.Polygon(square, facecolor=color, edgecolor='k', alpha=alpha_level, linewidth=1.5)
+            #polygon = patches.Polygon(square, facecolor=color, edgecolor='k', alpha=alpha_level, linewidth=0.5)
             #ax.add_patch(polygon)
             update_or_add_square_2d(ax2, square, color, alpha_level,i,index_dict=index_dict)
         """

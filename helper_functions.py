@@ -726,7 +726,7 @@ def update_or_add_square_2d(ax2, square, color, alpha_level, index, index_dict):
         facecolor=color,
         edgecolor="black",  # Keep edges visible
         alpha=alpha_level,
-        linewidth=1.5
+        linewidth=0.3
     )
     ax2.add_patch(square_poly)
     index_dict[index] = square_poly  # Store the new patch reference in the dictionary
