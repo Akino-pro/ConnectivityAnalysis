@@ -56,7 +56,8 @@ def plot_voronoi_regions_on_sphere(theta_phi_list, radius=2*np.pi):
     # Plot Voronoi regions
     for i, region in enumerate(sv.regions):
         region_vertices = sv.vertices[region]
-        alpha_value = 1.0 if i in selected_indices else 0.1  # Fully opaque for selected, otherwise transparent
+        alpha_value = 0.1
+        #alpha_value = 1.0 if i in selected_indices else 0.1  # Fully opaque for selected, otherwise transparent
         poly = Poly3DCollection([region_vertices], facecolor='green', edgecolor='k', alpha=alpha_value)
         ax.add_collection3d(poly)
 

@@ -752,7 +752,7 @@ def union_ranges(ranges):
 
     # Initialize the merged ranges with the first range
     merged = [ranges[0]]
-    merge_threshold = 0.05
+    merge_threshold = 0.24
     for current in ranges[1:]:
         last = merged[-1]
 
