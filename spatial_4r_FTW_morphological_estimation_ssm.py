@@ -347,7 +347,7 @@ def find_random_ssm(x_target, all_ssm_theta_list, robot, C_dot_A):
             num = 0
         ssm_theta_list.append(theta)
 
-
+    """
     points = np.array(ssm_theta_list)
 
     plt.figure()
@@ -401,7 +401,7 @@ def find_random_ssm(x_target, all_ssm_theta_list, robot, C_dot_A):
     plt.ylim([-np.pi, np.pi])
 
     plt.show()
-
+    """
 
     all_ssm_theta_list.extend(ssm_theta_list)
     # print(f'found a new ssm with {num} points.')
