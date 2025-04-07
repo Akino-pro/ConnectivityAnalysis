@@ -280,6 +280,7 @@ def find_critical_points(ssm_theta_list):
         thetas_cp_range[2] = [ssm_theta_list[0][2][0], ssm_theta_list[0][2][0]]
         thetas_cp_range[3] = [ssm_theta_list[0][3][0], ssm_theta_list[0][3][0]]
         previous_theta = ssm_theta_list[0]
+        ssm_theta_list.append(previous_theta)
         for theta_index in range(1, len(ssm_theta_list)):
             theta = ssm_theta_list[theta_index]
             for i in range(4):
@@ -399,6 +400,7 @@ def find_random_ssm(x_target, all_ssm_theta_list, robot, C_dot_A):
 
     plt.show()
     """
+
     all_ssm_theta_list.extend(ssm_theta_list)
     # print(f'found a new ssm with {num} points.')
     ssm_found = True
@@ -684,6 +686,7 @@ def compute_reliable_beta_range(x, y, z, robot, C_dot_A, CA, all_reliable_beta_r
     min_beta1 = 0
     max_beta1 = 0
     theta1_ranges_union = extend_ranges(theta1_ranges_union)
+
     for tr in theta1_ranges_union:
         if CA[0][0] >= tr[0] and CA[0][1] <= tr[1]:
             ion1 = True
@@ -768,6 +771,7 @@ def compute_reliable_beta_range(x, y, z, robot, C_dot_A, CA, all_reliable_beta_r
         min_beta_f_ftw = max(min_beta0, min_beta1, -np.pi)
         max_beta_f_ftw = min(max_beta0, max_beta1, np.pi)
         if min_beta_f_ftw <= max_beta_f_ftw: valid = True
+        #print(ion1,ion2,ion3,ion4)
         if valid:
             if ion1:
                 reliable_beta_ranges[0].append([min_beta_f_ftw, max_beta_f_ftw])
@@ -949,10 +953,13 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     grid_size = (64, 64, 64)
     grid_centers = generate_grid_centers(n_x, n_z, N, x_range, z_range)
     all_reliable_beta_ranges = [[] for _ in range(15)]
+    #test_center=[1.5,-0.2,0]
+    #all_reliable_beta_ranges = compute_reliable_beta_range(test_center[0],test_center[1],test_center[2], robot, C_dot_A, CA,
+    #                                                       all_reliable_beta_ranges)
+
     for center in tqdm(grid_centers, desc="Processing Items"):
         # print(center)
-        all_reliable_beta_ranges = compute_reliable_beta_range(center[0], center[1], center[2], robot, C_dot_A, CA,
-                                                               all_reliable_beta_ranges)
+        all_reliable_beta_ranges = compute_reliable_beta_range(center[0], center[1], center[2], robot, C_dot_A, CA,all_reliable_beta_ranges)
 
     grid_squares = generate_square_grid(n_x, n_z, x_range, z_range)
     with open("my_list.txt", "w") as file:
@@ -1117,7 +1124,7 @@ CA = [(-146 * np.pi / 180, 146 * np.pi / 180), (-234 * np.pi / 180, 10 * np.pi /
 alpha = [85 * np.pi / 180, -53 * np.pi / 180, -89 * np.pi / 180, 68 * np.pi / 180]
 d = [-0.29, 0, 0.05, 1]
 l = [0.5, 0.48, 0.76, 0.95]
-ap = ssm_estimation(5000, d, alpha, l, CA)
+ap = ssm_estimation(72, d, alpha, l, CA)
 # d = [-0.019917995106395026, 0.6118090376463043, 0.05065138908443867, 0.45487466192184756]
 # alpha = [85 * np.pi / 180, -53 * np.pi / 180, -89 * np.pi / 180, 68 * np.pi / 180]
 # alpha=  [0.7334761894150401, -0.7205303423799283, -1.3089320990376847, 1.5510841614806563]

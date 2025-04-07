@@ -137,7 +137,12 @@ plt.close(fig)
 
 
 
-index_of_chioce=[0,1,2]
+#index_of_chioce=[8,16,18] #original
+#index_of_chioce=[8,15,17] #shifted 30
+#index_of_chioce=[3,10,12] #shrinked 30
+#index_of_chioce=[8,15,17] #expanded 30
+#index_of_chioce=[8,15,17] #shifted 60
+index_of_chioce=[8,15,17] #shifted 90
 for ind in index_of_chioce:
     color_list_ori,sm_ori=compute_length_of_ranges(all_data[ind][3])
     plot_voronoi_regions_on_sphere(theta_phi_list,

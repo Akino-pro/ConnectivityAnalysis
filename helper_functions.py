@@ -353,6 +353,9 @@ def plot_voronoi_regions_on_sphere(theta_phi_list,
     cbar = plt.colorbar(sm_ori, ax=ax)
     tick_positions = [0, np.pi / 2, np.pi, 3 * np.pi / 2, 2 * np.pi]
     tick_labels = ['0', r'$\frac{\pi}{2}$', r'$\pi$', r'$\frac{3\pi}{2}$', r'$2\pi$']
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_zticks([])
 
     cbar.set_ticks(tick_positions)
     cbar.set_ticklabels(tick_labels)
@@ -749,7 +752,7 @@ def union_ranges(ranges):
 
     # Initialize the merged ranges with the first range
     merged = [ranges[0]]
-    merge_threshold = terminate_threshold
+    merge_threshold = 0.05
     for current in ranges[1:]:
         last = merged[-1]
 
