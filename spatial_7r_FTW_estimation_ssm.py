@@ -17,7 +17,7 @@ from scipy.spatial.transform import Rotation as R
 
 from helper_functions import plot_shifted_arcs_on_sphere, fibonacci_sphere_angles, get_extruded_wedges, \
     wedge_faces_to_binary_volume, track_top_5, union_ranges, normalize_and_map_colors, \
-    plot_voronoi_regions_on_sphere, compute_length_of_ranges
+    plot_voronoi_regions_on_sphere, compute_length_of_ranges, compute_reliability
 
 from test_the_end import plot_alpha_ranges, plot_beta_ranges
 
@@ -29,10 +29,11 @@ terminate_threshold = 9.0 / 5.0 * step_size
 # terminate_threshold = step_size * 0.5
 ssm_finding_num = 10
 max_ssm = 16
-positional_samples = 288  # 288
-orientation_samples = 64  # 64
+positional_samples = 18  # 288
+orientation_samples = 25  # 64
 theta_phi_list = fibonacci_sphere_angles(orientation_samples)
 # print(theta_phi_list)
+joint_reliabilities=[0.2,0.3,0.4,0.5,0.6,0.7,0.8]
 
 """
 theta_ranges_all = [[] for _ in range(orientation_samples)]
@@ -787,10 +788,10 @@ def compute_beta_range(r, target_x, robot, C_dot_A, CA):
         for cp_range in cp_ranges[6]:
             if cp_range[0] > -np.inf: theta7_ranges.append(cp_range)
 
-    if len(theta1_ranges) == 0: return [], []
-    if len(theta2_ranges) == 0: return [], []
-    if len(theta3_ranges) == 0: return [], []
-    if len(theta4_ranges) == 0: return [], []
+    #if len(theta1_ranges) == 0: return [], [],0
+    #if len(theta2_ranges) == 0: return [], [],0
+    #if len(theta3_ranges) == 0: return [], [],0
+    #if len(theta4_ranges) == 0: return [], [],0
     theta1_ranges_union = union_ranges(theta1_ranges)
     theta2_ranges_union = union_ranges(theta2_ranges)
     theta3_ranges_union = union_ranges(theta3_ranges)
@@ -1034,7 +1035,8 @@ def compute_beta_range(r, target_x, robot, C_dot_A, CA):
                 max_alpha1 = np.pi
                 min_alpha1 = -np.pi
 
-    if ion1 and ion2 and ion3 and ion4 and ion5 and ion6 and ion7:
+    #if ion1 and ion2 and ion3 and ion4 and ion5 and ion6 and ion7:
+    if ion1 and (ion2 or ion3 or ion4 or ion5 or ion6 or ion7):
         # print(ion1_alpha, ion2, ion3, ion4, ion5, ion6, ion7_alpha)
         for index in range(len(beta0_ranges)):
             min_beta0, max_beta0 = beta0_ranges[index][0], beta0_ranges[index][1]
@@ -1042,14 +1044,15 @@ def compute_beta_range(r, target_x, robot, C_dot_A, CA):
             max_beta_f_ftw = min(max_beta0, max_beta1, np.pi)
             if min_beta_f_ftw <= max_beta_f_ftw:
                 all_smm_beta_range.append([min_beta_f_ftw, max_beta_f_ftw])
-    if ion1_alpha and ion2 and ion3 and ion4 and ion5 and ion6 and ion7_alpha:
+    #if ion1_alpha and ion2 and ion3 and ion4 and ion5 and ion6 and  ion7_alpha:
+    if (ion1_alpha or ion2 or ion3 or ion4 or ion5 or ion6) and ion7_alpha:
         for index in range(len(alpha0_ranges)):
             min_alpha0, max_alpha0 = alpha0_ranges[index][0], alpha0_ranges[index][1]
             min_alpha_f_ftw = max(min_alpha0, min_alpha1, -np.pi)
             max_alpha_f_ftw = min(max_alpha0, max_alpha1, np.pi)
             if min_alpha_f_ftw <= max_alpha_f_ftw:
                 all_alpha_ranges.append([min_alpha_f_ftw, max_alpha_f_ftw])
-    return union_ranges(all_smm_beta_range), union_ranges(all_alpha_ranges)
+    return union_ranges(all_smm_beta_range), union_ranges(all_alpha_ranges),compute_reliability([ion2,ion3,ion4,ion5,ion6],joint_reliabilities[1:-1])
 
 
 @measure_time
@@ -1082,7 +1085,6 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     # print("3D coordinates of center points:")
     angle_ranges = []
     reachable_points = 0
-    orientational_connectivity = []
     all_data = []
     # update_top_5, get_top_5 = track_top_5()
     index = 0
@@ -1094,12 +1096,14 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
         print(center)
         all_alpha_ranges = []
         all_beta_ranges = []
+        all_realiability=[]
         positional_beta_ranges = []
         target_x = np.array([center[0], center[1], center[2]]).T.reshape((3, 1))
         for sample_tuple in tqdm(theta_phi_list, desc="Processing Items"):
             sampled_orientation = zyz_to_R(sample_tuple[0], sample_tuple[1], 0)
-            beta_ranges, alpha_ranges = compute_beta_range(sampled_orientation, target_x, robot, C_dot_A, CA)
+            beta_ranges, alpha_ranges,reliability = compute_beta_range(sampled_orientation, target_x, robot, C_dot_A, CA)
             all_alpha_ranges.append(alpha_ranges)
+            all_realiability.append(reliability)
             positional_beta_ranges.extend(beta_ranges)
             positional_beta_ranges = union_ranges(positional_beta_ranges)
 
@@ -1126,18 +1130,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
         )
         # print(all_alpha_ranges)
         shape_volumns.append(len(all_wedge_faces) * 1.0 / 64.0)
-        if len(all_wedge_faces) == 0:
-            orientational_connectivity.append(0)
-        else:
-            binary_volume = wedge_faces_to_binary_volume(all_wedge_faces, NX=50, NY=50, NZ=50)
-            shape_area=np.sum(binary_volume)
-            #shape_area, connected_connectivity, general_connectivity = connectivity_analysis(binary_volume,
-            #                                                                                 kernel_size, Lambda)
-            #orientational_connectivity.append(general_connectivity)
-            all_data.append((shape_area, index, all_beta_ranges, all_alpha_ranges))
-            # print(general_connectivity)
-        # all_data.append((shape_area, index, all_beta_ranges, all_alpha_ranges))
-        # update_top_5(shape_area, index, all_beta_ranges, all_alpha_ranges)
+        all_data.append((0, index, all_beta_ranges, all_alpha_ranges,all_realiability))
         index += 1
 
         if len(positional_beta_ranges) != 0: reachable_points += 1
@@ -1280,8 +1273,8 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     shape_area, connected_connectivity, general_connectivity = connectivity_analysis(binary_matrix,
                                                                                      kernel_size, Lambda)
     print(f'sampled {positional_samples} points with {reachable_points} positional fault tolerant')
-    print(
-        f'average orientation connectivity over {orientation_samples} is {np.sum(orientational_connectivity) / orientation_samples}')
+    #print(
+     #   f'average orientation connectivity over {orientation_samples} is {np.sum(orientational_connectivity) / orientation_samples}')
     print(f'positional connectivity:{general_connectivity}')
     return general_connectivity
 

@@ -9,6 +9,8 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from scipy.spatial import SphericalVoronoi
 import trimesh
 import scipy.integrate as spi
+from functools import reduce
+import operator
 
 step_size = 0.01
 terminate_threshold = 9.0 / 5.0 * step_size
@@ -752,7 +754,7 @@ def union_ranges(ranges):
 
     # Initialize the merged ranges with the first range
     merged = [ranges[0]]
-    merge_threshold = 0.24
+    merge_threshold = 9.0 / 5.0 * 0.01
     for current in ranges[1:]:
         last = merged[-1]
 
@@ -810,3 +812,14 @@ def plot_workspace(workspace, color='k'):
 
     plt.close()  # Close the plot
     return grayscale_matrix
+
+def compute_reliability(ion_list,reliability_list):
+    total=0.0
+    current=0.0
+    full_product = reduce(operator.mul, reliability_list, 1)
+    for index, r in enumerate(reliability_list):
+        total+=(1.0-r)*full_product/r
+        if ion_list[index]:
+            current+=(1.0-r)*full_product/r
+    return current / total if total != 0 else 0.0
+

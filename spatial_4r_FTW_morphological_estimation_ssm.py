@@ -403,6 +403,7 @@ def find_random_ssm(x_target, all_ssm_theta_list, robot, C_dot_A):
     plt.show()
     """
 
+
     all_ssm_theta_list.extend(ssm_theta_list)
     # print(f'found a new ssm with {num} points.')
     ssm_found = True
@@ -960,7 +961,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
 
     #test_center=[1.5,0,-0.2]
     #all_reliable_beta_ranges = compute_reliable_beta_range(test_center[0],test_center[1],test_center[2], robot, C_dot_A, CA,
-    #                                                       all_reliable_beta_ranges)
+     #                                                      all_reliable_beta_ranges)
 
     for center in tqdm(grid_centers, desc="Processing Items"):
         # print(center)
