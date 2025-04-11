@@ -352,15 +352,14 @@ def plot_voronoi_regions_on_sphere(theta_phi_list,
     ax.set_xlim([-limit, limit])
     ax.set_ylim([-limit, limit])
     ax.set_zlim([-limit, limit])
-    cbar = plt.colorbar(sm_ori, ax=ax)
-    tick_positions = [0, np.pi / 2, np.pi, 3 * np.pi / 2, 2 * np.pi]
-    tick_labels = ['0', r'$\frac{\pi}{2}$', r'$\pi$', r'$\frac{3\pi}{2}$', r'$2\pi$']
+    #cbar = plt.colorbar(sm_ori, ax=ax)
+    tick_values = np.linspace(0, 1, 11)  # 0.0, 0.1, ..., 1.0
+    tick_labels = [f'{int(t * 100)}%' for t in tick_values]
     ax.set_xticks([])
     ax.set_yticks([])
     ax.set_zticks([])
 
-    cbar.set_ticks(tick_positions)
-    cbar.set_ticklabels(tick_labels)
+    cbar = plt.colorbar(sm_ori, ticks=tick_values,ax=ax)
     plt.show()
 
 
@@ -823,3 +822,85 @@ def compute_reliability(ion_list,reliability_list):
             current+=(1.0-r)*full_product/r
     return current / total if total != 0 else 0.0
 
+import matplotlib.cm as cm
+import matplotlib.colors as mcolors
+def color_by_reliability(values):
+    """
+    Map a list of values in [0, 1] to colors using the 'rainbow' colormap.
+
+    Parameters:
+        values (list or array-like): List of float values in the range [0, 1].
+
+    Returns:
+        color_list (list): List of RGBA tuples from the rainbow colormap.
+        sm (ScalarMappable): ScalarMappable object for colorbar usage.
+    """
+    # Normalize values to 0-1 range
+    norm = mcolors.Normalize(vmin=0, vmax=1)
+    cmap = cm.get_cmap('rainbow')
+    sm = cm.ScalarMappable(norm=norm, cmap=cmap)
+
+    color_list = [cmap(norm(v)) for v in values]
+
+    return color_list, sm
+
+import matplotlib.pyplot as plt
+import numpy as np
+import math
+
+def plot_alpha_beta_ranges(theta_phi_list, alpha_ranges_list, beta_ranges_list):
+    """
+    Plots a transposed bar graph where the vertical axis represents (theta, phi) tuples,
+    and each (theta, phi) has two adjacent bars: one for alpha ranges and one for beta ranges.
+
+    Parameters:
+    - theta_phi_list: List of tuples (theta, phi) defining categories.
+    - alpha_ranges_list: List of corresponding alpha range lists (e.g., [[[x1, x2], [x3, x4]], ...]).
+    - beta_ranges_list: List of corresponding beta range lists (e.g., [[[y1, y2], [y3, y4]], ...]).
+    """
+    fig, ax = plt.subplots(figsize=(14, 6))
+    num_columns = len(theta_phi_list)
+
+    # Control labeling density
+    max_labels = 20
+    step = max(1, math.ceil(num_columns / max_labels))
+
+    # Generate x-labels with controlled density
+    x_labels = [f"({theta:.2f}, {phi:.2f})" if i % step == 0 else "" for i, (theta, phi) in enumerate(theta_phi_list)]
+    spacing_factor = 2  # more spacing for dual bars
+    x_positions = np.arange(0, num_columns * spacing_factor, spacing_factor)
+
+    bar_width = 0.6
+
+    for i, (x_pos, alpha_ranges, beta_ranges) in enumerate(zip(x_positions, alpha_ranges_list, beta_ranges_list)):
+        # Plot alpha bars (shifted left)
+        if alpha_ranges:
+            for start, end in alpha_ranges:
+                ax.bar(x_pos - bar_width/2, end - start, bottom=start, width=bar_width,
+                       align='center', color='blue', edgecolor='blue')
+        else:
+            ax.bar(x_pos - bar_width/2, 0, bottom=0, width=bar_width,
+                   align='center', color='white', edgecolor='white')
+
+        # Plot beta bars (shifted right)
+        if beta_ranges:
+            for start, end in beta_ranges:
+                ax.bar(x_pos + bar_width/2, end - start, bottom=start, width=bar_width,
+                       align='center', color='purple', edgecolor='purple')
+        else:
+            ax.bar(x_pos + bar_width/2, 0, bottom=0, width=bar_width,
+                   align='center', color='white', edgecolor='white')
+
+    ax.set_ylabel("Alpha, Beta ranges")
+    ax.set_xlabel("Theta, Phi Tuples")
+    ax.set_xticks(x_positions)
+    ax.set_xticklabels(x_labels, rotation=45, ha='right')
+    tick_positions = [-np.pi, -np.pi / 2, 0, np.pi / 2, np.pi]
+    tick_labels = [r'$-\pi$', r'$\frac{-\pi}{2}$', '0', r'$\frac{\pi}{2}$', r'$\pi$']
+    ax.set_ylim(-np.pi,np.pi)
+    ax.set_yticks(tick_positions)
+    ax.set_yticklabels(tick_labels)
+
+    plt.grid(axis='y', linestyle='--', alpha=0.6)
+    plt.tight_layout()
+    plt.show()

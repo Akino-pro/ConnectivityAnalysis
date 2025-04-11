@@ -29,8 +29,8 @@ terminate_threshold = 9.0 / 5.0 * step_size
 # terminate_threshold = step_size * 0.5
 ssm_finding_num = 10
 max_ssm = 16
-positional_samples = 288  # 288
-orientation_samples = 64  # 64
+positional_samples = 18  # 288
+orientation_samples = 25  # 64
 theta_phi_list = fibonacci_sphere_angles(orientation_samples)
 # print(theta_phi_list)
 joint_reliabilities=[0.2,0.3,0.4,0.5,0.6,0.7,0.8]
