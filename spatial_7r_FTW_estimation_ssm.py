@@ -1310,17 +1310,17 @@ CA = [(-107 * np.pi / 180, 107 * np.pi / 180), (-164 * np.pi / 180, 141 * np.pi 
 CA2 = [(-137 * np.pi / 180, 77 * np.pi / 180), (-194 * np.pi / 180, 111 * np.pi / 180),
        (-162 * np.pi / 180, 102 * np.pi / 180), (-181 * np.pi / 180, 72 * np.pi / 180),
        (-145 * np.pi / 180, 119 * np.pi / 180), (-105 * np.pi / 180, 99 * np.pi / 180),
-       (-26 * np.pi / 180, 163 * np.pi / 180)]
+       (-26 * np.pi / 180, 163 * np.pi / 180)] #shifted 30
 
 CA3 = [(-167 * np.pi / 180, 47 * np.pi / 180), (-224 * np.pi / 180, 81 * np.pi / 180),
        (-192 * np.pi / 180, 72 * np.pi / 180), (-211 * np.pi / 180, 42 * np.pi / 180),
        (-175 * np.pi / 180, 89 * np.pi / 180), (-135 * np.pi / 180, 69 * np.pi / 180),
-       (-56 * np.pi / 180, 133 * np.pi / 180)]
+       (-56 * np.pi / 180, 133 * np.pi / 180)] #shifted 60
 
 CA4 = [(-77 * np.pi / 180, 77 * np.pi / 180), (-134 * np.pi / 180, 111 * np.pi / 180),
        (-102 * np.pi / 180, 102 * np.pi / 180), (-121 * np.pi / 180, 72 * np.pi / 180),
        (-85 * np.pi / 180, 119 * np.pi / 180), (-45 * np.pi / 180, 99 * np.pi / 180),
-       (46 * np.pi / 180, 163 * np.pi / 180)]
+       (46 * np.pi / 180, 163 * np.pi / 180)] #shrink 30
 
 CA5 = [(-47 * np.pi / 180, 47 * np.pi / 180),
        (-104 * np.pi / 180, 81 * np.pi / 180),
@@ -1328,9 +1328,9 @@ CA5 = [(-47 * np.pi / 180, 47 * np.pi / 180),
        (-91 * np.pi / 180, 42 * np.pi / 180),
        (-55 * np.pi / 180, 89 * np.pi / 180),
        (-15 * np.pi / 180, 69 * np.pi / 180),
-       (76 * np.pi / 180, 133 * np.pi / 180)]
+       (76 * np.pi / 180, 133 * np.pi / 180)] #shrink 60
 
-CA6 = [(-137 * np.pi / 180, 137 * np.pi / 180),
+CA6 = [(-137 * np.pi / 180, 137 * np.pi / 180), #expand 30
        (-194 * np.pi / 180, 171 * np.pi / 180),
        (-162 * np.pi / 180, 162 * np.pi / 180),
        (-181 * np.pi / 180, 132 * np.pi / 180),
@@ -1338,4 +1338,4 @@ CA6 = [(-137 * np.pi / 180, 137 * np.pi / 180),
        (-105 * np.pi / 180, 159 * np.pi / 180),
        (-14 * np.pi / 180, 223 * np.pi / 180)]
 #1,2,4,6
-ap = ssm_estimation(positional_samples, d, alpha, l, CA)
+ap = ssm_estimation(positional_samples, d, alpha, l, CA2)
