@@ -36,39 +36,6 @@ binary_matrix, x_edges, y_edges, z_edges = generate_binary_matrix(
 shape_area, connected_connectivity, general_connectivity = connectivity_analysis(binary_matrix,1,0.5)
 print(f'the failure tolerant workspace connectivity is {connected_connectivity}.')
 
-
-
-
-arc_color = 'red'
-grid_squares = generate_square_grid(n_x, n_z, x_range, z_range)
-
-# Plot setup
-fig = plt.figure()
-ax = fig.add_subplot(111, projection='3d')
-
-# Set plot range
-ax.set_xlim([-2, 2])
-ax.set_ylim([-2, 2])
-ax.set_zlim([-2, 2])
-for i, square in tqdm(enumerate(grid_squares), desc="Processing Items"):
-    for beta_range in ftw_beta_ranges[i]:
-    # draw_wedge(ax, square, beta_range, arc_color)
-        draw_rotated_grid(ax, square, beta_range, arc_color)
-
-
-ax.view_init(elev=30, azim=135)
-
-ax.set_xlabel('X')
-ax.set_ylabel('Y')
-ax.set_zlabel('Z')
-plt.draw()
-print("Press 'q' to continue...")
-while True:
-    key = plt.waitforbuttonpress()
-    if key:  # Any key will work, but we can restrict it if needed
-        break
-    plt.close(fig)
-
 r1 = 0.5
 r2 = 0.6
 r3 = 0.7
@@ -105,6 +72,40 @@ def reliability_computation(r1, r2, r3, r4):
 cr_list = reliability_computation(r1, r2, r3, r4)
 
 color_list, sm = normalize_and_map_colors(cr_list)
+indices = sorted_indices(cr_list)
+
+
+arc_color = color_list[indices[-1]]
+grid_squares = generate_square_grid(n_x, n_z, x_range, z_range)
+
+# Plot setup
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+
+# Set plot range
+ax.set_xlim([-2, 2])
+ax.set_ylim([-2, 2])
+ax.set_zlim([-2, 2])
+for i, square in tqdm(enumerate(grid_squares), desc="Processing Items"):
+    for beta_range in ftw_beta_ranges[i]:
+    # draw_wedge(ax, square, beta_range, arc_color)
+        draw_rotated_grid(ax, square, beta_range, arc_color)
+
+
+ax.view_init(elev=30, azim=135)
+
+ax.set_xlabel('X')
+ax.set_ylabel('Y')
+ax.set_zlabel('Z')
+plt.draw()
+print("Press 'q' to continue...")
+while True:
+    key = plt.waitforbuttonpress()
+    if key:  # Any key will work, but we can restrict it if needed
+        break
+    plt.close(fig)
+
+
 fig, ax2 = plt.subplots()
 ax2.set_xlim([0, max_length])
 ax2.set_ylim([-max_length, max_length])
@@ -112,7 +113,7 @@ ax2.set_aspect(1)
 cbar = plt.colorbar(sm, ax=ax2, label='Reliability Spectrum')
 
 plt.ion()
-indices = sorted_indices(cr_list)
+
 index_dict = {}
 for you in indices:
     ftw_points_count = 0
