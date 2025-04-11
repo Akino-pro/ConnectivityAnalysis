@@ -84,7 +84,8 @@ def draw_rotated_grid(ax, square, angle_range, color):
         face = [rotated_vertices[j] for j in range(4)]
 
         # Add the polygon to the plot with a single color
-        ax.add_collection3d(Poly3DCollection([face], color="#E0FFFF", edgecolor="#00008B", linewidth=0.1))
+        #ax.add_collection3d(Poly3DCollection([face], color="#E0FFFF", edgecolor="#00008B", linewidth=0.1))
+        ax.add_collection3d(Poly3DCollection([face], color="#FFA07A", edgecolor="black", linewidth=0.1))
 
 
 def draw_rotated_grid_by_range_only(ax, square, angle_range, color):

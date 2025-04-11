@@ -968,7 +968,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
         all_reliable_beta_ranges = compute_reliable_beta_range(center[0], center[1], center[2], robot, C_dot_A, CA,all_reliable_beta_ranges)
 
 
-    grid_squares = generate_square_grid(n_x, n_z, x_range, z_range)
+    #grid_squares = generate_square_grid(n_x, n_z, x_range, z_range)
     with open("my_list.txt", "w") as file:
         file.write(str(all_reliable_beta_ranges))
 

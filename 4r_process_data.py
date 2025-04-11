@@ -2,10 +2,12 @@ import ast
 
 import numpy as np
 from matplotlib import pyplot as plt
+from tqdm import tqdm
 
 from Three_dimension_connectivity_measure import connectivity_analysis
 from helper_functions import normalize_and_map_colors, sorted_indices, update_or_add_square_2d
-from spatial3R_ftw_draw import generate_grid_centers, generate_binary_matrix, generate_2D_square_grid
+from spatial3R_ftw_draw import generate_grid_centers, generate_binary_matrix, generate_2D_square_grid, \
+    draw_rotated_grid, generate_square_grid
 
 with open("my_list.txt", "r") as file:
     content = file.read()
@@ -33,6 +35,39 @@ binary_matrix, x_edges, y_edges, z_edges = generate_binary_matrix(
     )
 shape_area, connected_connectivity, general_connectivity = connectivity_analysis(binary_matrix,1,0.5)
 print(f'the failure tolerant workspace connectivity is {connected_connectivity}.')
+
+
+
+
+arc_color = 'red'
+grid_squares = generate_square_grid(n_x, n_z, x_range, z_range)
+
+# Plot setup
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+
+# Set plot range
+ax.set_xlim([-2, 2])
+ax.set_ylim([-2, 2])
+ax.set_zlim([-2, 2])
+for i, square in tqdm(enumerate(grid_squares), desc="Processing Items"):
+    for beta_range in ftw_beta_ranges[i]:
+    # draw_wedge(ax, square, beta_range, arc_color)
+        draw_rotated_grid(ax, square, beta_range, arc_color)
+
+
+ax.view_init(elev=30, azim=135)
+
+ax.set_xlabel('X')
+ax.set_ylabel('Y')
+ax.set_zlabel('Z')
+plt.draw()
+print("Press 'q' to continue...")
+while True:
+    key = plt.waitforbuttonpress()
+    if key:  # Any key will work, but we can restrict it if needed
+        break
+    plt.close(fig)
 
 r1 = 0.5
 r2 = 0.6
@@ -170,7 +205,8 @@ for you in indices:
 
         # polygon = patches.Polygon(square, facecolor=color, edgecolor='k', alpha=alpha_level, linewidth=0.5)
         # ax.add_patch(polygon)
-        update_or_add_square_2d(ax2, square, color, alpha_level, i, index_dict=index_dict)
+        if you==indices[-1]:
+            update_or_add_square_2d(ax2, square, color, alpha_level, i, index_dict=index_dict)
     """
     # Set plot labels and show the plot
     ax.set_xlabel('X')
