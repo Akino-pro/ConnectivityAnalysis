@@ -848,59 +848,79 @@ import matplotlib.pyplot as plt
 import numpy as np
 import math
 
+import matplotlib.pyplot as plt
+import numpy as np
+import math
+
 def plot_alpha_beta_ranges(theta_phi_list, alpha_ranges_list, beta_ranges_list):
     """
-    Plots a transposed bar graph where the vertical axis represents (theta, phi) tuples,
-    and each (theta, phi) has two adjacent bars: one for alpha ranges and one for beta ranges.
-
-    Parameters:
-    - theta_phi_list: List of tuples (theta, phi) defining categories.
-    - alpha_ranges_list: List of corresponding alpha range lists (e.g., [[[x1, x2], [x3, x4]], ...]).
-    - beta_ranges_list: List of corresponding beta range lists (e.g., [[[y1, y2], [y3, y4]], ...]).
+    Plots a bar graph with equally spaced individual bars for each alpha and beta range
+    across all (theta, phi) tuples. Alpha bars are light blue; Beta bars are light purple.
+    Only 20 (theta, phi) labels are shown on the x-axis for clarity.
     """
     fig, ax = plt.subplots(figsize=(14, 6))
-    num_columns = len(theta_phi_list)
 
-    # Control labeling density
+    bar_width = 0.4
+    alpha_color = '#a6c8ff'  # light blue
+    beta_color = '#d1b3ff'   # light purple
+
+    num_pairs = len(theta_phi_list)
+    total_bars = num_pairs * 2
+    x_positions = np.arange(total_bars)
+
+    # Determine step for sparse labeling (show only 20 tuple labels)
     max_labels = 20
-    step = max(1, math.ceil(num_columns / max_labels))
+    label_step = max(1, math.ceil(num_pairs / max_labels))
 
-    # Generate x-labels with controlled density
-    x_labels = [f"({theta:.2f}, {phi:.2f})" if i % step == 0 else "" for i, (theta, phi) in enumerate(theta_phi_list)]
-    spacing_factor = 2  # more spacing for dual bars
-    x_positions = np.arange(0, num_columns * spacing_factor, spacing_factor)
+    label_positions = []
+    label_texts = []
+    for i, (theta, phi) in enumerate(theta_phi_list):
+        if i % label_step == 0:
+            label_positions.append(i * 2 + 0.5)
+            label_texts.append(f"({theta:.2f}, {phi:.2f})")
 
-    bar_width = 0.6
+    for i in range(num_pairs):
+        alpha_idx = i * 2
+        beta_idx = i * 2 + 1
 
-    for i, (x_pos, alpha_ranges, beta_ranges) in enumerate(zip(x_positions, alpha_ranges_list, beta_ranges_list)):
-        # Plot alpha bars (shifted left)
-        if alpha_ranges:
-            for start, end in alpha_ranges:
-                ax.bar(x_pos - bar_width/2, end - start, bottom=start, width=bar_width,
-                       align='center', color='blue', edgecolor='blue')
+        # Alpha bar
+        if alpha_ranges_list[i]:
+            for start, end in alpha_ranges_list[i]:
+                ax.bar(alpha_idx, end - start, bottom=start, width=bar_width,
+                       color=alpha_color, edgecolor='blue')
         else:
-            ax.bar(x_pos - bar_width/2, 0, bottom=0, width=bar_width,
-                   align='center', color='white', edgecolor='white')
+            ax.bar(alpha_idx, 0, bottom=0, width=bar_width, color='white')
 
-        # Plot beta bars (shifted right)
-        if beta_ranges:
-            for start, end in beta_ranges:
-                ax.bar(x_pos + bar_width/2, end - start, bottom=start, width=bar_width,
-                       align='center', color='purple', edgecolor='purple')
+        # Beta bar
+        if beta_ranges_list[i]:
+            for start, end in beta_ranges_list[i]:
+                ax.bar(beta_idx, end - start, bottom=start, width=bar_width,
+                       color=beta_color, edgecolor='purple')
         else:
-            ax.bar(x_pos + bar_width/2, 0, bottom=0, width=bar_width,
-                   align='center', color='white', edgecolor='white')
+            ax.bar(beta_idx, 0, bottom=0, width=bar_width, color='white')
 
+    # Labeling
     ax.set_ylabel("Alpha, Beta ranges")
     ax.set_xlabel("Theta, Phi Tuples")
-    ax.set_xticks(x_positions)
-    ax.set_xticklabels(x_labels, rotation=45, ha='right')
+    ax.set_xticks(label_positions)
+    ax.set_xticklabels(label_texts, rotation=45, ha='right')
+
+    # Y-ticks
     tick_positions = [-np.pi, -np.pi / 2, 0, np.pi / 2, np.pi]
     tick_labels = [r'$-\pi$', r'$\frac{-\pi}{2}$', '0', r'$\frac{\pi}{2}$', r'$\pi$']
-    ax.set_ylim(-np.pi,np.pi)
+    ax.set_ylim(-np.pi, np.pi)
     ax.set_yticks(tick_positions)
     ax.set_yticklabels(tick_labels)
+
+    # Legend
+    from matplotlib.patches import Patch
+    legend_elements = [
+        Patch(facecolor=alpha_color, edgecolor='blue', label='Alpha Range'),
+        Patch(facecolor=beta_color, edgecolor='purple', label='Beta Range')
+    ]
+    ax.legend(handles=legend_elements, loc='upper right')
 
     plt.grid(axis='y', linestyle='--', alpha=0.6)
     plt.tight_layout()
     plt.show()
+
