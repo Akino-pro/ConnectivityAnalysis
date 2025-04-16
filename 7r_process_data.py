@@ -64,36 +64,46 @@ grid_centers = generate_grid_centers(n_x, n_z, N, x_range, z_range) # 64
 zeros_list = [0] * N
 Sx=(max_length*2*max_length)/N
 index_list_to_color = []
+index_list_to_color2=[]
 angle_ranges = []
 V=0
 CV=0
 sum_connectivity=[]
 average_reliability=[]
 for single_data in tqdm(all_data, desc="Processing Items"):
-    index_list_to_color.append(single_data[1])
+    index_list_to_color2.append(single_data[1])
     beta_range_to_plot = single_data[2]
     alpha_range_to_plot = single_data[3]
     average_reliability.append(np.average(single_data[4]))
-    if all(len(sublist) == 0 for sublist in alpha_range_to_plot): sum_connectivity.append(0)
-    else:
-        all_wedge_faces = get_extruded_wedges(
-            theta_phi_list,
-            alpha_range_to_plot,
-            extrude_radius=2 * np.pi,
-        )
-        #binary_volume = wedge_faces_to_binary_volume(all_wedge_faces, NX=50, NY=50, NZ=50)
-        #shape_area, connected_connectivity, general_connectivity = connectivity_analysis(binary_volume,
-        #                                                                            1, 0.5)
-        #sum_connectivity.append(connected_connectivity)
-    vx=computing_6d_volume(alpha_range_to_plot, beta_range_to_plot,grid_centers[single_data[1]], orientation_samples, Sx)
+
+    vx=computing_6d_volume(alpha_range_to_plot, beta_range_to_plot,grid_centers[single_data[1]], orientation_samples, Sx,single_data[4])
     V+=vx
     zeros_list[single_data[1]]=sum(1 for sublist in alpha_range_to_plot if sublist)/orientation_samples
     color_list_ori, sm_ori = compute_length_of_ranges(alpha_range_to_plot)
     current_beta = []
-    for item in beta_range_to_plot:
-        current_beta.extend(item)
+    ft_tf=False
+    alpha_ft_ranges=[]
+    for beta_index,item in enumerate(beta_range_to_plot):
+        if single_data[4][beta_index]==1:
+            ft_tf=True
+            alpha_ft_ranges.append(alpha_range_to_plot[beta_index])
+            current_beta.extend(item)
+        else:alpha_ft_ranges.append([])
+    if all(len(sublist) == 0 for sublist in alpha_range_to_plot) or all(len(sublist) == 0 for sublist in alpha_ft_ranges): sum_connectivity.append(0)
+    else:
+            all_wedge_faces = get_extruded_wedges(
+                theta_phi_list,
+                alpha_ft_ranges,
+                extrude_radius=2 * np.pi,
+            )
+            binary_volume = wedge_faces_to_binary_volume(all_wedge_faces, NX=50, NY=50, NZ=50)
+            shape_area, connected_connectivity, general_connectivity = connectivity_analysis(binary_volume,
+                                                                                             2, 0.5)
+            sum_connectivity.append(connected_connectivity)
+    if ft_tf:
         current_beta = union_ranges(current_beta)
-    angle_ranges.append(current_beta)
+        angle_ranges.append(current_beta)
+        index_list_to_color.append(single_data[1])
     # plot orientation plot with only fault tolerant orientations with color =alpha range length
 print(f'The 6D volume of FT workspace is {V}.')
 #colors,sm=normalize_and_map_colors(zeros_list, cmap_name='rainbow')
@@ -108,7 +118,7 @@ ax.set_aspect(1)
 for i, square in enumerate(twod_squares):
     color = colors[i]
     alpha_level = 1.0
-    if i not in index_list_to_color:
+    if i not in index_list_to_color2:
         color='white'
     polygon = patches.Polygon(square, facecolor=color, edgecolor='k', alpha=alpha_level, linewidth=1)
     ax.add_patch(polygon)
@@ -143,7 +153,7 @@ plt.close(fig)
 
 
 index_of_chioce=[9,34,83]
-#index_of_chioce=[8,16,18] #original
+#index_of_chioce=[8,16,18] #origin al
 #index_of_chioce=[8,15,17] #shifted 30
 #index_of_chioce=[3,10,12] #shrinked 30
 #index_of_chioce=[8,15,17] #expanded 30

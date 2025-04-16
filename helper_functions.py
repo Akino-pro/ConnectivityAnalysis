@@ -765,18 +765,19 @@ def union_ranges(ranges):
             merged.append(current)
     return merged
 
-def computing_6d_volume(alpha_ranges,beta_ranges,x,No,Sx):
+def computing_6d_volume(alpha_ranges,beta_ranges,x,No,Sx,list_ft):
     VF=0
     for i in range(No):
-        non_overlapping_beta_ranges=beta_ranges[i]
-        vx=0
-        for beta_range in non_overlapping_beta_ranges:
-            vx+=x[0]*Sx*(beta_range[1]-beta_range[0])
-        non_overlapping_alpha_ranges=alpha_ranges[i]
-        vo=0
-        for alpha_range in non_overlapping_alpha_ranges:
-            vo += 4*np.pi*(np.power(alpha_range[1],3)-np.power(alpha_range[0],3))/(3*No)
-        VF+=(vx*vo)
+        if list_ft[i]==1:
+            non_overlapping_beta_ranges=beta_ranges[i]
+            vx=0
+            for beta_range in non_overlapping_beta_ranges:
+                vx+=x[0]*Sx*(beta_range[1]-beta_range[0])
+            non_overlapping_alpha_ranges=alpha_ranges[i]
+            vo=0
+            for alpha_range in non_overlapping_alpha_ranges:
+                vo += 4*np.pi*(np.power(alpha_range[1],3)-np.power(alpha_range[0],3))/(3*No)
+            VF+=(vx*vo)
     return VF
 
 def plot_workspace(workspace, color='k'):
@@ -900,7 +901,7 @@ def plot_alpha_beta_ranges(theta_phi_list, alpha_ranges_list, beta_ranges_list):
             ax.bar(beta_idx, 0, bottom=0, width=bar_width, color='white')
 
     # Labeling
-    ax.set_ylabel("Alpha, Beta ranges")
+    ax.set_ylabel("Failure Tolerant Rotation Angles of Alpha and Beta")
     ax.set_xlabel("Theta, Phi Tuples")
     ax.set_xticks(label_positions)
     ax.set_xticklabels(label_texts, rotation=45, ha='right')
@@ -914,11 +915,28 @@ def plot_alpha_beta_ranges(theta_phi_list, alpha_ranges_list, beta_ranges_list):
 
     # Legend
     from matplotlib.patches import Patch
-    legend_elements = [
-        Patch(facecolor=alpha_color, edgecolor='blue', label='Alpha Range'),
-        Patch(facecolor=beta_color, edgecolor='purple', label='Beta Range')
-    ]
-    ax.legend(handles=legend_elements, loc='upper right')
+    #legend_elements = [
+    #    Patch(facecolor=alpha_color, edgecolor='blue', label='Alpha Range'),
+    #    Patch(facecolor=beta_color, edgecolor='purple', label='Beta Range')
+    #]
+    #ax.legend(handles=legend_elements, loc='upper right')
+
+    # Axis labels
+    ax.set_ylabel("Failure Tolerant Rotation Angles of α and β", fontsize=18)  # 3x size
+    ax.set_xlabel(r"φ, ψ Tuples", fontsize=18)
+
+    # Tick parameters (2x larger)
+    ax.tick_params(axis='x', labelsize=12)
+    ax.tick_params(axis='y', labelsize=12)
+
+    # Y-tick labels (redefine with fontsize)
+    ax.set_yticklabels(tick_labels, fontsize=12)
+
+    # X-tick labels (already set, now add fontsize)
+    ax.set_xticklabels(label_texts, rotation=45, ha='right', fontsize=12)
+
+    # Legend (2x larger)
+    #ax.legend(handles=legend_elements, loc='upper right', fontsize=20)
 
     plt.grid(axis='y', linestyle='--', alpha=0.6)
     plt.tight_layout()
