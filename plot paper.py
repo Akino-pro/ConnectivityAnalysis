@@ -34,7 +34,7 @@ for i in range(points.shape[1]):
 
 
 # Assign colors for differentiation (Red, Green, Blue)
-colors = ['r', 'g', 'b']
+colors = ['g', 'r', 'b']
 color_cycle = [colors[i % len(colors)] for i in range(len(extreme_points))]
 
 
@@ -82,7 +82,7 @@ def add_min_max_ticks(axis_ticks, axis_labels, min_val, max_val, min_label, max_
 theta1_ticks, theta1_labels = add_min_max_ticks(
     list(default_ticks), list(default_labels),
     theta1_min, theta1_max,
-    r"$\theta̲_{1_\text{min}}~$", r"$\overline{\theta}_{1_\text{max}}$",
+    r"$\theta_{1_\text{min}}~$", r"$\theta_{1_\text{max}}$",
     extra_ticks=[-0.5, 0.5],
     extra_labels=[r"$\text{𝒂̲}_1$", r"$\text{𝒂̅}_1$"]
 )
@@ -91,7 +91,7 @@ theta1_ticks, theta1_labels = add_min_max_ticks(
 theta2_ticks, theta2_labels = add_min_max_ticks(
     list(default_ticks), list(default_labels),
     theta2_min, theta2_max,
-    r"$\quad\theta̲_{2_\text{min}}$", r"$\overline{\theta}_{2_\text{max}}$",
+    r"$\quad\theta_{2_\text{min}}$", r"$\theta_{2_\text{max}}$",
     extra_ticks=[-2.61, -1],
     extra_labels=[r"$\text{𝒂̲}_2$", r"$\text{𝒂̅}_2$"]
 )
@@ -100,7 +100,7 @@ theta2_ticks, theta2_labels = add_min_max_ticks(
 theta3_ticks, theta3_labels = add_min_max_ticks(
     list(default_ticks), list(default_labels),
     theta3_min, theta3_max,
-    r"$\theta̲_{3_\text{min}}$", r"$\overline{\theta}_{3_\text{max}}$",
+    r"$\theta_{3_\text{min}}$", r"$\theta_{3_\text{max}}$",
     extra_ticks=[-1, 1],
     extra_labels=[r"$\text{𝒂̲}_3$", r"$\text{𝒂̅}_3$"]
 )
