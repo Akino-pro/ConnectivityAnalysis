@@ -39,10 +39,10 @@ extreme_theta3 = [(t2, t3) for t2, t3 in extreme_points if t3 in [theta3_min, th
 
 if extreme_theta2:
     t2_vals, t3_vals = zip(*extreme_theta2)
-    ax.scatter(t2_vals, t3_vals, c='green', marker='o', s=100, label=r"$\theta_2^{\text{extreme}}$")
+    ax.scatter(t2_vals, t3_vals, c='blue', marker='o', s=100, label=r"$\theta_2^{\text{extreme}}$")
     # Add dashed lines to the x-axis
     for t2, t3 in extreme_theta2:
-        ax.plot([t2, t2], [t3, -np.pi], linestyle="dashed", color="green", linewidth=1.5, alpha=0.7)
+        ax.plot([t2, t2], [t3, -np.pi], linestyle="dashed", color="blue", linewidth=1.5, alpha=0.7)
 
 if extreme_theta3:
     t2_vals, t3_vals = zip(*extreme_theta3)
@@ -73,11 +73,11 @@ extra_labels_theta2 = [r"$\text{𝒂̲}_2$", r"$\text{𝒂̅}_2$"]
 
 # Add extreme values and extra ticks for theta1
 theta2_ticks = default_ticks + [theta2_min, theta2_max] + extra_ticks_theta2
-theta2_labels = default_labels + [r"$\theta̲_{2_\text{min}}$", r"$\overline{\theta}_{2_\text{max}}$"] + extra_labels_theta2
+theta2_labels = default_labels + [r"$\theta_{2_\text{min}}$", r"$\theta_{2_\text{max}}$"] + extra_labels_theta2
 
 # Add extreme values and extra ticks for theta2
 theta3_ticks = default_ticks + [theta3_min, theta3_max] + extra_ticks_theta3
-theta3_labels = default_labels + [r"$\theta̲_{3_\text{min}}$", r"$\overline{\theta}_{3_\text{max}}$"] + extra_labels_theta3
+theta3_labels = default_labels + [r"$\theta_{3_\text{min}}$", r"$\theta_{3_\text{max}}$"] + extra_labels_theta3
 ax.set_aspect('equal')
 # Apply tick settings
 ax.set_xticks(theta2_ticks)
@@ -97,7 +97,7 @@ def color_ticks(axis, tick_values, min_val, max_val, extra_ticks, min_color, max
             label.set_color('black')  # Default color for regular ticks
 
 # Color extreme and extra ticks
-color_ticks(ax.xaxis, theta2_ticks, theta2_min, theta2_max, extra_ticks_theta2, 'green', 'green', 'k')
+color_ticks(ax.xaxis, theta2_ticks, theta2_min, theta2_max, extra_ticks_theta2, 'blue', 'blue', 'k')
 color_ticks(ax.yaxis, theta3_ticks, theta3_min, theta3_max, extra_ticks_theta3, 'red', 'red', 'k')
 
 ax.fill_betweenx(

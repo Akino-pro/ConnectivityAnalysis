@@ -96,10 +96,10 @@ for single_data in tqdm(all_data, desc="Processing Items"):
                 alpha_ft_ranges,
                 extrude_radius=2 * np.pi,
             )
-            binary_volume = wedge_faces_to_binary_volume(all_wedge_faces, NX=50, NY=50, NZ=50)
-            shape_area, connected_connectivity, general_connectivity = connectivity_analysis(binary_volume,
-                                                                                             2, 0.5)
-            sum_connectivity.append(connected_connectivity)
+            #binary_volume = wedge_faces_to_binary_volume(all_wedge_faces, NX=50, NY=50, NZ=50)
+            #shape_area, connected_connectivity, general_connectivity = connectivity_analysis(binary_volume,
+            #                                                                                 2, 0.5)
+            #sum_connectivity.append(connected_connectivity)
     if ft_tf:
         current_beta = union_ranges(current_beta)
         angle_ranges.append(current_beta)

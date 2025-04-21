@@ -908,26 +908,26 @@ def plot_alpha_beta_ranges(theta_phi_list, alpha_ranges_list, beta_ranges_list):
 
     # Y-ticks
     tick_positions = [-np.pi, -np.pi / 2, 0, np.pi / 2, np.pi]
-    tick_labels = [r'$-\pi$', r'$\frac{-\pi}{2}$', '0', r'$\frac{\pi}{2}$', r'$\pi$']
+    tick_labels = [r'$-\pi$', r'$-\pi/2$', '0', r'$\pi/2$', r'$\pi$']
     ax.set_ylim(-np.pi, np.pi)
     ax.set_yticks(tick_positions)
     ax.set_yticklabels(tick_labels)
 
-    # Legend
+     #Legend
     from matplotlib.patches import Patch
-    #legend_elements = [
-    #    Patch(facecolor=alpha_color, edgecolor='blue', label='Alpha Range'),
-    #    Patch(facecolor=beta_color, edgecolor='purple', label='Beta Range')
-    #]
-    #ax.legend(handles=legend_elements, loc='upper right')
+    legend_elements = [
+        Patch(facecolor=alpha_color, edgecolor='blue', label='α Range'),
+        Patch(facecolor=beta_color, edgecolor='purple', label='β Range')
+    ]
+    ax.legend(handles=legend_elements, loc='upper right')
 
     # Axis labels
     ax.set_ylabel("Failure Tolerant Rotation Angles of α and β", fontsize=18)  # 3x size
     ax.set_xlabel(r"φ, ψ Tuples", fontsize=18)
 
     # Tick parameters (2x larger)
-    ax.tick_params(axis='x', labelsize=12)
-    ax.tick_params(axis='y', labelsize=12)
+    ax.tick_params(axis='x', labelsize=15)
+    ax.tick_params(axis='y', labelsize=15)
 
     # Y-tick labels (redefine with fontsize)
     ax.set_yticklabels(tick_labels, fontsize=12)
@@ -936,9 +936,16 @@ def plot_alpha_beta_ranges(theta_phi_list, alpha_ranges_list, beta_ranges_list):
     ax.set_xticklabels(label_texts, rotation=45, ha='right', fontsize=12)
 
     # Legend (2x larger)
-    #ax.legend(handles=legend_elements, loc='upper right', fontsize=20)
+    ax.legend(
+        handles=legend_elements,
+        loc='lower right',
+        bbox_to_anchor=(1, 0.97),  # Slightly above the axes, right-aligned
+        fontsize=20,
+        frameon=False
+    )
 
     plt.grid(axis='y', linestyle='--', alpha=0.6)
     plt.tight_layout()
+    #plt.subplots_adjust(top=0.85, right=0.85)
     plt.show()
 

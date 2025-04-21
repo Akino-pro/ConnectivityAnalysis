@@ -38,17 +38,17 @@ extreme_theta2 = [(t1, t2) for t1, t2 in extreme_points if t2 in [theta2_min, th
 # Scatter extreme points with specified colors and size
 if extreme_theta1:
     t1_vals, t2_vals = zip(*extreme_theta1)
-    ax.scatter(t1_vals, t2_vals, c='blue', marker='o', s=100, label=r"$\theta_1^{\text{extreme}}$")
+    ax.scatter(t1_vals, t2_vals, c='green', marker='o', s=100, label=r"$\theta_1^{\text{extreme}}$")
     # Add dashed lines to the x-axis
     for t1, t2 in extreme_theta1:
-        ax.plot([t1, t1], [t2, -np.pi], linestyle="dashed", color="blue", linewidth=1.5, alpha=0.7)
+        ax.plot([t1, t1], [t2, -np.pi], linestyle="dashed", color="green", linewidth=1.5, alpha=0.7)
 
 if extreme_theta2:
     t1_vals, t2_vals = zip(*extreme_theta2)
-    ax.scatter(t1_vals, t2_vals, c='green', marker='o', s=100, label=r"$\theta_2^{\text{extreme}}$")
+    ax.scatter(t1_vals, t2_vals, c='blue', marker='o', s=100, label=r"$\theta_2^{\text{extreme}}$")
     # Add dashed lines to the y-axis
     for t1, t2 in extreme_theta2:
-        ax.plot([t1, -np.pi], [t2, t2], linestyle="dashed", color="green", linewidth=1.5, alpha=0.7)
+        ax.plot([t1, -np.pi], [t2, t2], linestyle="dashed", color="blue", linewidth=1.5, alpha=0.7)
 
 # Set labels
 ax.set_xlabel(r"$\theta_1$", fontsize=30)
@@ -72,11 +72,11 @@ extra_labels_theta2 = [r"$\text{𝒂̲}_2$", r"$\text{𝒂̅}_2$"]
 
 # Add extreme values and extra ticks for theta1
 theta1_ticks = default_ticks + [theta1_min, theta1_max] + extra_ticks_theta1
-theta1_labels = default_labels + [r"$\theta̲_{1_\text{min}}$", r"$\overline{\theta}_{1_\text{max}}$"] + extra_labels_theta1
+theta1_labels = default_labels + [r"$\theta_{1_\text{min}}$", r"$\theta_{1_\text{max}}$"] + extra_labels_theta1
 
 # Add extreme values and extra ticks for theta2
 theta2_ticks = default_ticks + [theta2_min, theta2_max] + extra_ticks_theta2
-theta2_labels = default_labels + [r"$\theta̲_{2_\text{min}}$", r"$\overline{\theta}_{2_\text{max}}$"] + extra_labels_theta2
+theta2_labels = default_labels + [r"$\theta_{2_\text{min}}$", r"$\theta_{2_\text{max}}$"] + extra_labels_theta2
 
 # Apply tick settings
 ax.set_xticks(theta1_ticks)
@@ -96,8 +96,8 @@ def color_ticks(axis, tick_values, min_val, max_val, extra_ticks, min_color, max
             label.set_color('black')  # Default color for regular ticks
 
 # Color extreme and extra ticks
-color_ticks(ax.xaxis, theta1_ticks, theta1_min, theta1_max, extra_ticks_theta1, 'blue', 'blue', 'k')
-color_ticks(ax.yaxis, theta2_ticks, theta2_min, theta2_max, extra_ticks_theta2, 'green', 'green', 'k')
+color_ticks(ax.xaxis, theta1_ticks, theta1_min, theta1_max, extra_ticks_theta1, 'green', 'green', 'k')
+color_ticks(ax.yaxis, theta2_ticks, theta2_min, theta2_max, extra_ticks_theta2, 'blue', 'blue', 'k')
 
 
 ax.fill_betweenx(
