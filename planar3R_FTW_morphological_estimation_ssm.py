@@ -244,6 +244,15 @@ def find_critical_points(ssm_theta_list):
         # thetas_cp_sum[j] = union_ranges(thetas_cp_sum[j])
     return thetas_cp_sum
 
+def find_single_intersection(ssm_theta_list):
+    tof = False
+    for theta_index in range(len(ssm_theta_list)):
+        theta_flatten = ssm_theta_list[theta_index].flatten()
+        if all(r[0] <= v <= r[1] for v, r in zip(theta_flatten, CA)):
+            tof = True
+
+    return tof
+
 
 def find_random_ssm(x_target, all_ssm_theta_list):
     ssm_found = False
@@ -260,7 +269,7 @@ def find_random_ssm(x_target, all_ssm_theta_list):
         J_plus = np.linalg.pinv(J)
         # correction = np.dot(J_plus, delta_x)
         correction = J.T @ np.linalg.inv(J @ J.T + 0.5 ** 2 * np.eye(2)) @ delta_x
-        if np.linalg.norm(correction) <= 1e-9: return ik, [], [[], [], [], []], all_ssm_theta_list, ssm_found
+        if np.linalg.norm(correction) <= 1e-9: return ik, [], [[], [], [], []], all_ssm_theta_list, ssm_found,False
         q = q + 0.1 * correction
         # correction=J.T @ np.linalg.inv(J @ J.T + 0.5**2 * np.eye(2)) @ delta_x
         # q = q + 0.1 * correction
@@ -278,14 +287,14 @@ def find_random_ssm(x_target, all_ssm_theta_list):
         x_current = forward_kinematics_3R(q, L)
         consecutive_delta_x = np.linalg.norm(previous_x - x_current)
         if consecutive_delta_x < 1e-8:
-            return ik, [], [[], [], [], []], all_ssm_theta_list, ssm_found
+            return ik, [], [[], [], [], []], all_ssm_theta_list, ssm_found,False
     ik = True
     sol = q
 
     for configuration in all_ssm_theta_list:
         if np.linalg.norm(configuration - sol) <= terminate_threshold:
             # print('ssm already exists.')
-            return ik, [], [[], [], []], all_ssm_theta_list, ssm_found
+            return ik, [], [[], [], []], all_ssm_theta_list, ssm_found,False
     theta = sol
     theta_prime = theta.copy()
 
@@ -310,7 +319,7 @@ def find_random_ssm(x_target, all_ssm_theta_list):
             for configuration in all_ssm_theta_list:
                 if np.linalg.norm(configuration - theta) <= terminate_threshold:
                     print('ssm guided to wrong direction.')
-                    return ik, [], [[], [], []], all_ssm_theta_list, ssm_found
+                    return ik, [], [[], [], []], all_ssm_theta_list, ssm_found,False
         n_j = new_n_j
         if num == 15000 and lowest > terminate_threshold:
             print('if you see this printed, then there are still spaces for efficiency improvement.')
@@ -320,7 +329,7 @@ def find_random_ssm(x_target, all_ssm_theta_list):
             for configuration in all_ssm_theta_list:
                 if np.linalg.norm(configuration - theta) <= terminate_threshold:
                     # print('ssm already exists.')
-                    return ik, [], [[], [], []], all_ssm_theta_list, ssm_found
+                    return ik, [], [[], [], []], all_ssm_theta_list, ssm_found,False
             ssm_theta_list = [theta]
             num = -1
         num += 1
@@ -358,10 +367,11 @@ def find_random_ssm(x_target, all_ssm_theta_list):
 
     #ip_ranges=[]
     ip_ranges, tof = find_intersection_points(ssm_theta_list)
+    single_intersection_tf=find_single_intersection(ssm_theta_list)
     # ip_ranges = union_ranges(ip_ranges)
     cp_ranges = find_critical_points(ssm_theta_list)
     # print(min_theta1, max_theta1)
-    return ik, ip_ranges, cp_ranges, all_ssm_theta_list, ssm_found
+    return ik, ip_ranges, cp_ranges, all_ssm_theta_list, ssm_found, single_intersection_tf
 
 
 def union_ranges(ranges):
@@ -413,27 +423,20 @@ def compute_beta_range(x, y):
     theta3_ranges = []
     find_count = 0
     ssm_found = 0
+    single_intersection_tf_all=False
     while find_count < ssm_finding_num and ssm_found < max_ssm:
-        ik, iprs, cp_ranges, all_theta, ssm_found_tf = find_random_ssm(
+        ik, iprs, cp_ranges, all_theta, ssm_found_tf, single_intersection_tf = find_random_ssm(
             target_x, all_theta)
+        single_intersection_tf_all=single_intersection_tf_all or single_intersection_tf
         if not ik: break
         find_count += 1
         iprs = extend_ranges(iprs)
 
-        """
-        #test to see if theory was wrong
-        global_min=10000
-        global_max=-10000
-        for intersection_range in iprs:
-            if intersection_range[1]>=global_max:global_max=intersection_range[1]
-            if intersection_range[0] <= global_min:global_min= intersection_range[0]
-        iprs=[[global_min, global_max]]
-        """
-
-
         for intersection_range in iprs:
             beta0_lm = CA[0][0] - intersection_range[1]
             beta0_um = CA[0][1] - intersection_range[0]
+            #print(beta0_lm)
+            #print(beta0_um)
             if beta0_um - beta0_lm >= 2 * np.pi:
                 beta0_ranges.append([-np.pi, np.pi])
             elif beta0_lm < -np.pi:
@@ -444,33 +447,22 @@ def compute_beta_range(x, y):
                 beta0_ranges.append([beta0_lm, np.pi])
             else:
                 beta0_ranges.append([beta0_lm, beta0_um])
-        # print(min_beta0, max_beta0, min_theta1, max_theta1, min_theta2, max_theta2, min_theta3, max_theta3)
+
         if ssm_found_tf:  ssm_found += 1; find_count = 0
-        F1=False
-        F2=False
-        F3=False
-        #print(iprs)
+
         for cp_range in cp_ranges[0]:
             if cp_range[0] > -np.inf:
                 theta1_ranges.append(cp_range)
-                if CA[0][0] >= cp_range[0] and CA[0][1] <= cp_range[1] and len(iprs)!=0: F1=True
 
         for cp_range in cp_ranges[1]:
             if cp_range[0] > -np.inf:
                 theta2_ranges.append(cp_range)
-                if CA[1][0] >= cp_range[0] and CA[1][1] <= cp_range[1] and len(iprs)!=0: F2 = True
+
         for cp_range in cp_ranges[2]:
             if cp_range[0] > -np.inf:
                 theta3_ranges.append(cp_range)
-                if CA[2][0] >= cp_range[0] and CA[2][1] <= cp_range[1] and len(iprs)!=0: F3 = True
-        F_list[0] = F_list[0] or F1
-        F_list[1] = F_list[1] or F2
-        F_list[2] = F_list[2] or F3
-        F_list[3] = F_list[3] or (F1 and F2)
-        F_list[4] = F_list[4] or (F1 and F3)
-        F_list[5] = F_list[5] or (F2 and F3)
-        F_list[6] = F_list[6] or (F1 and F2 and F3)
-    # beta0_ranges = union_ranges(beta0_ranges)
+
+
 
     theta1_ranges_union = union_ranges(theta1_ranges)
     theta2_ranges_union = union_ranges(theta2_ranges)
@@ -481,14 +473,8 @@ def compute_beta_range(x, y):
     ion1 = False
     min_beta1 = 0
     max_beta1 = 0
-    has_negative_pi_range = None
-    has_positive_pi_range = None
     theta1_ranges_union = extend_ranges(theta1_ranges_union)
     for tr in theta1_ranges_union:
-        if tr[0] == -np.pi:
-            has_negative_pi_range = tr[1]
-        if tr[1] == np.pi:
-            has_positive_pi_range = tr[0]
         if CA[0][0] >= tr[0] and CA[0][1] <= tr[1]:
             ion1 = True
             min_beta1 = CA[0][1] - tr[1]
@@ -545,42 +531,48 @@ def compute_beta_range(x, y):
         # print(min_beta2, max_beta2)
         # print(min_beta3, max_beta3)
         if ion1:
+            if single_intersection_tf_all:F_list[0]=True
             min_beta_f_1 = max(min_beta0, min_beta1)
             max_beta_f_1 = min(max_beta0, max_beta1)
             if min_beta_f_1 <= max_beta_f_1:
-
                 reliable_beta_ranges[0].append([min_beta_f_1, max_beta_f_1])
         if ion2:
+            if single_intersection_tf_all:F_list[1] = True
             min_beta_f_2 = max(min_beta0, min_beta2)
             max_beta_f_2 = min(max_beta0, max_beta2)
             if min_beta_f_2 <= max_beta_f_2:
 
                 reliable_beta_ranges[1].append([min_beta_f_2, max_beta_f_2])
         if ion3:
+            if single_intersection_tf_all:F_list[2] = True
             min_beta_f_3 = max(min_beta0, min_beta3)
             max_beta_f_3 = min(max_beta0, max_beta3)
             if min_beta_f_3 <= max_beta_f_3:
 
                 reliable_beta_ranges[2].append([min_beta_f_3, max_beta_f_3])
         if ion1 and ion2:
+            if single_intersection_tf_all:F_list[3] = True
             min_beta_f_12 = max(min_beta0, min_beta1, min_beta2)
             max_beta_f_12 = min(max_beta0, max_beta1, max_beta2)
             if min_beta_f_12 <= max_beta_f_12:
 
                 reliable_beta_ranges[3].append([min_beta_f_12, max_beta_f_12])
         if ion1 and ion3:
+            if single_intersection_tf_all:F_list[4] = True
             min_beta_f_13 = max(min_beta0, min_beta1, min_beta3)
             max_beta_f_13 = min(max_beta0, max_beta1, max_beta3)
             if min_beta_f_13 <= max_beta_f_13:
 
                 reliable_beta_ranges[4].append([min_beta_f_13, max_beta_f_13])
         if ion2 and ion3:
+            if single_intersection_tf_all:F_list[5] = True
             min_beta_f_23 = max(min_beta0, min_beta2, min_beta3)
             max_beta_f_23 = min(max_beta0, max_beta2, max_beta3)
             if min_beta_f_23 <= max_beta_f_23:
 
                 reliable_beta_ranges[5].append([min_beta_f_23, max_beta_f_23])
         if ion1 and ion2 and ion3:
+            if single_intersection_tf_all:F_list[6] = True
             min_beta_f_ftw = max(min_beta0, min_beta1, min_beta2, min_beta3)
             max_beta_f_ftw = min(max_beta0, max_beta1, max_beta2, max_beta3)
 
@@ -625,7 +617,7 @@ final_colors = []
 # z_levels = cr_list
 # np.linspace(-3, 3, num_reliable_ranges)
 
-
+"""
 section_length = 3.0 / sample_num
 x_values = (np.arange(sample_num) + 0.5) * section_length
 y_values = np.zeros(sample_num)
@@ -652,7 +644,7 @@ theta = np.linspace(0, 2*np.pi, 400)
 ax.plot(3*np.cos(theta), 3*np.sin(theta), linewidth=1.2, color='black')
 circle = patches.Circle((0, 0), np.sum(L), edgecolor=color_list[-1], facecolor=color_list[-1], linewidth=0, zorder=0)
 ax.add_patch(circle)
-"""
+
 
 
 
@@ -667,7 +659,7 @@ y_values = r * np.sin(theta )
 points = np.column_stack((x_values, y_values))
 """
 
-#""" original approach
+""" original approach
 ring_width = 2.0*x_values[0]
 
 
@@ -688,7 +680,7 @@ ax2d3.add_patch(circle)
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
 N=0
-#"""
+"""
 
 
 start = time.perf_counter()
@@ -697,8 +689,9 @@ for i in range(len(points)):
     x, y = point
     #x = -1.875;y = 0.375
     #x=1.912;y=0
-    print(point)
+    #print(point)
     beta_ranges, reliable_beta_ranges,F_list = compute_beta_range(x, y)  # Get multiple beta ranges
+    #print(reliable_beta_ranges[5])
     #print(beta_ranges)
     #print(reliable_beta_ranges[5])
     #print(F_list)
@@ -711,7 +704,7 @@ for i in range(len(points)):
         z_level = b_r_index * 2
         color = color_list[b_r_index]
 
-        """
+        #"""
         f_to=F_list[b_r_index]
         if f_to:
             rect = Rectangle(
@@ -724,7 +717,7 @@ for i in range(len(points)):
                 alpha=1.0
             )
             ax.add_patch(rect)
-        """
+        #"""
 
 
         for beta_range in b_r:
@@ -732,7 +725,7 @@ for i in range(len(points)):
             theta1 = np.degrees(beta_range[0])  # Start angle (-π)
             theta2 = np.degrees(beta_range[1])  # End angle (π)
 
-            #""" original approach
+            """ original approach
 
             # Calculate the outer radius for the ring (x + ring_width / 2)
             outer_radius = x + ring_width / 2.0
@@ -778,17 +771,17 @@ for i in range(len(points)):
             if b_r_index == len(reliable_beta_ranges) - 1:
                 final_wedges.append(wedge)
                 final_colors.append(color)
-            #"""
+            """
 
 
-"""
+
 # draw grid lines
 for e in edges:
-    ax.plot([edges[0], edges[-1]], [e, e], linewidth=0.5, alpha=0.4)  # horizontal
-    ax.plot([e, e], [edges[0], edges[-1]], linewidth=0.5, alpha=0.4)  # vertical
+    ax.plot([edges[0], edges[-1]], [e, e], linewidth=1, alpha=1,zorder=8)  # horizontal
+    ax.plot([e, e], [edges[0], edges[-1]], linewidth=1, alpha=1,zorder=8)  # vertical
 
 # plot kept centers in black
-ax.scatter(points[:, 0], points[:, 1], s=8, color='black', label="centers inside r=3")
+ax.scatter(points[:, 0], points[:, 1], s=8, color='black', zorder=8)
 
 end = time.perf_counter()
 print(f"Loop took {end - start:.6f} seconds")
@@ -799,13 +792,13 @@ ax.set_xlim(-3, 3)
 ax.set_ylim(-3, 3)
 ax.set_xlabel('x')
 ax.set_ylabel('y')
-ax.set_title('Grid cells colored by reliable beta ranges (z-order = z_level)')
 plt.tight_layout()
 plt.show()
-"""
 
 
-#""" original approach
+
+""" original approach
+ax2d3.scatter(-1.875,0.375, s=8, color='black')
 ax2d3.tick_params(axis='x', labelsize=18)  # Increase font size for X-axis ticks
 ax2d3.tick_params(axis='y', labelsize=18)  # Increase font size for Y-axis ticks
 # cbar = plt.colorbar(sm, ax=ax2d3, label='Reliability Spectrum')  # Ensure colorbar is linked to the mappable
@@ -867,4 +860,4 @@ ax2d.tick_params(axis='y', labelsize=18)  # Increase font size for Y-axis ticks
 # ax2d.set_title("Fault tolerant workspace")
 fig2.show()
 plt.show()
-#"""
+"""
