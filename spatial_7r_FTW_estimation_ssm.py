@@ -19,6 +19,9 @@ from helper_functions import plot_shifted_arcs_on_sphere, fibonacci_sphere_angle
     wedge_faces_to_binary_volume, track_top_5, union_ranges, normalize_and_map_colors, \
     plot_voronoi_regions_on_sphere, compute_length_of_ranges, compute_reliability
 
+
+
+
 from test_the_end import plot_alpha_ranges, plot_beta_ranges
 
 kernel_size = 1
@@ -29,10 +32,13 @@ terminate_threshold = 9.0 / 5.0 * step_size
 # terminate_threshold = step_size * 0.5
 ssm_finding_num = 10
 max_ssm = 16
-positional_samples = 288  # 288
+positional_samples = 8 # 288
 orientation_samples = 64  # 64
-theta_phi_list = fibonacci_sphere_angles(orientation_samples)
-# print(theta_phi_list)
+#theta_phi_list = fibonacci_sphere_angles(orientation_samples)
+theta_phi_list =[]
+for i in range(orientation_samples):
+    theta_phi_list.append([np.random.rand() * 2 * np.pi,np.random.rand() * 2 * np.pi,np.random.rand() * 2 * np.pi])
+
 joint_reliabilities=[0.2,0.3,0.4,0.5,0.6,0.7,0.8]
 
 """
@@ -1078,10 +1084,35 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     for i in range(7):
         max_length += np.sqrt(np.power(d[i], 2) + np.power(l[i], 2))
     print(max_length)
+
+    """
+    d = max_length / np.sqrt(positional_samples*2)
+    coords = np.arange(-max_length, max_length + d, d)
+    X, Y, Z = np.meshgrid(coords, coords, coords, indexing='ij')
+    mask = (X ** 2 + Y ** 2 + Z ** 2) <= max_length ** 2
+    points = np.column_stack((X[mask], Y[mask], Z[mask]))
+    grid_centers=points
+    print(f"Total points inside sphere: {points.shape[0]}")
+    """
+
+    N = 257
+    R = max_length
+    u = np.random.rand(N)
+    r = u ** (1 / 3) * R
+    theta = np.random.rand(N) * 2 * np.pi
+    cos_phi = 1 - 2 * np.random.rand(N)
+    phi = np.arccos(cos_phi)
+    x = r * np.sin(phi) * np.cos(theta)
+    y = r * np.sin(phi) * np.sin(theta)
+    z = r * np.cos(phi)
+    points = np.column_stack((x, y, z))
+    grid_centers = points
+
+
     x_range = (0, max_length)  # Range for x-axis
     z_range = (-max_length, max_length)  # Range for z-axis
     grid_size = (64, 64, 64)
-    grid_centers = generate_grid_centers(n_x, n_z, N, x_range, z_range)
+    #grid_centers = generate_grid_centers(n_x, n_z, N, x_range, z_range)
     #print(grid_centers[34])
     # print("3D coordinates of center points:")
     angle_ranges = []
@@ -1092,6 +1123,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     # debug = [grid_centers[7]]
     shape_volumns = []
     # for center in tqdm(grid_centers, desc="Processing Items"):
+    start = time.perf_counter()
     for center in tqdm(grid_centers, desc="Processing Items"):
         # Compute beta ranges for each center
         print(center)
@@ -1101,7 +1133,8 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
         positional_beta_ranges = []
         target_x = np.array([center[0], center[1], center[2]]).T.reshape((3, 1))
         for sample_tuple in tqdm(theta_phi_list, desc="Processing Items"):
-            sampled_orientation = zyz_to_R(sample_tuple[0], sample_tuple[1], 0)
+            sampled_orientation = zyz_to_R(sample_tuple[0], sample_tuple[1], sample_tuple[2])
+            #sampled_orientation = zyz_to_R(sample_tuple[0], sample_tuple[1], 0)
             beta_ranges, alpha_ranges,reliability = compute_beta_range(sampled_orientation, target_x, robot, C_dot_A, CA)
             all_alpha_ranges.append(alpha_ranges)
             all_realiability.append(reliability)
@@ -1123,7 +1156,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
             all_beta_ranges.append(beta_ranges)
 
         # plot_shifted_arcs_on_sphere(theta_phi_list, all_beta_ranges, samples_per_arc=40)
-
+        """
         all_wedge_faces = get_extruded_wedges(
             theta_phi_list,
             all_alpha_ranges,
@@ -1131,18 +1164,32 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
         )
         # print(all_alpha_ranges)
         shape_volumns.append(len(all_wedge_faces) * 1.0 / 64.0)
+        """
         all_data.append((0, index, all_beta_ranges, all_alpha_ranges,all_realiability))
         index += 1
 
         if len(positional_beta_ranges) != 0: reachable_points += 1
         angle_ranges.append(positional_beta_ranges)
+
+    end = time.perf_counter()
+    print(f"Loop took {end - start:.6f} seconds")
+
+    """COMMENT FOR EXP
+    
+    
+    
     # plot 3D positional ftw
     # top_5_grids = get_top_5()
     with open("my_list.txt", "w") as file:
         file.write(str(all_data))
 
+
+
+
     index_list_to_color = []
     color_list, sm = normalize_and_map_colors(shape_volumns)
+    COMMENT FOR EXP"""
+
     """
     for single_data in all_data:
         index_list_to_color.append(single_data[1])
@@ -1184,6 +1231,8 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     ax.set_zlabel('Z')
     plt.show()
     """
+
+    """COMMENT FOR EXP
     #sampled_plane plot
 
     # draw positional fault tolerant grids used for orientational demo
@@ -1278,6 +1327,8 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
      #   f'average orientation connectivity over {orientation_samples} is {np.sum(orientational_connectivity) / orientation_samples}')
     print(f'positional connectivity:{general_connectivity}')
     return general_connectivity
+    
+    COMMENT FOR EXP"""
 
 
 """
@@ -1339,4 +1390,4 @@ CA6 = [(-137 * np.pi / 180, 137 * np.pi / 180), #expand 30
        (-105 * np.pi / 180, 159 * np.pi / 180),
        (-14 * np.pi / 180, 223 * np.pi / 180)]
 #1,2,4,6
-ap = ssm_estimation(positional_samples, d, alpha, l, CA2)
+ap = ssm_estimation(positional_samples, d, alpha, l, CA)
