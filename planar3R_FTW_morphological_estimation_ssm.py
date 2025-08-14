@@ -36,8 +36,8 @@ L = [1, 1, 1]
 #CA = [(-0.7391244590957556, 0.7391244590957556), (-0.7422740927125862, 1.9756037937159996),
  #     (-2.11211741668124, 2.12020510030)]
 
-CA=[(-0.5779611440942315, 0.5779611440942315), (-1.1887031063410372, 0.6453736884533061), (-1.7852473794934884, 1.8681718728028136)]
-#CA = [(-18.2074 * np.pi / 180, 18.2074 * np.pi / 180), (-111.3415 * np.pi / 180, 111.3415 * np.pi / 180),(-111.3415 * np.pi / 180, 111.3415 * np.pi / 180)]
+#CA=[(-0.5779611440942315, 0.5779611440942315), (-1.1887031063410372, 0.6453736884533061), (-1.7852473794934884, 1.8681718728028136)]
+CA = [(-18.2074 * np.pi / 180, 18.2074 * np.pi / 180), (-111.3415 * np.pi / 180, 111.3415 * np.pi / 180),(-111.3415 * np.pi / 180, 111.3415 * np.pi / 180)]
 
 #CA = [(-42.35 * np.pi / 180, 42.35 * np.pi / 180), (-42.53 * np.pi / 180, 113.19 * np.pi / 180),(-121.02 * np.pi / 180, 121.48 * np.pi / 180)]
 """
@@ -617,12 +617,12 @@ final_colors = []
 # z_levels = cr_list
 # np.linspace(-3, 3, num_reliable_ranges)
 
-#""" original approach
+""" original approach
 section_length = 3.0 / sample_num
 x_values = (np.arange(sample_num) + 0.5) * section_length
 y_values = np.zeros(sample_num)
 points = np.column_stack((x_values, y_values))
-#"""
+"""
 
 """ uniform sample
 d = 3.0 / sample_num                
@@ -637,7 +637,7 @@ points = np.column_stack((x_values, y_values))
 print(len(points))
 """
 
-""" uniform and random
+#""" uniform and random
 # ---------- plotting ----------
 fig, ax = plt.subplots(figsize=(6, 6))
 
@@ -646,13 +646,13 @@ theta = np.linspace(0, 2*np.pi, 400)
 ax.plot(3*np.cos(theta), 3*np.sin(theta), linewidth=1.2, color='black')
 circle = patches.Circle((0, 0), np.sum(L), edgecolor=color_list[-1], facecolor=color_list[-1], linewidth=0, zorder=0)
 ax.add_patch(circle)
-"""
+#"""
 
 
 
 
 
-""" random sample
+#""" random sample
 N = 812
 theta = np.random.rand(N) * 2 * np.pi
 r = np.sqrt(np.random.rand(N)) * 3
@@ -660,9 +660,9 @@ x_values = r * np.cos(theta )
 y_values = r * np.sin(theta )
 points = np.column_stack((x_values, y_values))
 diam = 3.0 / sample_num
-"""
+#"""
 
-#""" original approach
+""" original approach
 ring_width = 2.0*x_values[0]
 
 
@@ -679,11 +679,18 @@ ax2d3.set_xticks(tick_positions)
 ax2d3.set_yticks(tick_positions)
 circle = patches.Circle((0, 0), np.sum(L), edgecolor=color_list[-1], facecolor=color_list[-1], linewidth=0, zorder=0)
 ax2d3.add_patch(circle)
-# ax2d3.set_title("2D relia")
+ax2d3.axhline(0, color='black', linewidth=1)  # y=0
+ax2d3.axvline(0, color='black', linewidth=1)  # x=0
+x_ticks = np.linspace(0, 3, sample_num + 1)
+tick_length = 0.05
+for x in x_ticks:
+    ax2d3.plot([x, x], [0, tick_length], color='black', linewidth=1)
+
+
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
 N=0
-#"""
+"""
 
 
 start = time.perf_counter()
@@ -719,7 +726,7 @@ for i in range(len(points)):
             ax.add_patch(rect)
             """
 
-            """random sample
+            #"""random sample
             circ = Circle(
                 (x, y),  # center
                 radius=diam / 2,  # radius = diameter / 2
@@ -730,10 +737,10 @@ for i in range(len(points)):
                 alpha=1.0
             )
             ax.add_patch(circ)
-            """
+            #"""
 
         for beta_range in b_r:
-            #""" original approach
+            """ original approach
             # Compute angles in degrees (as required by Wedge)
             theta1 = np.degrees(beta_range[0])  # Start angle (-π)
             theta2 = np.degrees(beta_range[1])  # End angle (π)
@@ -782,7 +789,7 @@ for i in range(len(points)):
             if b_r_index == len(reliable_beta_ranges) - 1:
                 final_wedges.append(wedge)
                 final_colors.append(color)
-            #"""
+            """
 
 
 """ uniform sample
@@ -796,22 +803,29 @@ ax.scatter(points[:, 0], points[:, 1], s=8, color='black', zorder=8)
 """
 end = time.perf_counter()
 print(f"Loop took {end - start:.6f} seconds")
-""" uniform and random
+#""" uniform and random
 
 ax.set_aspect('equal', adjustable='box')
 ax.set_xlim(-3, 3)
 ax.set_ylim(-3, 3)
-ax.set_xlabel('x')
-ax.set_ylabel('y')
+ax.set_xlabel("x", fontsize=25)
+ax.set_ylabel("y", fontsize=25)
+tick_positions = [-2,-1, 0, 1,2]
+ax.set_xticks(tick_positions)
+ax.set_yticks(tick_positions)
+ax.tick_params(axis='x', labelsize=18)  # Increase font size for X-axis ticks
+ax.tick_params(axis='y', labelsize=18)  # Increase font size for Y-axis ticks
 plt.tight_layout()
 plt.show()
-"""
+#"""
 
 
-#""" original approach
+""" original approach
 #ax2d3.scatter(-1.875,0.375, s=8, color='black')
 ax2d3.tick_params(axis='x', labelsize=18)  # Increase font size for X-axis ticks
 ax2d3.tick_params(axis='y', labelsize=18)  # Increase font size for Y-axis ticks
+#ax2d3.set_xticks([])
+#ax2d3.set_yticks([])
 # cbar = plt.colorbar(sm, ax=ax2d3, label='Reliability Spectrum')  # Ensure colorbar is linked to the mappable
 fig3.show()
 
@@ -871,4 +885,4 @@ ax2d.tick_params(axis='y', labelsize=18)  # Increase font size for Y-axis ticks
 # ax2d.set_title("Fault tolerant workspace")
 fig2.show()
 plt.show()
-#"""
+"""

@@ -579,19 +579,9 @@ def track_top_5():
 
 import matplotlib as mpl
 
-
+"""
 def normalize_and_map_colors(values, cmap_name='rainbow'):
-    """
-    Maps normalized values (0 to 1) to colors using a colormap.
-
-    Parameters:
-        values (list or np.array): Values in range [0, 1].
-        cmap_name (str): Colormap name.
-
-    Returns:
-        colors (list): RGBA colors.
-        ScalarMappable: For external use in colorbar.
-    """
+   
     values = np.array(values)
     cmap = plt.get_cmap(cmap_name)
 
@@ -604,6 +594,44 @@ def normalize_and_map_colors(values, cmap_name='rainbow'):
     sm.set_array([])
 
     return colors, sm
+"""
+
+
+
+def normalize_and_map_colors(values, cmap_name='rainbow', shallow_factor=0.5, snap_eps=1e-8):
+    """
+    Map normalized values [0,1] to colors:
+      - ~0 → the colormap's native color at 0.0 (mid violet in 'rainbow')
+      - ~1 → strong red (1,0,0)
+      - Others → lightened colormap colors
+
+    shallow_factor: 0 (no lightening) .. 1 (white)
+    snap_eps: tolerance for snapping to endpoints
+    """
+    values = np.asarray(values, dtype=float)
+    cmap = plt.get_cmap(cmap_name)
+    norm = mpl.colors.Normalize(vmin=0, vmax=1)
+    sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+    sm.set_array([])
+
+    # Mid violet from the colormap
+    mid_violet = cmap(0.0)
+    strong_red = (1.0, 0.0, 0.0, 1.0)
+
+    colors = []
+    for v in values:
+        if v <= 0 + snap_eps:
+            colors.append(mid_violet)   # native 0.0 color
+        elif v >= 1 - snap_eps:
+            colors.append(strong_red)   # fixed red
+        else:
+            base = np.array(cmap(v))
+            white = np.array([1, 1, 1, 1])
+            lighter = base*(1 - shallow_factor) + white*shallow_factor
+            colors.append(tuple(lighter))
+
+    return colors, sm
+
 
 def normalize_and_map_colors_green(values, cmap_name='rainbow', vmin=0, vmax=2*np.pi):
     """
