@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from spatialmath import SE3
 
 from helper_functions import normalize_and_map_colors, update_or_add_square, sorted_indices, union_ranges, \
-    update_or_add_square_2d
+    update_or_add_square_2d, update_beta_bar_multicolor, key3, set_sparse_xyz_labels, draw_cube, set_axes_equal
 from spatial3R_ftw_draw import generate_grid_centers, generate_square_grid, draw_rotated_grid, generate_2D_square_grid
 from Three_dimension_connectivity_measure import connectivity_analysis
 from spatial3R_ftw_draw import generate_binary_matrix
@@ -304,18 +304,26 @@ def find_critical_points(ssm_theta_list):
     # print(thetas_cp_sum)
     return thetas_cp_sum
 
+def find_single_intersection(ssm_theta_list):
+    tof = False
+    for theta_index in range(len(ssm_theta_list)):
+        theta_flatten = ssm_theta_list[theta_index].flatten()
+        if all(r[0] <= v <= r[1] for v, r in zip(theta_flatten, CA)):
+            tof = True
+
+    return tof
 
 def find_random_ssm(x_target, all_ssm_theta_list, robot, C_dot_A):
     ssm_found = False
     q = np.array(np.random.uniform(low=-np.pi, high=np.pi, size=(4,))).T.reshape((4, 1))
     Tep = SE3(x_target)
     result = robot.ikine_LM(Tep, mask=[1, 1, 1, 0, 0, 0], q0=q)
-    if not result.success: return result.success, [], [[], [], [], []], all_ssm_theta_list, ssm_found
+    if not result.success: return result.success, [], [[], [], [], []], all_ssm_theta_list, ssm_found,False
     sol = result.q.T.reshape((4, 1))
     for configuration in all_ssm_theta_list:
         if np.linalg.norm(configuration - sol) <= terminate_threshold:
             # print('ssm already exists.')
-            return True, [], [[], [], [], []], all_ssm_theta_list, ssm_found
+            return True, [], [[], [], [], []], all_ssm_theta_list, ssm_found,False
     theta = sol
     theta_prime = theta.copy()
 
@@ -339,7 +347,7 @@ def find_random_ssm(x_target, all_ssm_theta_list, robot, C_dot_A):
             for configuration in all_ssm_theta_list:
                 if np.linalg.norm(configuration - theta) <= terminate_threshold:
                     # print('ssm guided to wrong direction.')
-                    return True, [], [[], [], [], []], all_ssm_theta_list, ssm_found
+                    return True, [], [[], [], [], []], all_ssm_theta_list, ssm_found,False
         n_j = new_n_j
         if num > 5000:
             print('stuck at a too small smm')
@@ -410,7 +418,8 @@ def find_random_ssm(x_target, all_ssm_theta_list, robot, C_dot_A):
 
     ip_ranges, tof = find_intersection_points(ssm_theta_list, C_dot_A)
     cp_ranges = find_critical_points(ssm_theta_list)
-    return True, ip_ranges, cp_ranges, all_ssm_theta_list, ssm_found
+    single_intersection_tf = find_single_intersection(ssm_theta_list)
+    return True, ip_ranges, cp_ranges, all_ssm_theta_list, ssm_found,single_intersection_tf
 
 
 def compute_beta_range(x, y, z, robot, C_dot_A, CA):
@@ -639,6 +648,7 @@ def compute_reliable_beta_range(x, y, z, robot, C_dot_A, CA, all_reliable_beta_r
     # 15 cases
     reliable_connectivity = reliable_beta_ranges = [[] for _ in range(15)]
     target_x = np.array([x, y, z]).T.reshape((3, 1))
+    F_list=[False] * 15
     all_theta = []
     beta0_ranges = []
     theta1_ranges = []
@@ -647,9 +657,11 @@ def compute_reliable_beta_range(x, y, z, robot, C_dot_A, CA, all_reliable_beta_r
     theta4_ranges = []
     find_count = 0
     ssm_found = 0
+    single_intersection_tf_all = False
     while find_count < ssm_finding_num and ssm_found < max_ssm:
-        ik, iprs, cp_ranges, all_theta, ssm_found_tf = find_random_ssm(
+        ik, iprs, cp_ranges, all_theta, ssm_found_tf,single_intersection_tf = find_random_ssm(
             target_x, all_theta, robot, C_dot_A)
+        single_intersection_tf_all = single_intersection_tf_all or single_intersection_tf
         if not ik: break
         find_count += 1
         iprs = extend_ranges(iprs)
@@ -777,40 +789,55 @@ def compute_reliable_beta_range(x, y, z, robot, C_dot_A, CA, all_reliable_beta_r
         #print(ion1,ion2,ion3,ion4)
         if valid:
             if ion1:
+                if single_intersection_tf_all: F_list[0] = True
                 reliable_beta_ranges[0].append([min_beta_f_ftw, max_beta_f_ftw])
             if ion1 and ion2:
+                if single_intersection_tf_all: F_list[4] = True
                 reliable_beta_ranges[4].append([min_beta_f_ftw, max_beta_f_ftw])
             if ion1 and ion3:
+                if single_intersection_tf_all: F_list[5] = True
                 reliable_beta_ranges[5].append([min_beta_f_ftw, max_beta_f_ftw])
             if ion1 and ion4:
+                if single_intersection_tf_all: F_list[6] = True
                 reliable_beta_ranges[6].append([min_beta_f_ftw, max_beta_f_ftw])
             if ion1 and ion2 and ion3:
+                if single_intersection_tf_all: F_list[10] = True
                 reliable_beta_ranges[10].append([min_beta_f_ftw, max_beta_f_ftw])
                 # reliable_beta_ranges[0].append([min_beta_f_ftw, max_beta_f_ftw])
             if ion1 and ion2 and ion4:
+                if single_intersection_tf_all: F_list[11] = True
                 reliable_beta_ranges[11].append([min_beta_f_ftw, max_beta_f_ftw])
                 # reliable_beta_ranges[1].append([min_beta_f_ftw, max_beta_f_ftw])
             if ion1 and ion3 and ion4:
+                if single_intersection_tf_all: F_list[12] = True
                 reliable_beta_ranges[12].append([min_beta_f_ftw, max_beta_f_ftw])
                 # reliable_beta_ranges[2].append([min_beta_f_ftw, max_beta_f_ftw])
             if ion1 and ion2 and ion3 and ion4:
+                if single_intersection_tf_all: F_list[14] = True
                 reliable_beta_ranges[14].append([min_beta_f_ftw, max_beta_f_ftw])
                 # reliable_beta_ranges[4].append([min_beta_f_ftw, max_beta_f_ftw])
 
         if v1_valid:
             if ion2:
+                if single_intersection_tf_all: F_list[1] = True
                 reliable_beta_ranges[1].append([min_beta_f_ftw_v1, max_beta_f_ftw_v1])
             if ion3:
+                if single_intersection_tf_all: F_list[2] = True
                 reliable_beta_ranges[2].append([min_beta_f_ftw_v1, max_beta_f_ftw_v1])
             if ion4:
+                if single_intersection_tf_all: F_list[3] = True
                 reliable_beta_ranges[3].append([min_beta_f_ftw_v1, max_beta_f_ftw_v1])
             if ion2 and ion3:
+                if single_intersection_tf_all: F_list[7] = True
                 reliable_beta_ranges[7].append([min_beta_f_ftw_v1, max_beta_f_ftw_v1])
             if ion2 and ion4:
+                if single_intersection_tf_all: F_list[8] = True
                 reliable_beta_ranges[8].append([min_beta_f_ftw_v1, max_beta_f_ftw_v1])
             if ion3 and ion4:
+                if single_intersection_tf_all: F_list[9] = True
                 reliable_beta_ranges[9].append([min_beta_f_ftw_v1, max_beta_f_ftw_v1])
             if ion2 and ion3 and ion4:
+                if single_intersection_tf_all: F_list[13] = True
                 reliable_beta_ranges[13].append([min_beta_f_ftw_v1, max_beta_f_ftw_v1])
                 # reliable_beta_ranges[3].append([min_beta_f_ftw_v1, max_beta_f_ftw_v1])
     for i in range(15):
@@ -819,7 +846,7 @@ def compute_reliable_beta_range(x, y, z, robot, C_dot_A, CA, all_reliable_beta_r
     # for i in range(5):
     #    reliable_beta_ranges[i] = union_ranges(reliable_beta_ranges[i])
     #    all_reliable_beta_ranges[i].append(reliable_beta_ranges[i])
-    return all_reliable_beta_ranges
+    return all_reliable_beta_ranges,F_list
 
 
 """
@@ -954,7 +981,45 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     x_range = (0, max_length)  # Range for x-axis
     z_range = (-max_length, max_length)  # Range for z-axis
     grid_size = (64, 64, 64)
-    grid_centers = generate_grid_centers(n_x, n_z, N, x_range, z_range)
+    #grid_centers = generate_grid_centers(n_x, n_z, N, x_range, z_range)
+
+    #"""uniform sample
+    cells_per_radius = 16  # so cube side length d = R/16
+    side_length = max_length / cells_per_radius
+
+    # Edges and centers along one axis
+    edges = np.arange(-max_length, max_length + 1e-12, side_length)
+    n_cells = edges.size - 1
+    centers = np.linspace(-max_length + side_length / 2, max_length - side_length / 2, n_cells)
+
+    # 3D grid of cube centers
+    x_c, y_c, z_c = np.meshgrid(centers, centers, centers, indexing='ij')
+
+    # Keep centers inside the sphere of radius R
+    in_sphere = (x_c**2 + y_c**2 + z_c**2) <=max_length**2
+
+    cut3 = ((x_c >= 0) & (y_c >= 0) & (z_c >= 0)) | \
+           ((x_c <= 0) & (y_c >= 0) & (z_c <= 0)) | \
+           ((x_c <= 0) & (y_c <= 0) & (z_c >= 0)) | \
+           ((x_c <= 0) & (y_c >= 0) & (z_c >= 0))
+
+    mask = in_sphere & (~cut3)
+    #mask = in_sphere
+
+    x_values = x_c[mask]
+    y_values = y_c[mask]
+    z_values = z_c[mask]
+
+    grid_centers  = np.column_stack((x_values, y_values, z_values))
+
+
+    print("cube_side_length d =", side_length)
+    print("cells per axis =", n_cells)
+    print("num cubes selected =", len(grid_centers))
+    #"""
+
+
+
     all_reliable_beta_ranges = [[] for _ in range(15)]
 
 
@@ -962,17 +1027,66 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     #test_center=[1.5,0,-0.2]
     #all_reliable_beta_ranges = compute_reliable_beta_range(test_center[0],test_center[1],test_center[2], robot, C_dot_A, CA,
      #                                                      all_reliable_beta_ranges)
+    color_list, sm = normalize_and_map_colors(cr_list)
+    indices = sorted_indices(cr_list)
 
+    fig = plt.figure(figsize=(8, 8))
+    ax = fig.add_subplot(111, projection='3d')
+    start = time.perf_counter()
     for center in tqdm(grid_centers, desc="Processing Items"):
         # print(center)
-        all_reliable_beta_ranges = compute_reliable_beta_range(center[0], center[1], center[2], robot, C_dot_A, CA,all_reliable_beta_ranges)
+        all_reliable_beta_ranges,F_list = compute_reliable_beta_range(center[0], center[1], center[2], robot, C_dot_A, CA,all_reliable_beta_ranges)
+        last_true = None
+        for you in indices:  # indices is ascending
+            if F_list[you]:
+                last_true = you
+
+        if last_true is not None:
+            color = color_list[last_true]
+            draw_cube(ax, center, side_length, color)
+
+
+    end = time.perf_counter()
+    print(f"Loop took {end - start:.6f} seconds")
 
 
     #grid_squares = generate_square_grid(n_x, n_z, x_range, z_range)
     with open("my_list.txt", "w") as file:
         file.write(str(all_reliable_beta_ranges))
 
-    color_list, sm = normalize_and_map_colors(cr_list)
+    R = max_length
+    ax.set_xlim(-R, R)
+    ax.set_ylim(-R, R)
+    ax.set_zlim(-R, R)
+    set_axes_equal(ax)
+
+    # Optional: remove axis panes and ticks for cleaner look
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_zticks([])
+    ax.set_box_aspect([1, 1, 1])  # forces equal aspect
+
+    #ax.view_init(elev=28, azim=-35)  # try (28, -35); tweak ±2° if needed
+    #ax.set_proj_type('persp')
+    #ax.dist = 9
+    axis_length = max_length * 1.2  # extend beyond the shape for visibility
+    ax.quiver(0, 0, 0, axis_length, 0, 0, color='k', arrow_length_ratio=0.1, linewidth=1.5)  # X-axis
+    ax.quiver(0, 0, 0, 0, axis_length, 0, color='k', arrow_length_ratio=0.1, linewidth=1.5)  # Y-axis
+    ax.quiver(0, 0, 0, 0, 0, axis_length, color='k', arrow_length_ratio=0.1, linewidth=1.5)  # Z-axis
+
+    # Add axis labels near arrow tips
+    ax.text(axis_length, 0, 0, r"$x$", fontsize=14, color='k')
+    ax.text(0, axis_length, 0, r"$y$", fontsize=14, color='k')
+    ax.text(0, 0, axis_length, r"$z$", fontsize=14, color='k')
+
+    # Hide default axes panes/ticks for cleaner look
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_zticks([])
+    ax.set_axis_off()
+    plt.show()
+
+    """original
     fig, ax2 = plt.subplots()
     ax2.set_xlim([0, max_length])
     ax2.set_ylim([-max_length, max_length])
@@ -982,6 +1096,32 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     plt.ion()
     indices = sorted_indices(cr_list)
     index_dict = {}
+
+
+    #original extra beta
+    fig, ax = plt.subplots(figsize=(12, 5))
+
+    # Optional placeholders (just to show columns exist)
+    for i in range(len(grid_centers)):
+        ax.bar(i, 0, width=0.6, color="white", edgecolor="purple")
+
+    # Style (like before)
+    tick_positions = [-np.pi, -np.pi / 2, 0, np.pi / 2, np.pi]
+    tick_labels = [r'$-\pi$', r'$-\pi/2$', '0', r'$\pi/2$', r'$\pi$']
+    ax.set_ylim(-np.pi, np.pi)
+    ax.set_yticks(tick_positions)
+    ax.set_yticklabels(tick_labels, fontsize=12)
+    ax.set_xticks(range(len(grid_centers)))
+    ax.set_xticklabels([f"({x:.2f},{y:.2f},{z:.2f})" for x, y, z in grid_centers], rotation=45, ha="right", fontsize=12)
+    ax.set_ylabel("Failure Tolerant Rotation Angles of β", fontsize=18)
+    ax.set_xlabel("(x, y, z) Points", fontsize=18)
+    ax.grid(axis='y', linestyle='--', alpha=0.6)
+    plt.tight_layout()
+    NDIGITS = 8
+    x_index_map = {key3(pt, ndigits=NDIGITS): i for i, pt in enumerate(grid_centers)}
+    original"""
+
+
     for you in indices:
         ftw_points_count = 0
 
@@ -1059,11 +1199,10 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
         print(f'we have {ftw_points_count} grids over {grid_sample_num} fault tolerant')
         # also plot a 2D view of it
         """
+
+        """original
         twod_squares = generate_2D_square_grid(n_x, n_z, x_range, z_range)
-        #fig, ax = plt.subplots()
-        #ax.set_xlim([0, max_length])
-        #ax.set_ylim([-max_length, max_length])
-        #ax.set_aspect(1)
+        
         for i, square in enumerate(twod_squares):
             color = 'w'
             alpha_level = 1.0
@@ -1074,6 +1213,10 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
             #polygon = patches.Polygon(square, facecolor=color, edgecolor='k', alpha=alpha_level, linewidth=0.5)
             #ax.add_patch(polygon)
             update_or_add_square_2d(ax2, square, color, alpha_level,i,index_dict=index_dict)
+            update_beta_bar_multicolor(ax, grid_centers[i], all_reliable_beta_ranges[you][i],
+                                       color=color, zorder=you+1, x_index_map=x_index_map, ndigits=NDIGITS)
+        original"""
+
         """
         # Set plot labels and show the plot
         ax.set_xlabel('X')
@@ -1098,6 +1241,8 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
         plt.close(fig)
         """
 
+    """original
+    set_sparse_xyz_labels(ax, grid_centers, max_labels=20, ndigits=2)
     ax2.set_xlabel('X')
     ax2.set_ylabel('Z')
     frame_points = [
@@ -1124,20 +1269,21 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
         print(general_connectivity)
     print(f' The general reliable connectivity considering top 5 cases is{reliable_connectivity}.')
     return reliable_connectivity
+    original"""
 
 
-#CA = [(-146 * np.pi / 180, 146 * np.pi / 180), (-234 * np.pi / 180, 10 * np.pi / 180),
-#      (-115 * np.pi / 180, 132 * np.pi / 180), (-101 * np.pi / 180, 118 * np.pi / 180)]
+CA = [(-146 * np.pi / 180, 146 * np.pi / 180), (-234 * np.pi / 180, 10 * np.pi / 180),
+     (-115 * np.pi / 180, 132 * np.pi / 180), (-101 * np.pi / 180, 118 * np.pi / 180)]
 # CA =  [(-0.34476583954363793, 0.34476583954363793), (-3.8557928335253506, 0.5727802075632915),
 #                   (-2.0120387975312504, 0.8610682582634244), (-1.6048847508602293, 2.1951493670529656)]
 # CA = [(-2.017801347479772, 2.017801347479772), (-3.0735622252855346, -1.8767802693000228), (-2.3001230516678093, -1.0323465272698482), (-1.091382218006809, 0.5810127777635778)]
 #
-CA = [(-0.8730382117746103, 0.8730382117746103), (-3.07870404714172, 2.979105017877223),
-      (-2.965730966059918, 2.831650417251087), (0.6494635825661303, 2.9645940008572973)]
+#CA = [(-0.8730382117746103, 0.8730382117746103), (-3.07870404714172, 2.979105017877223),
+#      (-2.965730966059918, 2.831650417251087), (0.6494635825661303, 2.9645940008572973)]
 alpha = [85 * np.pi / 180, -53 * np.pi / 180, -89 * np.pi / 180, 68 * np.pi / 180]
 d = [-0.29, 0, 0.05, 1]
 l = [0.5, 0.48, 0.76, 0.95]
-ap = ssm_estimation(5000, d, alpha, l, CA)
+ap = ssm_estimation(128, d, alpha, l, CA)
 # d = [-0.019917995106395026, 0.6118090376463043, 0.05065138908443867, 0.45487466192184756]
 # alpha = [85 * np.pi / 180, -53 * np.pi / 180, -89 * np.pi / 180, 68 * np.pi / 180]
 # alpha=  [0.7334761894150401, -0.7205303423799283, -1.3089320990376847, 1.5510841614806563]

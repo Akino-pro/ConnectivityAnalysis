@@ -617,12 +617,12 @@ final_colors = []
 # z_levels = cr_list
 # np.linspace(-3, 3, num_reliable_ranges)
 
-""" original approach
+#""" original approach
 section_length = 3.0 / sample_num
 x_values = (np.arange(sample_num) + 0.5) * section_length
 y_values = np.zeros(sample_num)
 points = np.column_stack((x_values, y_values))
-"""
+#"""
 
 """ uniform sample
 d = 3.0 / sample_num                
@@ -637,7 +637,7 @@ points = np.column_stack((x_values, y_values))
 print(len(points))
 """
 
-#""" uniform and random
+""" uniform and random
 # ---------- plotting ----------
 fig, ax = plt.subplots(figsize=(6, 6))
 
@@ -646,13 +646,13 @@ theta = np.linspace(0, 2*np.pi, 400)
 ax.plot(3*np.cos(theta), 3*np.sin(theta), linewidth=1.2, color='black')
 circle = patches.Circle((0, 0), np.sum(L), edgecolor=color_list[-1], facecolor=color_list[-1], linewidth=0, zorder=0)
 ax.add_patch(circle)
-#"""
+"""
 
 
 
 
 
-#""" random sample
+""" random sample
 N = 812
 theta = np.random.rand(N) * 2 * np.pi
 r = np.sqrt(np.random.rand(N)) * 3
@@ -660,9 +660,9 @@ x_values = r * np.cos(theta )
 y_values = r * np.sin(theta )
 points = np.column_stack((x_values, y_values))
 diam = 3.0 / sample_num
-#"""
+"""
 
-""" original approach
+#""" original approach
 ring_width = 2.0*x_values[0]
 
 
@@ -690,7 +690,7 @@ for x in x_ticks:
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
 N=0
-"""
+#"""
 
 
 start = time.perf_counter()
@@ -726,7 +726,7 @@ for i in range(len(points)):
             ax.add_patch(rect)
             """
 
-            #"""random sample
+            """random sample
             circ = Circle(
                 (x, y),  # center
                 radius=diam / 2,  # radius = diameter / 2
@@ -737,10 +737,10 @@ for i in range(len(points)):
                 alpha=1.0
             )
             ax.add_patch(circ)
-            #"""
+            """
 
         for beta_range in b_r:
-            """ original approach
+            #""" original approach
             # Compute angles in degrees (as required by Wedge)
             theta1 = np.degrees(beta_range[0])  # Start angle (-π)
             theta2 = np.degrees(beta_range[1])  # End angle (π)
@@ -789,7 +789,7 @@ for i in range(len(points)):
             if b_r_index == len(reliable_beta_ranges) - 1:
                 final_wedges.append(wedge)
                 final_colors.append(color)
-            """
+            #"""
 
 
 """ uniform sample
@@ -803,7 +803,7 @@ ax.scatter(points[:, 0], points[:, 1], s=8, color='black', zorder=8)
 """
 end = time.perf_counter()
 print(f"Loop took {end - start:.6f} seconds")
-#""" uniform and random
+""" uniform and random
 
 ax.set_aspect('equal', adjustable='box')
 ax.set_xlim(-3, 3)
@@ -817,10 +817,10 @@ ax.tick_params(axis='x', labelsize=18)  # Increase font size for X-axis ticks
 ax.tick_params(axis='y', labelsize=18)  # Increase font size for Y-axis ticks
 plt.tight_layout()
 plt.show()
-#"""
+"""
 
 
-""" original approach
+#""" original approach
 #ax2d3.scatter(-1.875,0.375, s=8, color='black')
 ax2d3.tick_params(axis='x', labelsize=18)  # Increase font size for X-axis ticks
 ax2d3.tick_params(axis='y', labelsize=18)  # Increase font size for Y-axis ticks
@@ -885,4 +885,4 @@ ax2d.tick_params(axis='y', labelsize=18)  # Increase font size for Y-axis ticks
 # ax2d.set_title("Fault tolerant workspace")
 fig2.show()
 plt.show()
-"""
+#"""

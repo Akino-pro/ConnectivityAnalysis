@@ -597,7 +597,7 @@ def normalize_and_map_colors(values, cmap_name='rainbow'):
 """
 
 
-
+from matplotlib.colors import ListedColormap
 def normalize_and_map_colors(values, cmap_name='rainbow', shallow_factor=0.5, snap_eps=1e-8):
     """
     Map normalized values [0,1] to colors:
@@ -608,25 +608,36 @@ def normalize_and_map_colors(values, cmap_name='rainbow', shallow_factor=0.5, sn
     shallow_factor: 0 (no lightening) .. 1 (white)
     snap_eps: tolerance for snapping to endpoints
     """
+    n_levels = 256  # fixed constant for colorbar resolution
+
     values = np.asarray(values, dtype=float)
     cmap = plt.get_cmap(cmap_name)
-    norm = mpl.colors.Normalize(vmin=0, vmax=1)
-    sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
-    sm.set_array([])
 
-    # Mid violet from the colormap
+    # Build matching colorbar colormap
+    xs = np.linspace(0, 1, n_levels)
+    arr = cmap(xs)
     mid_violet = cmap(0.0)
     strong_red = (1.0, 0.0, 0.0, 1.0)
 
+    arr[0]  = mid_violet
+    arr[-1] = strong_red
+    white = np.array([1, 1, 1, 1.0])
+    arr[1:-1] = arr[1:-1]*(1 - shallow_factor) + white*shallow_factor
+
+    custom_cmap = ListedColormap(arr)
+    norm = mpl.colors.Normalize(vmin=0, vmax=1)
+    sm = plt.cm.ScalarMappable(cmap=custom_cmap, norm=norm)
+    sm.set_array([])
+
+    # Colors for data
     colors = []
     for v in values:
         if v <= 0 + snap_eps:
-            colors.append(mid_violet)   # native 0.0 color
+            colors.append(mid_violet)
         elif v >= 1 - snap_eps:
-            colors.append(strong_red)   # fixed red
+            colors.append(strong_red)
         else:
             base = np.array(cmap(v))
-            white = np.array([1, 1, 1, 1])
             lighter = base*(1 - shallow_factor) + white*shallow_factor
             colors.append(tuple(lighter))
 
@@ -977,3 +988,193 @@ def plot_alpha_beta_ranges(theta_phi_list, alpha_ranges_list, beta_ranges_list):
     #plt.subplots_adjust(top=0.85, right=0.85)
     plt.show()
 
+
+# ---------- interval helpers ----------
+def _normalize_ranges(ranges, lo=-math.pi, hi=math.pi):
+    out = []
+    for a, b in ranges:
+        if a == b:  # zero height -> ignore
+            continue
+        if a > b:
+            a, b = b, a
+        a = max(a, lo)
+        b = min(b, hi)
+        if b > a:
+            out.append((a, b))
+    return out
+
+def _merge_intervals(iv):
+    if not iv:
+        return []
+    iv = sorted(iv)
+    merged = [iv[0]]
+    for a, b in iv[1:]:
+        la, lb = merged[-1]
+        if a <= lb:
+            merged[-1] = (la, max(lb, b))
+        else:
+            merged.append((a, b))
+    return merged
+
+def _subtract_intervals(new_iv, existing_iv):
+    """Return portions of new_iv not covered by existing_iv."""
+    existing_iv = _merge_intervals(existing_iv)
+    result = []
+    for a, b in new_iv:
+        segs = [(a, b)]
+        for ea, eb in existing_iv:
+            nxt = []
+            for sa, sb in segs:
+                if eb <= sa or ea >= sb:
+                    nxt.append((sa, sb))              # no overlap
+                else:
+                    if sa < ea: nxt.append((sa, ea))  # left piece
+                    if sb > eb: nxt.append((eb, sb))  # right piece
+            segs = nxt
+            if not segs:
+                break
+        result.extend(segs)
+    return _merge_intervals(result)
+
+# --- helpers for keys / intervals ---
+def key3(p, ndigits=8):
+    """Convert a 3D point (np array or tuple/list) to a rounded tuple key."""
+    p = np.asarray(p, dtype=float)
+    return (round(p[0], ndigits), round(p[1], ndigits), round(p[2], ndigits))
+# --- UPDATED updater ---
+def update_beta_bar_multicolor(
+    ax,
+    point_xyz,
+    beta_ranges,
+    *,
+    color="#d1b3ff",
+    zorder=3,
+    x_index_map=None,      # dict with tuple-keys created via key3
+    points_xyz=None,       # list/array of points (fallback if no map)
+    bar_width=0.6,
+    edgecolor="purple",
+    policy="stack",        # "stack" or "no-overlap"
+    ndigits=8,             # rounding used in key3
+):
+    """
+    Append colored β segments for a single point. Repeated calls create a multicolor bar.
+    """
+
+    # --- resolve x-index (prefer fast dict lookup) ---
+    if x_index_map is not None:
+        k = key3(point_xyz, ndigits)
+        if k not in x_index_map:
+            raise ValueError(f"point_xyz {point_xyz} not found in x_index_map.")
+        xi = x_index_map[k]
+    elif points_xyz is not None:
+        # Slow fallback: build keys from points_xyz and find index
+        if isinstance(points_xyz, np.ndarray):
+            pts = [key3(p, ndigits) for p in points_xyz]
+        else:
+            pts = [key3(p, ndigits) for p in points_xyz]
+        k = key3(point_xyz, ndigits)
+        try:
+            xi = pts.index(k)
+        except ValueError:
+            raise ValueError("point_xyz not found in points_xyz.")
+    else:
+        raise ValueError("Provide x_index_map or points_xyz to locate the bar column.")
+
+    x_center = float(xi)
+
+    # --- registry for drawn segments per x-slot ---
+    if not hasattr(ax, "_beta_registry"):
+        ax._beta_registry = {}  # {xi: [ {'start','end','rect','color','zorder'} ]}
+    if xi not in ax._beta_registry:
+        ax._beta_registry[xi] = []
+
+    # --- normalize new intervals ---
+    new_iv = _normalize_ranges(beta_ranges)
+
+    # --- optional overlap policy ---
+    if policy == "no-overlap":
+        existing_iv = [(d['start'], d['end']) for d in ax._beta_registry[xi]]
+        new_iv = _subtract_intervals(new_iv, existing_iv)
+
+    # --- draw segments and record ---
+    drawn = []
+    for start, end in new_iv:
+        bars = ax.bar(
+            x_center,
+            end - start,
+            bottom=start,
+            width=bar_width,
+            color=color,
+            edgecolor=edgecolor,
+            zorder=zorder,
+        )
+        rect = bars.patches[0]
+        seg = {'start': start, 'end': end, 'rect': rect, 'color': color, 'zorder': zorder}
+        ax._beta_registry[xi].append(seg)
+        drawn.append(seg)
+
+    return drawn
+
+
+def set_sparse_xyz_labels(ax, points_xyz, max_labels=20, ndigits=2):
+    """
+    Set x-axis ticks/labels for only `max_labels` evenly spaced points from points_xyz.
+
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        The axes to modify.
+    points_xyz : list/ndarray of shape (N, 3)
+        The full set of 3D points in plotting order.
+    max_labels : int
+        Maximum number of labels to display.
+    ndigits : int
+        Number of decimal places in labels.
+    """
+    num_points = len(points_xyz)
+    step = max(1, math.ceil(num_points / max_labels))
+
+    label_positions = []
+    label_texts = []
+
+    for i, pt in enumerate(points_xyz):
+        if i % step == 0:
+            label_positions.append(i)
+            label_texts.append(f"({pt[0]:.{ndigits}f}, {pt[1]:.{ndigits}f}, {pt[2]:.{ndigits}f})")
+
+    ax.set_xticks(label_positions)
+    ax.set_xticklabels(label_texts, rotation=45, ha='right', fontsize=12)
+
+def draw_cube(ax, center, d, color):
+    x, y, z = center
+    r = d / 2
+    # 8 vertices
+    v = np.array([
+        [x-r, y-r, z-r], [x+r, y-r, z-r], [x+r, y+r, z-r], [x-r, y+r, z-r],
+        [x-r, y-r, z+r], [x+r, y-r, z+r], [x+r, y+r, z+r], [x-r, y+r, z+r],
+    ])
+    # 6 faces
+    faces = [
+        [v[0], v[1], v[2], v[3]],  # bottom
+        [v[4], v[5], v[6], v[7]],  # top
+        [v[0], v[1], v[5], v[4]],
+        [v[2], v[3], v[7], v[6]],
+        [v[1], v[2], v[6], v[5]],
+        [v[4], v[7], v[3], v[0]],
+    ]
+    coll = Poly3DCollection(faces, facecolors=[color]*6, edgecolor='none', linewidths=0)
+    ax.add_collection3d(coll)
+
+def set_axes_equal(ax):
+    """Make axes of 3D plot have equal scale."""
+    limits = np.array([
+        ax.get_xlim3d(),
+        ax.get_ylim3d(),
+        ax.get_zlim3d(),
+    ])
+    spans = limits[:, 1] - limits[:, 0]
+    centers = np.mean(limits, axis=1)
+    radius = 0.5 * max(spans)
+    ax.set_xlim3d([centers[0] - radius, centers[0] + radius])
+    ax.set_ylim3d([centers[1] - radius, centers[1] + radius])
+    ax.set_zlim3d([centers[2] - radius, centers[2] + radius])

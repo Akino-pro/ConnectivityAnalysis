@@ -1174,7 +1174,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     end = time.perf_counter()
     print(f"Loop took {end - start:.6f} seconds")
 
-    """COMMENT FOR EXP
+
     
     
     
@@ -1188,7 +1188,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
 
     index_list_to_color = []
     color_list, sm = normalize_and_map_colors(shape_volumns)
-    COMMENT FOR EXP"""
+
 
     """
     for single_data in all_data:
@@ -1232,7 +1232,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     plt.show()
     """
 
-    """COMMENT FOR EXP
+
     #sampled_plane plot
 
     # draw positional fault tolerant grids used for orientational demo
@@ -1328,7 +1328,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     print(f'positional connectivity:{general_connectivity}')
     return general_connectivity
     
-    COMMENT FOR EXP"""
+
 
 
 """
