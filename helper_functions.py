@@ -1178,3 +1178,47 @@ def set_axes_equal(ax):
     ax.set_xlim3d([centers[0] - radius, centers[0] + radius])
     ax.set_ylim3d([centers[1] - radius, centers[1] + radius])
     ax.set_zlim3d([centers[2] - radius, centers[2] + radius])
+
+def draw_sphere(ax, center, d, color,
+                resolution=24, edgecolor='none', linewidth=0,
+                zsort='average', shade=True):
+    """
+    Draw a sphere centered at `center` with diameter `d` and `color` (RGB or RGBA).
+    Returns the Poly3DCollection handle.
+    """
+    x0, y0, z0 = center
+    r = d / 2.0
+
+    # UV sphere mesh
+    u = np.linspace(0, 2*np.pi, resolution)
+    v = np.linspace(0, np.pi, max(8, resolution // 2 + 1))
+    uu, vv = np.meshgrid(u, v, indexing='ij')
+    X = x0 + r * np.cos(uu) * np.sin(vv)
+    Y = y0 + r * np.sin(uu) * np.sin(vv)
+    Z = z0 + r * np.cos(vv)
+
+    # handle RGB vs RGBA
+    if isinstance(color, (list, tuple)) and len(color) == 4:
+        base_color = color[:3]
+        alpha = color[3]
+    else:
+        base_color = color
+        alpha = None
+
+    surf = ax.plot_surface(
+        X, Y, Z,
+        rstride=1, cstride=1,
+        color=base_color,
+        edgecolor=edgecolor,
+        linewidth=linewidth,
+        antialiased=True,
+        shade=shade,
+    )
+
+    if alpha is not None:
+        surf.set_alpha(alpha)
+    # 3D face sorting (if available)
+    if hasattr(surf, "set_zsort"):
+        surf.set_zsort(zsort)
+
+    return surf

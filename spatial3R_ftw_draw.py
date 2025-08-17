@@ -63,8 +63,7 @@ def rotate_around_z(vertices, angle):
                                 [0, 0, 1]])
     return np.dot(vertices, rotation_matrix.T)
 
-
-# Function to draw an arc by rotating a grid square around the Z-axis
+"""
 def draw_rotated_grid(ax, square, angle_range, color):
     intersected_lower = angle_range[0]
     intersected_upper = np.min([angle_range[1], np.pi / 2])
@@ -87,6 +86,45 @@ def draw_rotated_grid(ax, square, angle_range, color):
         #ax.add_collection3d(Poly3DCollection([face], color="#E0FFFF", edgecolor="#00008B", linewidth=0.1))
         #"#FFA07A"
         ax.add_collection3d(Poly3DCollection([face], color=color, edgecolor="black", linewidth=0.1))
+"""
+
+def draw_rotated_grid(ax, square, angle_range, color, deg_step=1.0):
+    """
+    Rotate a 4-vertex square around +Z and draw only when the rotation angle
+    falls inside the allowed windows:
+      - if all vertices have z >= 0  → draw for angles in [-π/2, 0]
+      - if any vertex has z < 0      → draw for angles in (-π, 0] ∪ [0, π/2]
+    Assumes angle_range = (lo, hi) with -π ≤ lo < hi ≤ π.
+    """
+    lo, hi = angle_range
+    if hi <= lo:
+        return
+
+    # use a tiny tolerance in case vertices sit numerically on z=0
+    has_z_neg = any(v[2] < -1e-12 for v in square)
+
+    allowed = [(-np.pi/2, 0.0)] if not has_z_neg else [(-np.pi, 0.0), (0.0, np.pi/2)]
+
+    # intersect [lo, hi] with allowed windows
+    ranges = []
+    for w0, w1 in allowed:
+        l, h = max(lo, w0), min(hi, w1)
+        if l < h:
+            ranges.append((l, h))
+    if not ranges:
+        return
+
+    step = np.deg2rad(deg_step)
+    square_np = np.asarray(square)
+
+    for l, h in ranges:
+        n = max(2, int(np.ceil((h - l) / step)) + 1)
+        for ang in np.linspace(l, h, n):
+            rotated = rotate_around_z(square_np, ang)  # your helper
+            face = [rotated[j] for j in range(4)]
+            ax.add_collection3d(
+                Poly3DCollection([face], facecolor=color, edgecolor=color, linewidth=0.1)
+            )
 
 
 def draw_rotated_grid_by_range_only(ax, square, angle_range, color):

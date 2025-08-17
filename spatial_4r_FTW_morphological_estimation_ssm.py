@@ -10,7 +10,8 @@ import matplotlib.pyplot as plt
 from spatialmath import SE3
 
 from helper_functions import normalize_and_map_colors, update_or_add_square, sorted_indices, union_ranges, \
-    update_or_add_square_2d, update_beta_bar_multicolor, key3, set_sparse_xyz_labels, draw_cube, set_axes_equal
+    update_or_add_square_2d, update_beta_bar_multicolor, key3, set_sparse_xyz_labels, draw_cube, set_axes_equal, \
+    draw_sphere
 from spatial3R_ftw_draw import generate_grid_centers, generate_square_grid, draw_rotated_grid, generate_2D_square_grid
 from Three_dimension_connectivity_measure import connectivity_analysis
 from spatial3R_ftw_draw import generate_binary_matrix
@@ -842,7 +843,7 @@ def compute_reliable_beta_range(x, y, z, robot, C_dot_A, CA, all_reliable_beta_r
                 # reliable_beta_ranges[3].append([min_beta_f_ftw_v1, max_beta_f_ftw_v1])
     for i in range(15):
         reliable_beta_ranges[i] = union_ranges(reliable_beta_ranges[i])
-        all_reliable_beta_ranges[i].append(reliable_beta_ranges[i])
+        #all_reliable_beta_ranges[i].append(reliable_beta_ranges[i])
     # for i in range(5):
     #    reliable_beta_ranges[i] = union_ranges(reliable_beta_ranges[i])
     #    all_reliable_beta_ranges[i].append(reliable_beta_ranges[i])
@@ -981,7 +982,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     x_range = (0, max_length)  # Range for x-axis
     z_range = (-max_length, max_length)  # Range for z-axis
     grid_size = (64, 64, 64)
-    #grid_centers = generate_grid_centers(n_x, n_z, N, x_range, z_range)
+    grid_centers = generate_grid_centers(n_x, n_z, N, x_range, z_range)
 
     #"""uniform sample
     cells_per_radius = 16  # so cube side length d = R/16
@@ -1019,6 +1020,50 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     #"""
 
 
+    """random sample
+    N = 17256
+
+    def sample_in_sphere(n, r, seed=None):
+        rng = np.random.default_rng(seed)
+        out = np.empty((n, 3), dtype=float)
+        filled = 0
+        r2 = r * r
+        batch = max(4096, int(n * 1.2))
+
+        while filled < n:
+            pts = rng.uniform(-r, r, size=(batch, 3))  # totally random x,y,z in cube
+            in_sphere = np.einsum('ij,ij->i', pts, pts) <= r2  # keep those inside sphere
+            kept = pts[in_sphere]
+            take = min(kept.shape[0], n - filled)
+            if take:
+                out[filled:filled + take] = kept[:take]
+                filled += take
+            if kept.shape[0] < batch // 4 and batch < 1_000_000:
+                batch *= 2
+        return out
+
+    # 1) sample exactly 17,256 points inside the sphere
+    points = sample_in_sphere(N, max_length, seed=None)  # set seed=int if you want reproducibility
+    x_c, y_c, z_c = points.T
+
+    # 2) mask for the four octants to EXCLUDE (your ranges)
+    cut4 = ((x_c >= 0) & (y_c >= 0) & (z_c >= 0)) | \
+           ((x_c <= 0) & (y_c >= 0) & (z_c <= 0)) | \
+           ((x_c <= 0) & (y_c <= 0) & (z_c >= 0)) | \
+           ((x_c <= 0) & (y_c >= 0) & (z_c >= 0))
+
+    # 3) valid points are NOT in those ranges
+    valid_mask = ~cut4
+    grid_centers = points[valid_mask]
+    #grid_centers=points
+    side_length=max_length / 16.0
+
+    print("Sampled inside sphere:", N)
+    print("Final number of valid points:", grid_centers.shape[0])
+    """
+
+
+
 
     all_reliable_beta_ranges = [[] for _ in range(15)]
 
@@ -1029,13 +1074,15 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
      #                                                      all_reliable_beta_ranges)
     color_list, sm = normalize_and_map_colors(cr_list)
     indices = sorted_indices(cr_list)
-
+    #""" uniform and random
     fig = plt.figure(figsize=(8, 8))
     ax = fig.add_subplot(111, projection='3d')
+    #"""
     start = time.perf_counter()
     for center in tqdm(grid_centers, desc="Processing Items"):
         # print(center)
         all_reliable_beta_ranges,F_list = compute_reliable_beta_range(center[0], center[1], center[2], robot, C_dot_A, CA,all_reliable_beta_ranges)
+        #"""
         last_true = None
         for you in indices:  # indices is ascending
             if F_list[you]:
@@ -1044,6 +1091,10 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
         if last_true is not None:
             color = color_list[last_true]
             draw_cube(ax, center, side_length, color)
+            #draw_sphere(ax, center, side_length, color)
+        #"""
+
+
 
 
     end = time.perf_counter()
@@ -1054,16 +1105,13 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     with open("my_list.txt", "w") as file:
         file.write(str(all_reliable_beta_ranges))
 
+    #""" uniform and random
     R = max_length
     ax.set_xlim(-R, R)
     ax.set_ylim(-R, R)
     ax.set_zlim(-R, R)
     set_axes_equal(ax)
 
-    # Optional: remove axis panes and ticks for cleaner look
-    ax.set_xticks([])
-    ax.set_yticks([])
-    ax.set_zticks([])
     ax.set_box_aspect([1, 1, 1])  # forces equal aspect
 
     #ax.view_init(elev=28, azim=-35)  # try (28, -35); tweak ±2° if needed
@@ -1079,12 +1127,19 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     ax.text(0, axis_length, 0, r"$y$", fontsize=14, color='k')
     ax.text(0, 0, axis_length, r"$z$", fontsize=14, color='k')
 
-    # Hide default axes panes/ticks for cleaner look
-    ax.set_xticks([])
-    ax.set_yticks([])
-    ax.set_zticks([])
-    ax.set_axis_off()
+    ax.set_xlabel("x", fontsize=25)
+    ax.set_ylabel("y", fontsize=25)
+    ax.set_zlabel("z", fontsize=25)
+    tick_positions = [-3,-2, -1, 0, 1, 2,3]
+    ax.set_xticks(tick_positions)
+    ax.set_yticks(tick_positions)
+    ax.set_zticks(tick_positions)
+    ax.tick_params(axis='x', labelsize=18)  # Increase font size for X-axis ticks
+    ax.tick_params(axis='y', labelsize=18)
+    ax.tick_params(axis='z', labelsize=18)
+    ax.view_init(elev=35, azim=146, roll=-111)
     plt.show()
+    #"""
 
     """original
     fig, ax2 = plt.subplots()
@@ -1121,41 +1176,49 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     x_index_map = {key3(pt, ndigits=NDIGITS): i for i, pt in enumerate(grid_centers)}
     original"""
 
+    """original3D
+    fig = plt.figure()
+    ax4 = fig.add_subplot(111, projection='3d')
+
+    ax4.set_xlim([-3, 3])  # todo: optimized
+    ax4.set_ylim([-3, 3])
+    ax4.set_zlim([-3, 3])
+    grid_squares = generate_square_grid(n_x, n_z, x_range, z_range)
+    """
 
     for you in indices:
         ftw_points_count = 0
 
-        """
+        """ original 3D
         arc_color = color_list[you]
-        
-        # Plot setup
-        fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d')
 
-        # Set plot range
-        ax.set_xlim([-3, 3])  # todo: optimized
-        ax.set_ylim([-3, 3])
-        ax.set_zlim([-3, 3])
+        #fig = plt.figure()
+        #ax = fig.add_subplot(111, projection='3d')
+
+        #ax.set_xlim([-3, 3])  # todo: optimized
+        #ax.set_ylim([-3, 3])
+        #ax.set_zlim([-3, 3])
+
         for i, square in tqdm(enumerate(grid_squares), desc="Processing Items"):
             for beta_range in all_reliable_beta_ranges[you][i]:
                 # draw_wedge(ax, square, beta_range, arc_color)
-                draw_rotated_grid(ax, square, beta_range, arc_color)
+                draw_rotated_grid(ax4, square, beta_range, arc_color)
 
-
-        ax.view_init(elev=30, azim=135)
-
-        ax.set_xlabel('X')
-        ax.set_ylabel('Y')
-        ax.set_zlabel('Z')
-        plt.draw()
-        print("Press 'q' to continue...")
-        while True:
-            key = plt.waitforbuttonpress()
-            if key:  # Any key will work, but we can restrict it if needed
-                break
-
-        plt.close(fig)
         """
+        #ax.view_init(elev=30, azim=135)
+
+        #ax.set_xlabel('X')
+        #ax.set_ylabel('Y')
+        #ax.set_zlabel('Z')
+        #plt.draw()
+        #print("Press 'q' to continue...")
+        #while True:
+        #    key = plt.waitforbuttonpress()
+        #    if key:  # Any key will work, but we can restrict it if needed
+        #       break
+
+        #plt.close(fig)
+        #"""
         """
         grid_squares = generate_square_grid(n_x, n_z, x_range, z_range)
 
@@ -1241,6 +1304,50 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
         plt.close(fig)
         """
 
+    """orignal 3D
+    ax4.view_init(elev=35, azim=146, roll=-111)
+    R = max_length
+    ax4.set_xlim(-R, R)
+    ax4.set_ylim(-R, R)
+    ax4.set_zlim(-R, R)
+    set_axes_equal(ax4)
+    ax4.set_box_aspect([1, 1, 1])  # forces equal aspect
+    axis_length = max_length * 1.2  # extend beyond the shape for visibility
+    ax4.quiver(0, 0, 0, axis_length, 0, 0, color='k', arrow_length_ratio=0.1, linewidth=1.5)  # X-axis
+    ax4.quiver(0, 0, 0, 0, axis_length, 0, color='k', arrow_length_ratio=0.1, linewidth=1.5)  # Y-axis
+    ax4.quiver(0, 0, 0, 0, 0, axis_length, color='k', arrow_length_ratio=0.1, linewidth=1.5)  # Z-axis
+
+    # Add axis labels near arrow tips
+    ax4.text(axis_length, 0, 0, r"$x$", fontsize=14, color='k')
+    ax4.text(0, axis_length, 0, r"$y$", fontsize=14, color='k')
+    ax4.text(0, 0, axis_length, r"$z$", fontsize=14, color='k')
+    ax4.set_xlabel("x", fontsize=25)
+    ax4.set_ylabel("y", fontsize=25)
+    ax4.set_zlabel("z", fontsize=25)
+    tick_positions = [-3, -2, -1, 0, 1, 2, 3]
+    ax4.set_xticks(tick_positions)
+    ax4.set_yticks(tick_positions)
+    ax4.set_zticks(tick_positions)
+    ax4.tick_params(axis='x', labelsize=18)  # Increase font size for X-axis ticks
+    ax4.tick_params(axis='y', labelsize=18)
+    ax4.tick_params(axis='z', labelsize=18)
+    plt.show()
+    """
+
+
+
+    """
+    plt.show()
+    print("Press 'q' to continue...")
+    while True:
+        key = plt.waitforbuttonpress()
+        if key:  # Any key will work, but we can restrict it if needed
+            break
+
+    plt.close(fig)
+    """
+
+
     """original
     set_sparse_xyz_labels(ax, grid_centers, max_labels=20, ndigits=2)
     ax2.set_xlabel('X')
@@ -1283,7 +1390,7 @@ CA = [(-146 * np.pi / 180, 146 * np.pi / 180), (-234 * np.pi / 180, 10 * np.pi /
 alpha = [85 * np.pi / 180, -53 * np.pi / 180, -89 * np.pi / 180, 68 * np.pi / 180]
 d = [-0.29, 0, 0.05, 1]
 l = [0.5, 0.48, 0.76, 0.95]
-ap = ssm_estimation(128, d, alpha, l, CA)
+ap = ssm_estimation(512, d, alpha, l, CA)
 # d = [-0.019917995106395026, 0.6118090376463043, 0.05065138908443867, 0.45487466192184756]
 # alpha = [85 * np.pi / 180, -53 * np.pi / 180, -89 * np.pi / 180, 68 * np.pi / 180]
 # alpha=  [0.7334761894150401, -0.7205303423799283, -1.3089320990376847, 1.5510841614806563]
