@@ -985,7 +985,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     grid_centers = generate_grid_centers(n_x, n_z, N, x_range, z_range)
 
     #"""uniform sample
-    cells_per_radius = 16  # so cube side length d = R/16
+    cells_per_radius = 4  # so cube side length d = R/16
     side_length = max_length / cells_per_radius
 
     # Edges and centers along one axis
