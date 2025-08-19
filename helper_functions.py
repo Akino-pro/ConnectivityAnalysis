@@ -884,12 +884,7 @@ def color_by_reliability(values):
 
     return color_list, sm
 
-import matplotlib.pyplot as plt
-import numpy as np
-import math
 
-import matplotlib.pyplot as plt
-import numpy as np
 import math
 
 def plot_alpha_beta_ranges(theta_phi_list, alpha_ranges_list, beta_ranges_list):
@@ -1222,3 +1217,24 @@ def draw_sphere(ax, center, d, color,
         surf.set_zsort(zsort)
 
     return surf
+
+def wedge_polygon(center, r_outer, r_inner, theta1_deg, theta2_deg, n=128):
+    cx, cy = center
+    th1, th2 = np.radians([theta1_deg, theta2_deg])
+    # sample arcs
+    outer_t = np.linspace(th1, th2, n, endpoint=True)
+    inner_t = np.linspace(th2, th1, n, endpoint=True)  # reverse for inner arc
+    outer_arc = np.c_[cx + r_outer*np.cos(outer_t), cy + r_outer*np.sin(outer_t)]
+    inner_arc = np.c_[cx + r_inner*np.cos(inner_t), cy + r_inner*np.sin(inner_t)]
+    pts = np.vstack([outer_arc, inner_arc])
+    return Polygon(pts)
+
+from shapely.geometry import Polygon, MultiPolygon
+def plot_exterior_boundary(ax, geom, **kw):
+    if isinstance(geom, MultiPolygon):
+        for g in geom.geoms:
+            x, y = g.exterior.xy
+            ax.plot(x, y, **kw,zorder=999)
+    else:
+        x, y = geom.exterior.xy
+        ax.plot(x, y, **kw,zorder=999)

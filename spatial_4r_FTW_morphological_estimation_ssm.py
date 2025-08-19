@@ -843,7 +843,7 @@ def compute_reliable_beta_range(x, y, z, robot, C_dot_A, CA, all_reliable_beta_r
                 # reliable_beta_ranges[3].append([min_beta_f_ftw_v1, max_beta_f_ftw_v1])
     for i in range(15):
         reliable_beta_ranges[i] = union_ranges(reliable_beta_ranges[i])
-        #all_reliable_beta_ranges[i].append(reliable_beta_ranges[i])
+        all_reliable_beta_ranges[i].append(reliable_beta_ranges[i])
     # for i in range(5):
     #    reliable_beta_ranges[i] = union_ranges(reliable_beta_ranges[i])
     #    all_reliable_beta_ranges[i].append(reliable_beta_ranges[i])
@@ -984,7 +984,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     grid_size = (64, 64, 64)
     grid_centers = generate_grid_centers(n_x, n_z, N, x_range, z_range)
 
-    #"""uniform sample
+    """uniform sample
     cells_per_radius = 4  # so cube side length d = R/16
     side_length = max_length / cells_per_radius
 
@@ -1017,7 +1017,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     print("cube_side_length d =", side_length)
     print("cells per axis =", n_cells)
     print("num cubes selected =", len(grid_centers))
-    #"""
+    """
 
 
     """random sample
@@ -1074,15 +1074,35 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
      #                                                      all_reliable_beta_ranges)
     color_list, sm = normalize_and_map_colors(cr_list)
     indices = sorted_indices(cr_list)
-    #""" uniform and random
+    """ uniform and random
     fig = plt.figure(figsize=(8, 8))
     ax = fig.add_subplot(111, projection='3d')
-    #"""
+    """
+
+    # """original
+    fig, ax2 = plt.subplots()
+    ax2.set_xlim([0, max_length])
+    ax2.set_ylim([-max_length, max_length])
+    ax2.set_aspect(1)
+    cbar = plt.colorbar(sm, ax=ax2, label='Reliability Spectrum')
+
+    plt.ion()
+    indices = sorted_indices(cr_list)
+    index_dict = {}
+    #"""original
+
+
+
+
     start = time.perf_counter()
-    for center in tqdm(grid_centers, desc="Processing Items"):
+    twod_squares = generate_2D_square_grid(n_x, n_z, x_range, z_range)
+    for i, center in tqdm(enumerate(grid_centers), total=len(grid_centers), desc="Processing grid centers"):
         # print(center)
-        all_reliable_beta_ranges,F_list = compute_reliable_beta_range(center[0], center[1], center[2], robot, C_dot_A, CA,all_reliable_beta_ranges)
-        #"""
+        square = twod_squares[i]
+        all_reliable_beta_ranges, F_list = compute_reliable_beta_range(
+            center[0], center[1], center[2], robot, C_dot_A, CA, all_reliable_beta_ranges
+        )
+
         last_true = None
         for you in indices:  # indices is ascending
             if F_list[you]:
@@ -1090,12 +1110,9 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
 
         if last_true is not None:
             color = color_list[last_true]
-            draw_cube(ax, center, side_length, color)
-            #draw_sphere(ax, center, side_length, color)
-        #"""
-
-
-
+            update_or_add_square_2d(ax2, square, color, 1.0, i, index_dict=index_dict)
+            # draw_cube(ax, center, side_length, color)
+            # draw_sphere(ax, center, side_length, color)
 
     end = time.perf_counter()
     print(f"Loop took {end - start:.6f} seconds")
@@ -1105,7 +1122,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     with open("my_list.txt", "w") as file:
         file.write(str(all_reliable_beta_ranges))
 
-    #""" uniform and random
+    """ uniform and random
     R = max_length
     ax.set_xlim(-R, R)
     ax.set_ylim(-R, R)
@@ -1139,18 +1156,9 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     ax.tick_params(axis='z', labelsize=18)
     ax.view_init(elev=35, azim=146, roll=-111)
     plt.show()
-    #"""
+    """
 
-    """original
-    fig, ax2 = plt.subplots()
-    ax2.set_xlim([0, max_length])
-    ax2.set_ylim([-max_length, max_length])
-    ax2.set_aspect(1)
-    cbar = plt.colorbar(sm, ax=ax2, label='Reliability Spectrum')
 
-    plt.ion()
-    indices = sorted_indices(cr_list)
-    index_dict = {}
 
 
     #original extra beta
@@ -1169,12 +1177,12 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     ax.set_xticks(range(len(grid_centers)))
     ax.set_xticklabels([f"({x:.2f},{y:.2f},{z:.2f})" for x, y, z in grid_centers], rotation=45, ha="right", fontsize=12)
     ax.set_ylabel("Failure Tolerant Rotation Angles of β", fontsize=18)
-    ax.set_xlabel("(x, y, z) Points", fontsize=18)
+    ax.set_xlabel("x, y, z Task Space Locations", fontsize=18)
     ax.grid(axis='y', linestyle='--', alpha=0.6)
     plt.tight_layout()
     NDIGITS = 8
     x_index_map = {key3(pt, ndigits=NDIGITS): i for i, pt in enumerate(grid_centers)}
-    original"""
+    #original"""
 
     """original3D
     fig = plt.figure()
@@ -1263,22 +1271,21 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
         # also plot a 2D view of it
         """
 
-        """original
+        #"""original
         twod_squares = generate_2D_square_grid(n_x, n_z, x_range, z_range)
         
         for i, square in enumerate(twod_squares):
-            color = 'w'
-            alpha_level = 1.0
+            #color = 'w'
+            #alpha_level=1.0
             if all_reliable_beta_ranges[you][i]:
-                color = color_list[you]
+                #color = color_list[you]
                 ftw_points_count += 1
 
-            #polygon = patches.Polygon(square, facecolor=color, edgecolor='k', alpha=alpha_level, linewidth=0.5)
-            #ax.add_patch(polygon)
-            update_or_add_square_2d(ax2, square, color, alpha_level,i,index_dict=index_dict)
+
+            #update_or_add_square_2d(ax2, square, color, alpha_level,i,index_dict=index_dict)
             update_beta_bar_multicolor(ax, grid_centers[i], all_reliable_beta_ranges[you][i],
-                                       color=color, zorder=you+1, x_index_map=x_index_map, ndigits=NDIGITS)
-        original"""
+                                       color='k', zorder=you+1, x_index_map=x_index_map, ndigits=NDIGITS)
+        #original"""
 
         """
         # Set plot labels and show the plot
@@ -1348,7 +1355,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     """
 
 
-    """original
+    #"""original
     set_sparse_xyz_labels(ax, grid_centers, max_labels=20, ndigits=2)
     ax2.set_xlabel('X')
     ax2.set_ylabel('Z')
@@ -1376,7 +1383,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
         print(general_connectivity)
     print(f' The general reliable connectivity considering top 5 cases is{reliable_connectivity}.')
     return reliable_connectivity
-    original"""
+    #original"""
 
 
 CA = [(-146 * np.pi / 180, 146 * np.pi / 180), (-234 * np.pi / 180, 10 * np.pi / 180),

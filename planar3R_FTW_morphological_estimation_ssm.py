@@ -8,8 +8,10 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from scipy.linalg import null_space
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
+from shapely.geometry import MultiPolygon
+from shapely.ops import unary_union
 
-from helper_functions import normalize_and_map_colors, sorted_indices
+from helper_functions import normalize_and_map_colors, sorted_indices, wedge_polygon, plot_exterior_boundary
 
 step_size = 0.01
 # terminate_threshold = step_size / 2.0
@@ -415,7 +417,7 @@ def compute_beta_range(x, y):
     F_list = [False] * (num_reliable_ranges+1)
     target_x = np.array([x, y]).T.reshape((2, 1))
     all_smm_beta_range = []
-    reliable_beta_ranges = [[], [], [], [], [], [], []]
+    reliable_beta_ranges = [[], [], [], [], [], [], [],[]] # the last element for prefailure workspace(task space projection of artificial joint limits)
     all_theta = []
     beta0_ranges = []
     theta1_ranges = []
@@ -525,6 +527,7 @@ def compute_beta_range(x, y):
     max_beta3 = np.pi
 
     for index in range(len(beta0_ranges)):
+        reliable_beta_ranges[-1].append(beta0_ranges[index])# prefailure workspace
         min_beta0, max_beta0 = beta0_ranges[index][0], beta0_ranges[index][1]
         # print(min_beta0, max_beta0)
         # print(min_beta1, max_beta1)
@@ -609,7 +612,6 @@ def wedge_to_poly3d(wedge, z_value):
     vertices = list(zip(x, y, z))
     return vertices
 
-
 num_reliable_ranges = 7
 cr_list.append(0)
 color_list, sm = normalize_and_map_colors(cr_list)
@@ -693,6 +695,33 @@ ax = fig.add_subplot(111, projection='3d')
 N=0
 """
 
+def plot_prefailure_boundary(ax,sample_num):
+    section_length = 3.0 / sample_num
+    local_x_values = (np.arange(sample_num) + 0.5) * section_length
+    local_y_values = np.zeros(sample_num)
+    points = np.column_stack((local_x_values, local_y_values))
+    ring_width = 2.0 * local_x_values[0]
+    polys2d=[]
+    for i in range(len(points)):
+        point = points[i]
+        x, y = point
+        beta_ranges, reliable_beta_ranges, F_list = compute_beta_range(x, y)
+        prefailure_b_r = reliable_beta_ranges[-1]
+        for beta_range in prefailure_b_r:
+            theta1 = np.degrees(beta_range[0])  # Start angle (-π)
+            theta2 = np.degrees(beta_range[1])  # End angle (π)
+
+            # Calculate the outer radius for the ring (x + ring_width / 2)
+            outer_radius = x + ring_width / 2.0
+            inner_radius = x - ring_width / 2.0
+            polys2d.append(
+                wedge_polygon((0, 0), outer_radius, inner_radius, theta1, theta2, n=64)
+            )
+    if polys2d:  # guard against empty list
+        shape2d = unary_union(polys2d)  # remove internal boundaries
+        plot_exterior_boundary(ax, shape2d,  # change to ax for uniform and random, ax2d3 for original
+                               color='k', linewidth=1.8)
+
 
 start = time.perf_counter()
 for i in range(len(points)):
@@ -703,19 +732,22 @@ for i in range(len(points)):
     beta_ranges, reliable_beta_ranges,F_list = compute_beta_range(x, y)  # Get multiple beta ranges
 
     # for b_r_index in range(len(reliable_beta_ranges)):
-    color='k'
-    f_to = F_list[-1]
-    if f_to:
-        rect = Rectangle(
-            (x - d / 2, y - d / 2),
-            d, d,
-            facecolor=color,
-            edgecolor='none',
-            zorder=0,
-            linewidth=0,
-            alpha=1.0
+
+
+    """ orignial
+    prefailure_b_r = reliable_beta_ranges[-1]
+    for beta_range in prefailure_b_r:
+        theta1 = np.degrees(beta_range[0])  # Start angle (-π)
+        theta2 = np.degrees(beta_range[1])  # End angle (π)
+
+        # Calculate the outer radius for the ring (x + ring_width / 2)
+        outer_radius = x + ring_width / 2.0
+        inner_radius = x - ring_width / 2.0
+        polys2d.append(
+            wedge_polygon((0, 0), outer_radius, inner_radius, theta1, theta2, n=64)
         )
-        ax.add_patch(rect)
+    """
+
 
     for b_r_index in indices:
         b_r = reliable_beta_ranges[b_r_index]
@@ -802,7 +834,16 @@ for i in range(len(points)):
             if b_r_index == len(reliable_beta_ranges) - 1:
                 final_wedges.append(wedge)
                 final_colors.append(color)
+
             """
+
+""" original
+if polys2d:  
+    shape2d = unary_union(polys2d)  # remove internal boundaries
+    plot_exterior_boundary(ax, shape2d,  # change to ax for uniform and random, ax2d3 for original
+                               color='k', linewidth=1.8)
+"""
+#plot_prefailure_boundary(ax,sample_num)
 
 
 #""" uniform sample
