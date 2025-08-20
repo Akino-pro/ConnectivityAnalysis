@@ -777,6 +777,38 @@ def compute_reliable_beta_range(x, y, z, robot, C_dot_A, CA, all_reliable_beta_r
             if CA[3][1] - 2 * np.pi <= has_negative_pi_range and CA[3][0] >= has_positive_pi_range:
                 ion4 = True
                 # print('joint 4 succeed')
+    if ion1:
+        if single_intersection_tf_all: F_list[0] = True
+    if ion1 and ion2:
+        if single_intersection_tf_all: F_list[4] = True
+    if ion1 and ion3:
+        if single_intersection_tf_all: F_list[5] = True
+    if ion1 and ion4:
+        if single_intersection_tf_all: F_list[6] = True
+    if ion1 and ion2 and ion3:
+        if single_intersection_tf_all: F_list[10] = True
+    if ion1 and ion2 and ion4:
+        if single_intersection_tf_all: F_list[11] = True
+    if ion1 and ion3 and ion4:
+        if single_intersection_tf_all: F_list[12] = True
+    if ion1 and ion2 and ion3 and ion4:
+        if single_intersection_tf_all: F_list[14] = True
+    if ion2:
+        if single_intersection_tf_all: F_list[1] = True
+    if ion3:
+        if single_intersection_tf_all: F_list[2] = True
+    if ion4:
+        if single_intersection_tf_all: F_list[3] = True
+    if ion2 and ion3:
+        if single_intersection_tf_all: F_list[7] = True
+    if ion2 and ion4:
+        if single_intersection_tf_all: F_list[8] = True
+    if ion3 and ion4:
+        if single_intersection_tf_all: F_list[9] = True
+    if ion2 and ion3 and ion4:
+        if single_intersection_tf_all: F_list[13] = True
+
+
     for index in range(len(beta0_ranges)):
         min_beta0, max_beta0 = beta0_ranges[index][0], beta0_ranges[index][1]
         min_beta_f_ftw_v1 = max(min_beta0, -np.pi)
@@ -790,55 +822,55 @@ def compute_reliable_beta_range(x, y, z, robot, C_dot_A, CA, all_reliable_beta_r
         #print(ion1,ion2,ion3,ion4)
         if valid:
             if ion1:
-                if single_intersection_tf_all: F_list[0] = True
+
                 reliable_beta_ranges[0].append([min_beta_f_ftw, max_beta_f_ftw])
             if ion1 and ion2:
-                if single_intersection_tf_all: F_list[4] = True
+
                 reliable_beta_ranges[4].append([min_beta_f_ftw, max_beta_f_ftw])
             if ion1 and ion3:
-                if single_intersection_tf_all: F_list[5] = True
+
                 reliable_beta_ranges[5].append([min_beta_f_ftw, max_beta_f_ftw])
             if ion1 and ion4:
-                if single_intersection_tf_all: F_list[6] = True
+
                 reliable_beta_ranges[6].append([min_beta_f_ftw, max_beta_f_ftw])
             if ion1 and ion2 and ion3:
-                if single_intersection_tf_all: F_list[10] = True
+
                 reliable_beta_ranges[10].append([min_beta_f_ftw, max_beta_f_ftw])
                 # reliable_beta_ranges[0].append([min_beta_f_ftw, max_beta_f_ftw])
             if ion1 and ion2 and ion4:
-                if single_intersection_tf_all: F_list[11] = True
+
                 reliable_beta_ranges[11].append([min_beta_f_ftw, max_beta_f_ftw])
                 # reliable_beta_ranges[1].append([min_beta_f_ftw, max_beta_f_ftw])
             if ion1 and ion3 and ion4:
-                if single_intersection_tf_all: F_list[12] = True
+
                 reliable_beta_ranges[12].append([min_beta_f_ftw, max_beta_f_ftw])
                 # reliable_beta_ranges[2].append([min_beta_f_ftw, max_beta_f_ftw])
             if ion1 and ion2 and ion3 and ion4:
-                if single_intersection_tf_all: F_list[14] = True
+
                 reliable_beta_ranges[14].append([min_beta_f_ftw, max_beta_f_ftw])
                 # reliable_beta_ranges[4].append([min_beta_f_ftw, max_beta_f_ftw])
 
         if v1_valid:
             if ion2:
-                if single_intersection_tf_all: F_list[1] = True
+
                 reliable_beta_ranges[1].append([min_beta_f_ftw_v1, max_beta_f_ftw_v1])
             if ion3:
-                if single_intersection_tf_all: F_list[2] = True
+
                 reliable_beta_ranges[2].append([min_beta_f_ftw_v1, max_beta_f_ftw_v1])
             if ion4:
-                if single_intersection_tf_all: F_list[3] = True
+
                 reliable_beta_ranges[3].append([min_beta_f_ftw_v1, max_beta_f_ftw_v1])
             if ion2 and ion3:
-                if single_intersection_tf_all: F_list[7] = True
+
                 reliable_beta_ranges[7].append([min_beta_f_ftw_v1, max_beta_f_ftw_v1])
             if ion2 and ion4:
-                if single_intersection_tf_all: F_list[8] = True
+
                 reliable_beta_ranges[8].append([min_beta_f_ftw_v1, max_beta_f_ftw_v1])
             if ion3 and ion4:
-                if single_intersection_tf_all: F_list[9] = True
+
                 reliable_beta_ranges[9].append([min_beta_f_ftw_v1, max_beta_f_ftw_v1])
             if ion2 and ion3 and ion4:
-                if single_intersection_tf_all: F_list[13] = True
+
                 reliable_beta_ranges[13].append([min_beta_f_ftw_v1, max_beta_f_ftw_v1])
                 # reliable_beta_ranges[3].append([min_beta_f_ftw_v1, max_beta_f_ftw_v1])
     for i in range(15):
@@ -1162,9 +1194,17 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
 
 
     #original extra beta
-    fig, ax = plt.subplots(figsize=(12, 5))
+    fig, ax = plt.subplots(figsize=(12, 4))
 
-    # Optional placeholders (just to show columns exist)
+    sub_indices = [
+        i for i in range(len(grid_centers))
+        if any(len(all_reliable_beta_ranges[you][i]) != 0 for you in indices)
+    ]
+    sub_grid_centers = [grid_centers[i] for i in sub_indices]
+
+
+
+                # Optional placeholders (just to show columns exist)
     for i in range(len(grid_centers)):
         ax.bar(i, 0, width=0.6, color="white", edgecolor="purple")
 
@@ -1174,14 +1214,19 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     ax.set_ylim(-np.pi, np.pi)
     ax.set_yticks(tick_positions)
     ax.set_yticklabels(tick_labels, fontsize=12)
-    ax.set_xticks(range(len(grid_centers)))
-    ax.set_xticklabels([f"({x:.2f},{y:.2f},{z:.2f})" for x, y, z in grid_centers], rotation=45, ha="right", fontsize=12)
+    #ax.set_xticks(range(len(grid_centers)))
+    #ax.set_xticklabels([f"({x:.2f},{z:.2f})" for x,y,z in grid_centers], rotation=45, ha="right", fontsize=12)
     ax.set_ylabel("Failure Tolerant Rotation Angles of β", fontsize=18)
-    ax.set_xlabel("x, y, z Task Space Locations", fontsize=18)
+    ax.set_xlabel("x, z Task Space Locations", fontsize=18)
     ax.grid(axis='y', linestyle='--', alpha=0.6)
     plt.tight_layout()
     NDIGITS = 8
-    x_index_map = {key3(pt, ndigits=NDIGITS): i for i, pt in enumerate(grid_centers)}
+    #x_index_map = {key3(pt, ndigits=NDIGITS): i for i, pt in enumerate(grid_centers)}
+    #x_index_map = {key3(pt, ndigits=NDIGITS): i for i, pt in enumerate(sub_grid_centers)}
+    x_index_map = {
+        key3(grid_centers[i], ndigits=NDIGITS): j
+        for j, i in enumerate(sub_indices)
+    }
     #original"""
 
     """original3D
@@ -1271,20 +1316,27 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
         # also plot a 2D view of it
         """
 
-        #"""original
+        """random and uniform
         twod_squares = generate_2D_square_grid(n_x, n_z, x_range, z_range)
-        
         for i, square in enumerate(twod_squares):
             #color = 'w'
             #alpha_level=1.0
             if all_reliable_beta_ranges[you][i]:
                 #color = color_list[you]
                 ftw_points_count += 1
-
-
-            #update_or_add_square_2d(ax2, square, color, alpha_level,i,index_dict=index_dict)
-            update_beta_bar_multicolor(ax, grid_centers[i], all_reliable_beta_ranges[you][i],
-                                       color='w', zorder=you+1, x_index_map=x_index_map, ndigits=NDIGITS)
+        """
+        # """original
+        for j, i in enumerate(sub_indices):
+            pt = grid_centers[i]
+            ranges = all_reliable_beta_ranges[you][i]
+            if not ranges:
+                continue
+            update_beta_bar_multicolor(
+                ax, pt, ranges,
+                zorder=you + 1,
+                x_index_map=x_index_map,  # built from the same pts
+                ndigits=NDIGITS
+            )
         #original"""
 
         """
@@ -1356,7 +1408,8 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
 
 
     #"""original
-    set_sparse_xyz_labels(ax, grid_centers, max_labels=20, ndigits=2)
+    set_sparse_xyz_labels(ax, sub_grid_centers, max_labels=20, ndigits=2)
+    ax.set_xlim(-0.5, len(sub_grid_centers) - 0.5)
     ax2.set_xlabel('X')
     ax2.set_ylabel('Z')
     frame_points = [

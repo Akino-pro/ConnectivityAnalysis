@@ -1053,17 +1053,23 @@ def update_beta_bar_multicolor(
     point_xyz,
     beta_ranges,
     *,
-    color="#d1b3ff",
+    color="#d1b3ff",        # light purple (matches your beta_color)
+    edgecolor="purple",     # matches your beta edgecolor
+    bar_width=0.4,          # matches the beta bar width you used
     zorder=3,
-    x_index_map=None,      # dict with tuple-keys created via key3
-    points_xyz=None,       # list/array of points (fallback if no map)
-    bar_width=0.6,
-    edgecolor="k",
-    policy="stack",        # "stack" or "no-overlap"
-    ndigits=8,             # rounding used in key3
+    x_index_map=None,       # dict with tuple-keys created via key3
+    points_xyz=None,        # list/array of points (fallback if no map)
+    policy="stack",         # "stack" or "no-overlap"
+    ndigits=8,              # rounding used in key3
+    x_offset=0.0,           # optional horizontal shift (e.g., +1.0 to mimic odd slots)
+    clip_to_pi=True,        # keep bars within [-pi, pi] like your plot
 ):
     """
     Append colored β segments for a single point. Repeated calls create a multicolor bar.
+    Bars match the style from your plot_alpha_beta_ranges() beta bars:
+      - color = '#d1b3ff'
+      - edgecolor = 'purple'
+      - width = 0.4
     """
 
     # --- resolve x-index (prefer fast dict lookup) ---
@@ -1086,40 +1092,62 @@ def update_beta_bar_multicolor(
     else:
         raise ValueError("Provide x_index_map or points_xyz to locate the bar column.")
 
-    x_center = float(xi)
+    x_center = float(xi) + float(x_offset)
 
     # --- registry for drawn segments per x-slot ---
     if not hasattr(ax, "_beta_registry"):
-        ax._beta_registry = {}  # {xi: [ {'start','end','rect','color','zorder'} ]}
-    if xi not in ax._beta_registry:
-        ax._beta_registry[xi] = []
+        ax._beta_registry = {}  # {xi_effective: [ {'start','end','rect','color','zorder'} ]}
+    if x_center not in ax._beta_registry:
+        ax._beta_registry[x_center] = []
 
     # --- normalize new intervals ---
-    new_iv = _normalize_ranges(beta_ranges)
+    new_iv = _normalize_ranges(beta_ranges)  # expects list of (start,end), start<end
+
+    # --- optional clipping to [-pi, pi] to mirror your y-limits/ticks ---
+    if clip_to_pi and len(new_iv) > 0:
+        clipped = []
+        lo, hi = -np.pi, np.pi
+        for s, e in new_iv:
+            cs, ce = max(s, lo), min(e, hi)
+            if ce > cs:
+                clipped.append((cs, ce))
+        new_iv = clipped
+
+    # If nothing to draw, return early (skip white zero-height bars)
+    if not new_iv:
+        return []
 
     # --- optional overlap policy ---
     if policy == "no-overlap":
-        existing_iv = [(d['start'], d['end']) for d in ax._beta_registry[xi]]
+        existing_iv = [(d['start'], d['end']) for d in ax._beta_registry[x_center]]
         new_iv = _subtract_intervals(new_iv, existing_iv)
+        if not new_iv:
+            return []
 
     # --- draw segments and record ---
     drawn = []
     for start, end in new_iv:
+        height = end - start
+        if height <= 0:
+            continue
         bars = ax.bar(
             x_center,
-            end - start,
+            height,
             bottom=start,
             width=bar_width,
             color=color,
             edgecolor=edgecolor,
+            linewidth=0,
             zorder=zorder,
+            align="center",
         )
         rect = bars.patches[0]
         seg = {'start': start, 'end': end, 'rect': rect, 'color': color, 'zorder': zorder}
-        ax._beta_registry[xi].append(seg)
+        ax._beta_registry[x_center].append(seg)
         drawn.append(seg)
 
     return drawn
+
 
 
 def set_sparse_xyz_labels(ax, points_xyz, max_labels=20, ndigits=2):
@@ -1146,7 +1174,7 @@ def set_sparse_xyz_labels(ax, points_xyz, max_labels=20, ndigits=2):
     for i, pt in enumerate(points_xyz):
         if i % step == 0:
             label_positions.append(i)
-            label_texts.append(f"({pt[0]:.{ndigits}f}, {pt[1]:.{ndigits}f}, {pt[2]:.{ndigits}f})")
+            label_texts.append(f"({pt[0]:.{ndigits}f}, {pt[2]:.{ndigits}f})")
 
     ax.set_xticks(label_positions)
     ax.set_xticklabels(label_texts, rotation=45, ha='right', fontsize=12)
