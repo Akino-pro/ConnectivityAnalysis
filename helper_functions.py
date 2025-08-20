@@ -862,6 +862,17 @@ def compute_reliability(ion_list,reliability_list):
             current+=(1.0-r)*full_product/r
     return current / total if total != 0 else 0.0
 
+
+def compute_reliability_by_f_list(F_list,reliability_list):
+    total=0.0
+    current=0.0
+    full_product = reduce(operator.mul, reliability_list, 1)
+    for index, r in enumerate(reliability_list):
+        total+=(1.0-r)*full_product/r
+        if index+1 in F_list:
+            current+=(1.0-r)*full_product/r
+    return current / total if total != 0 else 0.0
+
 import matplotlib.cm as cm
 import matplotlib.colors as mcolors
 def color_by_reliability(values):
@@ -1047,7 +1058,7 @@ def update_beta_bar_multicolor(
     x_index_map=None,      # dict with tuple-keys created via key3
     points_xyz=None,       # list/array of points (fallback if no map)
     bar_width=0.6,
-    edgecolor="purple",
+    edgecolor="k",
     policy="stack",        # "stack" or "no-overlap"
     ndigits=8,             # rounding used in key3
 ):

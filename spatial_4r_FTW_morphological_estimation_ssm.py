@@ -1284,7 +1284,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
 
             #update_or_add_square_2d(ax2, square, color, alpha_level,i,index_dict=index_dict)
             update_beta_bar_multicolor(ax, grid_centers[i], all_reliable_beta_ranges[you][i],
-                                       color='k', zorder=you+1, x_index_map=x_index_map, ndigits=NDIGITS)
+                                       color='w', zorder=you+1, x_index_map=x_index_map, ndigits=NDIGITS)
         #original"""
 
         """

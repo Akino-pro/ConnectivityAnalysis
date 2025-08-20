@@ -17,10 +17,7 @@ from scipy.spatial.transform import Rotation as R
 
 from helper_functions import plot_shifted_arcs_on_sphere, fibonacci_sphere_angles, get_extruded_wedges, \
     wedge_faces_to_binary_volume, track_top_5, union_ranges, normalize_and_map_colors, \
-    plot_voronoi_regions_on_sphere, compute_length_of_ranges, compute_reliability
-
-
-
+    plot_voronoi_regions_on_sphere, compute_length_of_ranges, compute_reliability, compute_reliability_by_f_list
 
 from test_the_end import plot_alpha_ranges, plot_beta_ranges
 
@@ -32,13 +29,14 @@ terminate_threshold = 9.0 / 5.0 * step_size
 # terminate_threshold = step_size * 0.5
 ssm_finding_num = 10
 max_ssm = 16
-positional_samples = 8 # 288
+positional_samples = 288 # 288
 orientation_samples = 64  # 64
-#theta_phi_list = fibonacci_sphere_angles(orientation_samples)
+theta_phi_list = fibonacci_sphere_angles(orientation_samples)
+""" random
 theta_phi_list =[]
 for i in range(orientation_samples):
     theta_phi_list.append([np.random.rand() * 2 * np.pi,np.random.rand() * 2 * np.pi,np.random.rand() * 2 * np.pi])
-
+"""
 joint_reliabilities=[0.2,0.3,0.4,0.5,0.6,0.7,0.8]
 
 """
@@ -433,6 +431,15 @@ def find_critical_points(ssm_theta_list):
     # print(thetas_cp_sum)
     return thetas_cp_sum
 
+def find_single_intersection(ssm_theta_list):
+    tof = False
+    for theta_index in range(len(ssm_theta_list)):
+        theta_flatten = ssm_theta_list[theta_index].flatten()
+        if all(r[0] <= v <= r[1] for v, r in zip(theta_flatten, CA)):
+            tof = True
+
+    return tof
+
 
 def find_random_ssm(r, x_target, all_ssm_theta_list, robot, C_dot_A, C_dot_A_7):
     ssm_found = False
@@ -453,13 +460,13 @@ def find_random_ssm(r, x_target, all_ssm_theta_list, robot, C_dot_A, C_dot_A_7):
     result = robot.ikine_LM(Tep, mask=[1, 1, 1, 1, 1, 1], q0=q)
 
     if not result.success:
-        return result.success, [], [[], [], [], [], [], [], []], all_ssm_theta_list, ssm_found, []
+        return result.success, [], [[], [], [], [], [], [], []], all_ssm_theta_list, ssm_found, [],False
 
     sol = result.q.reshape((7, 1))
     for configuration in all_ssm_theta_list:
         if np.linalg.norm(configuration - sol) <= terminate_threshold:
             # print('ssm already exists.')
-            return True, [], [[], [], [], [], [], [], []], all_ssm_theta_list, ssm_found, []
+            return True, [], [[], [], [], [], [], [], []], all_ssm_theta_list, ssm_found, [],False
     theta = sol
     theta_prime = theta.copy()
 
@@ -554,14 +561,14 @@ def find_random_ssm(r, x_target, all_ssm_theta_list, robot, C_dot_A, C_dot_A_7):
             for configuration in all_ssm_theta_list:
                 if np.linalg.norm(configuration - theta) <= terminate_threshold:
                     # print('ssm guided to wrong direction.')
-                    return True, [], [[], [], [], [], [], [], []], all_ssm_theta_list, ssm_found, []
+                    return True, [], [[], [], [], [], [], [], []], all_ssm_theta_list, ssm_found, [],False
 
         if num == 10000 and not tf_reset:
             # check if the searching has been guided to an searched smm in 100 steps.
             for configuration in all_ssm_theta_list:
                 if np.linalg.norm(configuration - theta) <= terminate_threshold:
                     # print('ssm guided to wrong direction.')
-                    return True, [], [[], [], [], [], [], [], []], all_ssm_theta_list, ssm_found, []
+                    return True, [], [[], [], [], [], [], [], []], all_ssm_theta_list, ssm_found, [],False
 
             theta_prime = theta
             num = 0
@@ -580,7 +587,7 @@ def find_random_ssm(r, x_target, all_ssm_theta_list, robot, C_dot_A, C_dot_A_7):
             #        # print('ssm guided to wrong direction.')
             #        return True, [], [[], [], [], []], all_ssm_theta_list, ssm_found
             # print('still not found')
-            return True, [], [[], [], [], [], [], [], []], all_ssm_theta_list, ssm_found, []
+            return True, [], [[], [], [], [], [], [], []], all_ssm_theta_list, ssm_found, [],False
             # theta_prime = theta
             # num = 0
             ###
@@ -721,7 +728,8 @@ def find_random_ssm(r, x_target, all_ssm_theta_list, robot, C_dot_A, C_dot_A_7):
     ip_ranges = find_intersection_points(ssm_theta_list, C_dot_A)
     ip_ranges_alpha = find_ip_7th_joint(ssm_theta_list, C_dot_A_7)
     cp_ranges = find_critical_points(ssm_theta_list)
-    return True, ip_ranges, cp_ranges, all_ssm_theta_list, ssm_found, ip_ranges_alpha
+    single_intersection_tf = find_single_intersection(ssm_theta_list)
+    return True, ip_ranges, cp_ranges, all_ssm_theta_list, ssm_found, ip_ranges_alpha,single_intersection_tf
 
 
 def compute_beta_range(r, target_x, robot, C_dot_A, CA):
@@ -737,14 +745,17 @@ def compute_beta_range(r, target_x, robot, C_dot_A, CA):
     theta5_ranges = []
     theta6_ranges = []
     theta7_ranges = []
+    F_list=[]
     find_count = 0
     ssm_found = 0
     C_dot_A_7 = CA.copy()
     C_dot_A_7[6] = (-np.pi, np.pi)
     C_dot_A_7 = convert_to_C_dot_A(C_dot_A_7)
+    single_intersection_tf_all = False
     while find_count < ssm_finding_num and ssm_found < max_ssm:
-        ik, iprs, cp_ranges, all_theta, ssm_found_tf, iprs7 = find_random_ssm(
+        ik, iprs, cp_ranges, all_theta, ssm_found_tf, iprs7,single_intersection_tf = find_random_ssm(
             r, target_x, all_theta, robot, C_dot_A, C_dot_A_7)
+        single_intersection_tf_all=single_intersection_tf_all or single_intersection_tf
         if not ik: break
         find_count += 1
         iprs = extend_ranges(iprs)
@@ -872,14 +883,19 @@ def compute_beta_range(r, target_x, robot, C_dot_A, CA):
             has_positive_pi_range = tr[0]
         if CA[0][0] >= tr[0] and CA[0][1] <= tr[1]:
             ion1_alpha = True
+            if single_intersection_tf_all: F_list.append(1)
+
     if CA[0][0] < -np.pi:
         if has_negative_pi_range is not None and has_positive_pi_range is not None:
             if CA[0][1] <= has_negative_pi_range and CA[0][0] + 2 * np.pi >= has_positive_pi_range:
                 ion1_alpha = True
+                if single_intersection_tf_all: F_list.append(1)
+
     if CA[0][1] > np.pi:
         if has_negative_pi_range is not None and has_positive_pi_range is not None:
             if CA[0][1] - 2 * np.pi <= has_negative_pi_range and CA[0][0] >= has_positive_pi_range:
                 ion1_alpha = True
+                if single_intersection_tf_all: F_list.append(1)
 
     ion1 = False
     min_beta1 = 0
@@ -888,6 +904,7 @@ def compute_beta_range(r, target_x, robot, C_dot_A, CA):
     for tr in theta1_ranges_union:
         if CA[0][0] >= tr[0] and CA[0][1] <= tr[1]:
             ion1 = True
+            if single_intersection_tf_all: F_list.append(1)
             # print('joint 1 succeed')
             min_beta1 = CA[0][1] - tr[1]
             max_beta1 = CA[0][0] - tr[0]
@@ -905,16 +922,19 @@ def compute_beta_range(r, target_x, robot, C_dot_A, CA):
             has_positive_pi_range = tr[0]
         if CA[1][0] >= tr[0] and CA[1][1] <= tr[1]:
             ion2 = True
+            if single_intersection_tf_all: F_list.append(2)
             # print('joint 2 succeed')
     if CA[1][0] < -np.pi:
         if has_negative_pi_range is not None and has_positive_pi_range is not None:
             if CA[1][1] <= has_negative_pi_range and CA[1][0] + 2 * np.pi >= has_positive_pi_range:
                 ion2 = True
+                if single_intersection_tf_all: F_list.append(2)
                 # print('joint 2 succeed')
     if CA[1][1] > np.pi:
         if has_negative_pi_range is not None and has_positive_pi_range is not None:
             if CA[1][1] - 2 * np.pi <= has_negative_pi_range and CA[1][0] >= has_positive_pi_range:
                 ion2 = True
+                if single_intersection_tf_all: F_list.append(2)
                 # print('joint 2 succeed')
 
     ion3 = False
@@ -927,16 +947,19 @@ def compute_beta_range(r, target_x, robot, C_dot_A, CA):
             has_positive_pi_range = tr[0]
         if CA[2][0] >= tr[0] and CA[2][1] <= tr[1]:
             ion3 = True
+            if single_intersection_tf_all: F_list.append(3)
             # print('joint 3 succeed')
     if CA[2][0] < -np.pi:
         if has_negative_pi_range is not None and has_positive_pi_range is not None:
             if CA[2][1] <= has_negative_pi_range and CA[2][0] + 2 * np.pi >= has_positive_pi_range:
                 ion3 = True
+                if single_intersection_tf_all: F_list.append(3)
                 # print('joint 3 succeed')
     if CA[2][1] > np.pi:
         if has_negative_pi_range is not None and has_positive_pi_range is not None:
             if CA[2][1] - 2 * np.pi <= has_negative_pi_range and CA[2][0] >= has_positive_pi_range:
                 ion3 = True
+                if single_intersection_tf_all: F_list.append(3)
                 # print('joint 3 succeed')
 
     ion4 = False
@@ -949,16 +972,19 @@ def compute_beta_range(r, target_x, robot, C_dot_A, CA):
             has_positive_pi_range = tr[0]
         if CA[3][0] >= tr[0] and CA[3][1] <= tr[1]:
             ion4 = True
+            if single_intersection_tf_all: F_list.append(4)
             # print('joint 4 succeed')
     if CA[3][0] < -np.pi:
         if has_negative_pi_range is not None and has_positive_pi_range is not None:
             if CA[3][1] <= has_negative_pi_range and CA[3][0] + 2 * np.pi >= has_positive_pi_range:
                 ion4 = True
+                if single_intersection_tf_all: F_list.append(4)
                 # print('joint 4 succeed')
     if CA[3][1] > np.pi:
         if has_negative_pi_range is not None and has_positive_pi_range is not None:
             if CA[3][1] - 2 * np.pi <= has_negative_pi_range and CA[3][0] >= has_positive_pi_range:
                 ion4 = True
+                if single_intersection_tf_all: F_list.append(4)
                 # print('joint 4 succeed')
 
     ion5 = False
@@ -971,16 +997,19 @@ def compute_beta_range(r, target_x, robot, C_dot_A, CA):
             has_positive_pi_range = tr[0]
         if CA[4][0] >= tr[0] and CA[4][1] <= tr[1]:
             ion5 = True
+            if single_intersection_tf_all: F_list.append(5)
             # print('joint 5 succeed')
     if CA[4][0] < -np.pi:
         if has_negative_pi_range is not None and has_positive_pi_range is not None:
             if CA[4][1] <= has_negative_pi_range and CA[4][0] + 2 * np.pi >= has_positive_pi_range:
                 ion5 = True
+                if single_intersection_tf_all: F_list.append(5)
                 # print('joint 5 succeed')
     if CA[4][1] > np.pi:
         if has_negative_pi_range is not None and has_positive_pi_range is not None:
             if CA[4][1] - 2 * np.pi <= has_negative_pi_range and CA[4][0] >= has_positive_pi_range:
                 ion5 = True
+                if single_intersection_tf_all: F_list.append(5)
                 # print('joint 5 succeed')
 
     ion6 = False
@@ -993,16 +1022,19 @@ def compute_beta_range(r, target_x, robot, C_dot_A, CA):
             has_positive_pi_range = tr[0]
         if CA[5][0] >= tr[0] and CA[5][1] <= tr[1]:
             ion6 = True
+            if single_intersection_tf_all: F_list.append(6)
             # print('joint 6 succeed')
     if CA[5][0] < -np.pi:
         if has_negative_pi_range is not None and has_positive_pi_range is not None:
             if CA[5][1] <= has_negative_pi_range and CA[5][0] + 2 * np.pi >= has_positive_pi_range:
                 ion6 = True
+                if single_intersection_tf_all: F_list.append(6)
                 # print('joint 6 succeed')
     if CA[5][1] > np.pi:
         if has_negative_pi_range is not None and has_positive_pi_range is not None:
             if CA[5][1] - 2 * np.pi <= has_negative_pi_range and CA[5][0] >= has_positive_pi_range:
                 ion6 = True
+                if single_intersection_tf_all: F_list.append(6)
                 # print('joint 6 succeed')
 
     ion7 = False
@@ -1016,16 +1048,19 @@ def compute_beta_range(r, target_x, robot, C_dot_A, CA):
             has_positive_pi_range = tr[0]
         if CA[6][0] >= tr[0] and CA[6][1] <= tr[1]:
             ion7 = True
+            if single_intersection_tf_all: F_list.append(7)
             # print('joint 7 succeed')
     if CA[6][0] < -np.pi:
         if has_negative_pi_range is not None and has_positive_pi_range is not None:
             if CA[6][1] <= has_negative_pi_range and CA[6][0] + 2 * np.pi >= has_positive_pi_range:
                 ion7 = True
+                if single_intersection_tf_all: F_list.append(7)
                 # print('joint 7 succeed')
     if CA[6][1] > np.pi:
         if has_negative_pi_range is not None and has_positive_pi_range is not None:
             if CA[6][1] - 2 * np.pi <= has_negative_pi_range and CA[6][0] >= has_positive_pi_range:
                 ion7 = True
+                if single_intersection_tf_all: F_list.append(7)
 
     ion7_alpha = False
     min_alpha1 = 0
@@ -1035,6 +1070,7 @@ def compute_beta_range(r, target_x, robot, C_dot_A, CA):
     for tr in theta7_ranges_union:
         if CA[6][0] >= tr[0] and CA[6][1] <= tr[1]:
             ion7_alpha = True
+            if single_intersection_tf_all: F_list.append(7)
             min_alpha1 = CA[6][1] - tr[1]
             max_alpha1 = CA[6][0] - tr[0]
             if (max_alpha1 - min_alpha1 >= 2 * np.pi) or (tr[0] == -np.pi and tr[1] == np.pi):
@@ -1058,7 +1094,7 @@ def compute_beta_range(r, target_x, robot, C_dot_A, CA):
             max_alpha_f_ftw = min(max_alpha0, max_alpha1, np.pi)
             if min_alpha_f_ftw <= max_alpha_f_ftw:
                 all_alpha_ranges.append([min_alpha_f_ftw, max_alpha_f_ftw])
-    return union_ranges(all_smm_beta_range), union_ranges(all_alpha_ranges),compute_reliability([ion2,ion3,ion4,ion5,ion6],joint_reliabilities[1:-1])
+    return union_ranges(all_smm_beta_range), union_ranges(all_alpha_ranges),compute_reliability([ion2,ion3,ion4,ion5,ion6],joint_reliabilities[1:-1]),F_list
 
 
 @measure_time
@@ -1095,6 +1131,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     print(f"Total points inside sphere: {points.shape[0]}")
     """
 
+    """
     N = 257
     R = max_length
     u = np.random.rand(N)
@@ -1107,12 +1144,13 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     z = r * np.cos(phi)
     points = np.column_stack((x, y, z))
     grid_centers = points
+    """
 
 
     x_range = (0, max_length)  # Range for x-axis
     z_range = (-max_length, max_length)  # Range for z-axis
     grid_size = (64, 64, 64)
-    #grid_centers = generate_grid_centers(n_x, n_z, N, x_range, z_range)
+    grid_centers = generate_grid_centers(n_x, n_z, N, x_range, z_range)
     #print(grid_centers[34])
     # print("3D coordinates of center points:")
     angle_ranges = []
@@ -1123,21 +1161,23 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     # debug = [grid_centers[7]]
     shape_volumns = []
     # for center in tqdm(grid_centers, desc="Processing Items"):
-    start = time.perf_counter()
+    #start = time.perf_counter()
     for center in tqdm(grid_centers, desc="Processing Items"):
         # Compute beta ranges for each center
         print(center)
         all_alpha_ranges = []
         all_beta_ranges = []
         all_realiability=[]
+        all_true_reliability=[]
         positional_beta_ranges = []
         target_x = np.array([center[0], center[1], center[2]]).T.reshape((3, 1))
         for sample_tuple in tqdm(theta_phi_list, desc="Processing Items"):
-            sampled_orientation = zyz_to_R(sample_tuple[0], sample_tuple[1], sample_tuple[2])
-            #sampled_orientation = zyz_to_R(sample_tuple[0], sample_tuple[1], 0)
-            beta_ranges, alpha_ranges,reliability = compute_beta_range(sampled_orientation, target_x, robot, C_dot_A, CA)
+            #sampled_orientation = zyz_to_R(sample_tuple[0], sample_tuple[1], sample_tuple[2]) #random
+            sampled_orientation = zyz_to_R(sample_tuple[0], sample_tuple[1], 0) #original and uniform
+            beta_ranges, alpha_ranges,reliability,F_list = compute_beta_range(sampled_orientation, target_x, robot, C_dot_A, CA)
             all_alpha_ranges.append(alpha_ranges)
             all_realiability.append(reliability)
+            all_true_reliability.append(compute_reliability_by_f_list(F_list,joint_reliabilities))
             positional_beta_ranges.extend(beta_ranges)
             positional_beta_ranges = union_ranges(positional_beta_ranges)
 
@@ -1165,14 +1205,14 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
         # print(all_alpha_ranges)
         shape_volumns.append(len(all_wedge_faces) * 1.0 / 64.0)
         """
-        all_data.append((0, index, all_beta_ranges, all_alpha_ranges,all_realiability))
+        all_data.append((0, index, all_beta_ranges, all_alpha_ranges,all_realiability,all_true_reliability))
         index += 1
 
         if len(positional_beta_ranges) != 0: reachable_points += 1
         angle_ranges.append(positional_beta_ranges)
 
-    end = time.perf_counter()
-    print(f"Loop took {end - start:.6f} seconds")
+    #end = time.perf_counter()
+    #print(f"Loop took {end - start:.6f} seconds")
 
 
     
@@ -1232,7 +1272,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     plt.show()
     """
 
-
+    """
     #sampled_plane plot
 
     # draw positional fault tolerant grids used for orientational demo
@@ -1327,7 +1367,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
      #   f'average orientation connectivity over {orientation_samples} is {np.sum(orientational_connectivity) / orientation_samples}')
     print(f'positional connectivity:{general_connectivity}')
     return general_connectivity
-    
+    """
 
 
 
@@ -1389,5 +1429,5 @@ CA6 = [(-137 * np.pi / 180, 137 * np.pi / 180), #expand 30
        (-145 * np.pi / 180, 179 * np.pi / 180),
        (-105 * np.pi / 180, 159 * np.pi / 180),
        (-14 * np.pi / 180, 223 * np.pi / 180)]
-#1,2,4,6
+#1,2,4,6t
 ap = ssm_estimation(positional_samples, d, alpha, l, CA)
