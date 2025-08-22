@@ -1410,6 +1410,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     #"""original
     set_sparse_xyz_labels(ax, sub_grid_centers, max_labels=20, ndigits=2)
     ax.set_xlim(-0.5, len(sub_grid_centers) - 0.5)
+    ax.set_facecolor("white")
     ax2.set_xlabel('X')
     ax2.set_ylabel('Z')
     frame_points = [

@@ -341,10 +341,11 @@ def find_random_ssm(x_target, all_ssm_theta_list):
         list_of_lists = [arr.flatten().tolist() for arr in ssm_theta_list]  # Convert np.array to list
         with open('plot_list.txt', 'w') as file:
             json.dump(list_of_lists, file, indent=4)
-    print(f'found a new ssm with {num} points.')
+    #print(f'found a new ssm with {num} points.')
     ssm_found = True
 
     #if x == -1.875 and y == 0.375:
+    """
     if x == 1.912 and y == 0:
         ppoints = np.array(ssm_theta_list)
 
@@ -365,6 +366,7 @@ def find_random_ssm(x_target, all_ssm_theta_list):
         axp.set_zlim([-np.pi, np.pi])
 
         plt.show()
+    """
 
 
     #ip_ranges=[]
@@ -414,7 +416,7 @@ def union_ranges(ranges):
 
 
 def compute_beta_range(x, y):
-    F_list = [False] * (num_reliable_ranges+1)
+    F_list = [False] * (8)
     target_x = np.array([x, y]).T.reshape((2, 1))
     all_smm_beta_range = []
     reliable_beta_ranges = [[], [], [], [], [], [], [],[]] # the last element for prefailure workspace(task space projection of artificial joint limits)
@@ -612,331 +614,335 @@ def wedge_to_poly3d(wedge, z_value):
     vertices = list(zip(x, y, z))
     return vertices
 
-num_reliable_ranges = 7
-cr_list.append(0)
-color_list, sm = normalize_and_map_colors(cr_list)
-final_wedges = []
-final_colors = []
-# z_levels = cr_list
-# np.linspace(-3, 3, num_reliable_ranges)
+def main_function():
+    num_reliable_ranges = 7
+    cr_list.append(0)
+    color_list, sm = normalize_and_map_colors(cr_list)
+    final_wedges = []
+    final_colors = []
+    # z_levels = cr_list
+    # np.linspace(-3, 3, num_reliable_ranges)
 
-""" original approach
-section_length = 3.0 / sample_num
-x_values = (np.arange(sample_num) + 0.5) * section_length
-y_values = np.zeros(sample_num)
-points = np.column_stack((x_values, y_values))
-"""
-
-#""" uniform sample
-d = 3.0 / sample_num                
-edges = np.arange(-3, 3 + 1e-6, d)
-n_cells = edges.size - 1             # cells per axis
-centers = np.linspace(-3 + d/2, 3 - d/2, n_cells)
-x_c, y_c = np.meshgrid(centers, centers)
-mask = x_c**2 + y_c**2 <= 9
-x_values=x_c[mask]
-y_values=y_c[mask]
-points = np.column_stack((x_values, y_values))
-print(len(points))
-#"""
-
-#""" uniform and random
-# ---------- plotting ----------
-fig, ax = plt.subplots(figsize=(6, 6))
-
-# circle boundary
-theta = np.linspace(0, 2*np.pi, 400)
-ax.plot(3*np.cos(theta), 3*np.sin(theta), linewidth=1.2, color='black')
-circle = patches.Circle((0, 0), np.sum(L), edgecolor=color_list[-1], facecolor=color_list[-1], linewidth=0, zorder=0)
-ax.add_patch(circle)
-#"""
-
-
-
-
-
-""" random sample
-N = 812
-theta = np.random.rand(N) * 2 * np.pi
-r = np.sqrt(np.random.rand(N)) * 3
-x_values = r * np.cos(theta )
-y_values = r * np.sin(theta )
-points = np.column_stack((x_values, y_values))
-diam = 3.0 / sample_num
-"""
-
-""" original approach
-ring_width = 2.0*x_values[0]
-
-
-fig3, ax2d3 = plt.subplots(figsize=(6, 6))
-
-# Set limits for the 2D plot
-ax2d3.set_xlim(-np.sum(L), np.sum(L))
-ax2d3.set_ylim(-np.sum(L),np.sum(L))
-ax2d3.set_aspect('equal')
-ax2d3.set_xlabel("x", fontsize=25)
-ax2d3.set_ylabel("y", fontsize=25)
-tick_positions = [-2,-1, 0, 1,2]
-ax2d3.set_xticks(tick_positions)
-ax2d3.set_yticks(tick_positions)
-circle = patches.Circle((0, 0), np.sum(L), edgecolor=color_list[-1], facecolor=color_list[-1], linewidth=0, zorder=0)
-ax2d3.add_patch(circle)
-ax2d3.axhline(0, color='black', linewidth=1)  # y=0
-ax2d3.axvline(0, color='black', linewidth=1)  # x=0
-x_ticks = np.linspace(0, 3, sample_num + 1)
-tick_length = 0.05
-for x in x_ticks:
-    ax2d3.plot([x, x], [0, tick_length], color='black', linewidth=1)
-
-
-fig = plt.figure()
-ax = fig.add_subplot(111, projection='3d')
-N=0
-"""
-
-def plot_prefailure_boundary(ax,sample_num):
+    """ original approach
     section_length = 3.0 / sample_num
-    local_x_values = (np.arange(sample_num) + 0.5) * section_length
-    local_y_values = np.zeros(sample_num)
-    points = np.column_stack((local_x_values, local_y_values))
-    ring_width = 2.0 * local_x_values[0]
-    polys2d=[]
+    x_values = (np.arange(sample_num) + 0.5) * section_length
+    y_values = np.zeros(sample_num)
+    points = np.column_stack((x_values, y_values))
+    """
+
+    #""" uniform sample
+    d = 3.0 / sample_num
+    edges = np.arange(-3, 3 + 1e-6, d)
+    n_cells = edges.size - 1             # cells per axis
+    centers = np.linspace(-3 + d/2, 3 - d/2, n_cells)
+    x_c, y_c = np.meshgrid(centers, centers)
+    mask = x_c**2 + y_c**2 <= 9
+    x_values=x_c[mask]
+    y_values=y_c[mask]
+    points = np.column_stack((x_values, y_values))
+    print(len(points))
+    #"""
+
+    #""" uniform and random
+    # ---------- plotting ----------
+    fig, ax = plt.subplots(figsize=(6, 6))
+
+    # circle boundary
+    theta = np.linspace(0, 2*np.pi, 400)
+    ax.plot(3*np.cos(theta), 3*np.sin(theta), linewidth=1.2, color='black')
+    circle = patches.Circle((0, 0), np.sum(L), edgecolor=color_list[-1], facecolor=color_list[-1], linewidth=0, zorder=0)
+    ax.add_patch(circle)
+    #"""
+
+
+
+
+
+    """ random sample
+    N = 812
+    theta = np.random.rand(N) * 2 * np.pi
+    r = np.sqrt(np.random.rand(N)) * 3
+    x_values = r * np.cos(theta )
+    y_values = r * np.sin(theta )
+    points = np.column_stack((x_values, y_values))
+    diam = 3.0 / sample_num
+    """
+
+    """ original approach
+    ring_width = 2.0*x_values[0]
+    
+    
+    fig3, ax2d3 = plt.subplots(figsize=(6, 6))
+    
+    # Set limits for the 2D plot
+    ax2d3.set_xlim(-np.sum(L), np.sum(L))
+    ax2d3.set_ylim(-np.sum(L),np.sum(L))
+    ax2d3.set_aspect('equal')
+    ax2d3.set_xlabel("x", fontsize=25)
+    ax2d3.set_ylabel("y", fontsize=25)
+    tick_positions = [-2,-1, 0, 1,2]
+    ax2d3.set_xticks(tick_positions)
+    ax2d3.set_yticks(tick_positions)
+    circle = patches.Circle((0, 0), np.sum(L), edgecolor=color_list[-1], facecolor=color_list[-1], linewidth=0, zorder=0)
+    ax2d3.add_patch(circle)
+    ax2d3.axhline(0, color='black', linewidth=1)  # y=0
+    ax2d3.axvline(0, color='black', linewidth=1)  # x=0
+    x_ticks = np.linspace(0, 3, sample_num + 1)
+    tick_length = 0.05
+    for x in x_ticks:
+        ax2d3.plot([x, x], [0, tick_length], color='black', linewidth=1)
+    
+    
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    N=0
+    """
+
+    def plot_prefailure_boundary(ax,sample_num):
+        section_length = 3.0 / sample_num
+        local_x_values = (np.arange(sample_num) + 0.5) * section_length
+        local_y_values = np.zeros(sample_num)
+        points = np.column_stack((local_x_values, local_y_values))
+        ring_width = 2.0 * local_x_values[0]
+        polys2d=[]
+        for i in range(len(points)):
+            point = points[i]
+            x, y = point
+            beta_ranges, reliable_beta_ranges, F_list = compute_beta_range(x, y)
+            prefailure_b_r = reliable_beta_ranges[-1]
+            for beta_range in prefailure_b_r:
+                theta1 = np.degrees(beta_range[0])  # Start angle (-π)
+                theta2 = np.degrees(beta_range[1])  # End angle (π)
+
+                # Calculate the outer radius for the ring (x + ring_width / 2)
+                outer_radius = x + ring_width / 2.0
+                inner_radius = x - ring_width / 2.0
+                polys2d.append(
+                    wedge_polygon((0, 0), outer_radius, inner_radius, theta1, theta2, n=64)
+                )
+        if polys2d:  # guard against empty list
+            shape2d = unary_union(polys2d)  # remove internal boundaries
+            plot_exterior_boundary(ax, shape2d,  # change to ax for uniform and random, ax2d3 for original
+                                   color='k', linewidth=1.8)
+
+
+    start = time.perf_counter()
     for i in range(len(points)):
         point = points[i]
         x, y = point
-        beta_ranges, reliable_beta_ranges, F_list = compute_beta_range(x, y)
+
+        #print(point)
+        beta_ranges, reliable_beta_ranges,F_list = compute_beta_range(x, y)  # Get multiple beta ranges
+
+        # for b_r_index in range(len(reliable_beta_ranges)):
+
+
+        """ orignial
         prefailure_b_r = reliable_beta_ranges[-1]
         for beta_range in prefailure_b_r:
             theta1 = np.degrees(beta_range[0])  # Start angle (-π)
             theta2 = np.degrees(beta_range[1])  # End angle (π)
-
+    
             # Calculate the outer radius for the ring (x + ring_width / 2)
             outer_radius = x + ring_width / 2.0
             inner_radius = x - ring_width / 2.0
             polys2d.append(
                 wedge_polygon((0, 0), outer_radius, inner_radius, theta1, theta2, n=64)
             )
-    if polys2d:  # guard against empty list
+        """
+
+
+        for b_r_index in indices:
+            b_r = reliable_beta_ranges[b_r_index]
+            # z_level = z_levels[b_r_index]
+            z_level = b_r_index * 2
+            color = color_list[b_r_index]
+
+
+            f_to=F_list[b_r_index]
+            if f_to:
+                #""" uniform sample
+                rect = Rectangle(
+                    (x - d / 2, y - d / 2),
+                    d, d,
+                    facecolor=color,
+                    edgecolor='none',
+                    zorder=b_r_index + 1,
+                    linewidth=0,
+                    alpha=1.0
+                )
+                ax.add_patch(rect)
+                #"""
+
+                """random sample
+                circ = Circle(
+                    (x, y),  # center
+                    radius=diam / 2,  # radius = diameter / 2
+                    facecolor=color,
+                    edgecolor='none',
+                    zorder=b_r_index + 1,
+                    linewidth=0,
+                    alpha=1.0
+                )
+                ax.add_patch(circ)
+                """
+
+            for beta_range in b_r:
+                """ original approach
+                # Compute angles in degrees (as required by Wedge)
+                theta1 = np.degrees(beta_range[0])  # Start angle (-π)
+                theta2 = np.degrees(beta_range[1])  # End angle (π)
+    
+                # Calculate the outer radius for the ring (x + ring_width / 2)
+                outer_radius = x + ring_width / 2.0
+                inner_radius = x-ring_width/2.0
+                if b_r_index == 6: N += np.pi * (outer_radius ** 2 -inner_radius**2)/(2*np.pi)*(beta_range[1]-beta_range[0])
+    
+                wedge = Wedge(
+                    center=(0, 0),
+                    r=outer_radius,
+                    theta1=theta1, theta2=theta2,
+                    width=ring_width,
+                    facecolor=color,  # Set face color to match 3D plot
+                    edgecolor=color,
+                    alpha=1.0,
+                    zorder=b_r_index+1
+                )
+    
+                wedge_2d = Wedge(
+                    center=(0, 0),
+                    r=outer_radius,
+                    theta1=theta1, theta2=theta2,
+                    width=ring_width,
+                    facecolor=color,
+                    edgecolor=color,
+                    alpha=1.0,
+                    zorder=b_r_index+1
+                )
+                
+                poly3d = wedge_to_poly3d(wedge, z_level)
+                # Add the wedge to the plot
+                # ax.add_patch(wedge)
+                ax.add_collection3d(
+                    Poly3DCollection(
+                        [poly3d],
+                        facecolor=color,
+                        edgecolor=color,
+                        alpha=1.0
+                    )
+                )
+    
+                ax2d3.add_patch(wedge_2d)  # Add wedge to 2D plot
+    
+                if b_r_index == len(reliable_beta_ranges) - 1:
+                    final_wedges.append(wedge)
+                    final_colors.append(color)
+    
+                """
+
+    """ original
+    if polys2d:  
         shape2d = unary_union(polys2d)  # remove internal boundaries
         plot_exterior_boundary(ax, shape2d,  # change to ax for uniform and random, ax2d3 for original
-                               color='k', linewidth=1.8)
+                                   color='k', linewidth=1.8)
+    """
+    #plot_prefailure_boundary(ax,sample_num)
 
 
-start = time.perf_counter()
-for i in range(len(points)):
-    point = points[i]
-    x, y = point
+    #""" uniform sample
+    # draw grid lines
+    for e in edges:
+        ax.plot([edges[0], edges[-1]], [e, e], linewidth=1, alpha=1,zorder=8)  # horizontal
+        ax.plot([e, e], [edges[0], edges[-1]], linewidth=1, alpha=1,zorder=8)  # vertical
 
-    #print(point)
-    beta_ranges, reliable_beta_ranges,F_list = compute_beta_range(x, y)  # Get multiple beta ranges
+    # plot kept centers in black
+    ax.scatter(points[:, 0], points[:, 1], s=8, color='black', zorder=8)
+    #"""
+    end = time.perf_counter()
+    print(f"Loop took {end - start:.6f} seconds")
+    #""" uniform and random
 
-    # for b_r_index in range(len(reliable_beta_ranges)):
+    ax.set_aspect('equal', adjustable='box')
+    ax.set_xlim(-3, 3)
+    ax.set_ylim(-3, 3)
+    ax.set_xlabel("x", fontsize=25)
+    ax.set_ylabel("y", fontsize=25)
+    tick_positions = [-2,-1, 0, 1,2]
+    ax.set_xticks(tick_positions)
+    ax.set_yticks(tick_positions)
+    ax.tick_params(axis='x', labelsize=18)  # Increase font size for X-axis ticks
+    ax.tick_params(axis='y', labelsize=18)  # Increase font size for Y-axis ticks
+    plt.tight_layout()
+    plt.show()
+    #"""
 
 
-    """ orignial
-    prefailure_b_r = reliable_beta_ranges[-1]
-    for beta_range in prefailure_b_r:
-        theta1 = np.degrees(beta_range[0])  # Start angle (-π)
-        theta2 = np.degrees(beta_range[1])  # End angle (π)
-
-        # Calculate the outer radius for the ring (x + ring_width / 2)
-        outer_radius = x + ring_width / 2.0
-        inner_radius = x - ring_width / 2.0
-        polys2d.append(
-            wedge_polygon((0, 0), outer_radius, inner_radius, theta1, theta2, n=64)
-        )
+    """ original approach
+    #ax2d3.scatter(-1.875,0.375, s=8, color='black')
+    ax2d3.tick_params(axis='x', labelsize=18)  # Increase font size for X-axis ticks
+    ax2d3.tick_params(axis='y', labelsize=18)  # Increase font size for Y-axis ticks
+    #ax2d3.set_xticks([])
+    #ax2d3.set_yticks([])
+    # cbar = plt.colorbar(sm, ax=ax2d3, label='Reliability Spectrum')  # Ensure colorbar is linked to the mappable
+    fig3.show()
+    
+    # Set the plot limits to range from -3 to 3 for both x and y axes
+    radius=np.sum(L)
+    ax.set_xlim(-np.sum(L), np.sum(L))
+    ax.set_ylim(-np.sum(L), np.sum(L))
+    ax.set_zlim(0, 12)
+    ax.set_xlabel("x")
+    ax.set_ylabel("y")
+    tick_positions = [-2, 0, 2]
+    ax.set_xticks(tick_positions)
+    ax.set_yticks(tick_positions)
+    
+    # ax.tick_params(axis='x', labelsize=14)
+    # ax.tick_params(axis='y', labelsize=14)
+    # ax.tick_params(axis='z', labelsize=14)
+    
+    # ax.set_zlabel("Failable Joints")
+    
+    # Set aspect ratio to be equal for correct visualization of circles
+    ax.set_aspect('equal')
+    print(N)
+    
+    # Add title and display the plot
+    # plt.title("Planar3R Reliable work spaces")
+    cbar = plt.colorbar(sm, ax=ax)  # Ensure colorbar is linked to the mappable
+    tick_positions = np.arange(0.1, 1.1, 0.1)  # 1.1 ensures 1.0 is included
+    cbar.set_ticks(tick_positions)
+    cbar.set_ticklabels([f"{tick:.1f}" for tick in tick_positions])
+    # Define the new labels and corresponding tick positionsq
+    z_tick_labels = [r'$\mathit{F}=\{1\}$', r'$\mathit{F}=\{2\}$', r'$\mathit{F}=\{3\}$',
+                     r'$\mathit{F}=\{1,2\}$', r'$\mathit{F}=\{1,3\}$', r'$\mathit{F}=\{2,3\}$', r'$\mathit{F}=\{1,2,3\}$']
+    ax.tick_params(axis='z', labelsize=18) 
+    z_tick_positions = [0, 2, 4, 6, 8, 10, 12]  # These match your z_level values
+    
+    # Set the new labels on the Z-axis
+    ax.set_zticks(z_tick_positions)
+    ax.set_zticklabels(z_tick_labels)
+    fig2, ax2d = plt.subplots(figsize=(6, 6))
+    
+    for wedge, color in zip(final_wedges, final_colors):
+        ax2d.add_patch(wedge)  # Add the stored wedge
+        wedge.set_facecolor(color)  # Ensure colors match
+        wedge.set_edgecolor(color)
+    
+    # Configure the 2D plot
+    ax2d.set_xlim(-3, 3)
+    ax2d.set_ylim(-3, 3)
+    # ax.tick_params(axis='x', labelsize=14)
+    # ax.tick_params(axis='y', labelsize=14)
+    ax2d.set_aspect('equal')
+    ax2d.set_xlabel("x", fontsize=25)
+    ax2d.set_ylabel("y", fontsize=25)
+    ax2d.tick_params(axis='x', labelsize=18)  # Increase font size for X-axis ticks
+    ax2d.tick_params(axis='y', labelsize=18)  # Increase font size for Y-axis ticks
+    # ax2d.set_title("Fault tolerant workspace")
+    fig2.show()
+    plt.show()
     """
 
 
-    for b_r_index in indices:
-        b_r = reliable_beta_ranges[b_r_index]
-        # z_level = z_levels[b_r_index]
-        z_level = b_r_index * 2
-        color = color_list[b_r_index]
-
-
-        f_to=F_list[b_r_index]
-        if f_to:
-            #""" uniform sample
-            rect = Rectangle(
-                (x - d / 2, y - d / 2),
-                d, d,
-                facecolor=color,
-                edgecolor='none',
-                zorder=b_r_index + 1,
-                linewidth=0,
-                alpha=1.0
-            )
-            ax.add_patch(rect)
-            #"""
-
-            """random sample
-            circ = Circle(
-                (x, y),  # center
-                radius=diam / 2,  # radius = diameter / 2
-                facecolor=color,
-                edgecolor='none',
-                zorder=b_r_index + 1,
-                linewidth=0,
-                alpha=1.0
-            )
-            ax.add_patch(circ)
-            """
-
-        for beta_range in b_r:
-            """ original approach
-            # Compute angles in degrees (as required by Wedge)
-            theta1 = np.degrees(beta_range[0])  # Start angle (-π)
-            theta2 = np.degrees(beta_range[1])  # End angle (π)
-
-            # Calculate the outer radius for the ring (x + ring_width / 2)
-            outer_radius = x + ring_width / 2.0
-            inner_radius = x-ring_width/2.0
-            if b_r_index == 6: N += np.pi * (outer_radius ** 2 -inner_radius**2)/(2*np.pi)*(beta_range[1]-beta_range[0])
-
-            wedge = Wedge(
-                center=(0, 0),
-                r=outer_radius,
-                theta1=theta1, theta2=theta2,
-                width=ring_width,
-                facecolor=color,  # Set face color to match 3D plot
-                edgecolor=color,
-                alpha=1.0,
-                zorder=b_r_index+1
-            )
-
-            wedge_2d = Wedge(
-                center=(0, 0),
-                r=outer_radius,
-                theta1=theta1, theta2=theta2,
-                width=ring_width,
-                facecolor=color,
-                edgecolor=color,
-                alpha=1.0,
-                zorder=b_r_index+1
-            )
-            
-            poly3d = wedge_to_poly3d(wedge, z_level)
-            # Add the wedge to the plot
-            # ax.add_patch(wedge)
-            ax.add_collection3d(
-                Poly3DCollection(
-                    [poly3d],
-                    facecolor=color,
-                    edgecolor=color,
-                    alpha=1.0
-                )
-            )
-
-            ax2d3.add_patch(wedge_2d)  # Add wedge to 2D plot
-
-            if b_r_index == len(reliable_beta_ranges) - 1:
-                final_wedges.append(wedge)
-                final_colors.append(color)
-
-            """
-
-""" original
-if polys2d:  
-    shape2d = unary_union(polys2d)  # remove internal boundaries
-    plot_exterior_boundary(ax, shape2d,  # change to ax for uniform and random, ax2d3 for original
-                               color='k', linewidth=1.8)
-"""
-#plot_prefailure_boundary(ax,sample_num)
-
-
-#""" uniform sample
-# draw grid lines
-for e in edges:
-    ax.plot([edges[0], edges[-1]], [e, e], linewidth=1, alpha=1,zorder=8)  # horizontal
-    ax.plot([e, e], [edges[0], edges[-1]], linewidth=1, alpha=1,zorder=8)  # vertical
-
-# plot kept centers in black
-ax.scatter(points[:, 0], points[:, 1], s=8, color='black', zorder=8)
-#"""
-end = time.perf_counter()
-print(f"Loop took {end - start:.6f} seconds")
-#""" uniform and random
-
-ax.set_aspect('equal', adjustable='box')
-ax.set_xlim(-3, 3)
-ax.set_ylim(-3, 3)
-ax.set_xlabel("x", fontsize=25)
-ax.set_ylabel("y", fontsize=25)
-tick_positions = [-2,-1, 0, 1,2]
-ax.set_xticks(tick_positions)
-ax.set_yticks(tick_positions)
-ax.tick_params(axis='x', labelsize=18)  # Increase font size for X-axis ticks
-ax.tick_params(axis='y', labelsize=18)  # Increase font size for Y-axis ticks
-plt.tight_layout()
-plt.show()
-#"""
-
-
-""" original approach
-#ax2d3.scatter(-1.875,0.375, s=8, color='black')
-ax2d3.tick_params(axis='x', labelsize=18)  # Increase font size for X-axis ticks
-ax2d3.tick_params(axis='y', labelsize=18)  # Increase font size for Y-axis ticks
-#ax2d3.set_xticks([])
-#ax2d3.set_yticks([])
-# cbar = plt.colorbar(sm, ax=ax2d3, label='Reliability Spectrum')  # Ensure colorbar is linked to the mappable
-fig3.show()
-
-# Set the plot limits to range from -3 to 3 for both x and y axes
-radius=np.sum(L)
-ax.set_xlim(-np.sum(L), np.sum(L))
-ax.set_ylim(-np.sum(L), np.sum(L))
-ax.set_zlim(0, 12)
-ax.set_xlabel("x")
-ax.set_ylabel("y")
-tick_positions = [-2, 0, 2]
-ax.set_xticks(tick_positions)
-ax.set_yticks(tick_positions)
-
-# ax.tick_params(axis='x', labelsize=14)
-# ax.tick_params(axis='y', labelsize=14)
-# ax.tick_params(axis='z', labelsize=14)
-
-# ax.set_zlabel("Failable Joints")
-
-# Set aspect ratio to be equal for correct visualization of circles
-ax.set_aspect('equal')
-print(N)
-
-# Add title and display the plot
-# plt.title("Planar3R Reliable work spaces")
-cbar = plt.colorbar(sm, ax=ax)  # Ensure colorbar is linked to the mappable
-tick_positions = np.arange(0.1, 1.1, 0.1)  # 1.1 ensures 1.0 is included
-cbar.set_ticks(tick_positions)
-cbar.set_ticklabels([f"{tick:.1f}" for tick in tick_positions])
-# Define the new labels and corresponding tick positionsq
-z_tick_labels = [r'$\mathit{F}=\{1\}$', r'$\mathit{F}=\{2\}$', r'$\mathit{F}=\{3\}$',
-                 r'$\mathit{F}=\{1,2\}$', r'$\mathit{F}=\{1,3\}$', r'$\mathit{F}=\{2,3\}$', r'$\mathit{F}=\{1,2,3\}$']
-ax.tick_params(axis='z', labelsize=18) 
-z_tick_positions = [0, 2, 4, 6, 8, 10, 12]  # These match your z_level values
-
-# Set the new labels on the Z-axis
-ax.set_zticks(z_tick_positions)
-ax.set_zticklabels(z_tick_labels)
-fig2, ax2d = plt.subplots(figsize=(6, 6))
-
-for wedge, color in zip(final_wedges, final_colors):
-    ax2d.add_patch(wedge)  # Add the stored wedge
-    wedge.set_facecolor(color)  # Ensure colors match
-    wedge.set_edgecolor(color)
-
-# Configure the 2D plot
-ax2d.set_xlim(-3, 3)
-ax2d.set_ylim(-3, 3)
-# ax.tick_params(axis='x', labelsize=14)
-# ax.tick_params(axis='y', labelsize=14)
-ax2d.set_aspect('equal')
-ax2d.set_xlabel("x", fontsize=25)
-ax2d.set_ylabel("y", fontsize=25)
-ax2d.tick_params(axis='x', labelsize=18)  # Increase font size for X-axis ticks
-ax2d.tick_params(axis='y', labelsize=18)  # Increase font size for Y-axis ticks
-# ax2d.set_title("Fault tolerant workspace")
-fig2.show()
-plt.show()
-"""
+#main_function()

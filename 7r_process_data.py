@@ -76,6 +76,7 @@ for single_data in tqdm(all_data, desc="Processing Items"):
     alpha_range_to_plot = single_data[3]
     average_reliability.append(np.average(single_data[4]))
 
+
     vx=computing_6d_volume(alpha_range_to_plot, beta_range_to_plot,grid_centers[single_data[1]], orientation_samples, Sx,single_data[4])
     V+=vx
     zeros_list[single_data[1]]=sum(1 for sublist in alpha_range_to_plot if sublist)/orientation_samples
@@ -117,6 +118,7 @@ ax.set_ylim([-max_length, max_length])
 ax.set_aspect(1)
 for i, square in enumerate(twod_squares):
     color = colors[i]
+    color = 'white'
     alpha_level = 1.0
     if i not in index_list_to_color2:
         color='white'
@@ -161,7 +163,8 @@ index_of_chioce=[9,34,83]
 #index_of_chioce=[8,15,17] #shifted 90
 for ind in index_of_chioce:
     #color_list_ori,sm_ori=compute_length_of_ranges(all_data[ind][3])
-    color_list_ori, sm_ori = color_by_reliability(all_data[ind][4])
+    #color_list_ori, sm_ori = color_by_reliability(all_data[ind][4])
+    color_list_ori, sm_ori = color_by_reliability(all_data[ind][5])
     plot_voronoi_regions_on_sphere(theta_phi_list,
                                    color_list_ori,
                                    sm_ori
