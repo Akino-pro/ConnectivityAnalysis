@@ -11,21 +11,46 @@ from tqdm import tqdm
 from helper_functions import compute_reliability_by_f_list
 from planar3R_FTW_morphological_estimation_ssm import compute_beta_range
 
+
 # ----------------------- Global config -----------------------
-N = 128
+N = 256
 joint_reliabilities = [0.5, 0.6, 0.7]
-x_range_sample = 5
+x_range_sample = 3
 
 # Search/robustness knobs
 THICKNESS_PX = 1                 # default rasterization thickness
-COVERAGE_RETRY_RATIO = 0.85       # retry if best covers < n% of original cells
+COVERAGE_RETRY_RATIO = 0.90       # retry if best covers < n% of original cells
 RETRY_SUPERSAMPLE = 2             # on retry, rotate at 2x resolution then downsample
 RETRY_CLOSE = True                # on retry, apply 3x3 morphological close
+
 
 # Make figure/axes backgrounds white (optional)
 plt.rcParams.update({"figure.facecolor": "white", "axes.facecolor": "white"})
 
 # ========== mapping between continuous [-x,x] and grid indices 0..N-1 ==========
+
+def shift_to_top_left(path_xy: np.ndarray, box: float):
+    """
+    Shift a polyline so that xmin -> -box and ymax -> +box.
+    Returns: shifted_path, (dx, dy) where new = old - (dx, dy).
+    """
+    path_xy = np.asarray(path_xy, np.float32)
+    xmin, ymin = path_xy.min(axis=0)
+    xmax, ymax = path_xy.max(axis=0)
+
+    # Amount we subtract from x to push xmin to -box
+    dx = xmin + box
+    # Amount we subtract from y to push ymax to +box
+    # (i.e., subtract a negative -> add upward)
+    dy = -(box - ymax)
+
+    shifted = np.column_stack([path_xy[:, 0] - dx, path_xy[:, 1] - dy]).astype(np.float32)
+    return shifted, (dx, dy)
+
+def shift_point(x: float, y: float, dx: float, dy: float):
+    """Apply the same shift used for the path to a single point."""
+    return float(x - dx), float(y - dy)
+
 def cont_to_idx(xy_cont, N, xmin=-x_range_sample, xmax=x_range_sample, ymin=-x_range_sample, ymax=x_range_sample):
     xy = np.asarray(xy_cont, np.float32)
     x_idx = (xy[:, 0] - xmin) / (xmax - xmin) * (N - 1)
@@ -37,6 +62,101 @@ def idx_to_cont(x_idx, y_idx, N, xmin=-x_range_sample, xmax=x_range_sample, ymin
     y = y_idx / (N - 1) * (ymax - ymin) + ymin
     return x, y
 
+def clip_to_circle(path, radius=3.0):
+    mask = np.hypot(path[:,0], path[:,1]) <= radius
+    return path[mask]
+
+def _triangle_wave(x, period, amplitude, phase=0.0):
+    # Triangle in [-1,1] via modulo arithmetic, then scale by amplitude
+    t = ((x - phase) / period) % 1.0
+    tri = 4.0 * np.abs(t - 0.5) - 1.0
+    return amplitude * tri
+
+def _square_wave(x, period, amplitude, duty=0.5, phase=0.0):
+    # Perfect rectangular levels in {-amplitude, +amplitude}
+    t = ((x - phase) / period) % 1.0
+    return np.where(t < duty, amplitude, -amplitude).astype(np.float32)
+
+def _insert_verticals(x, y):
+    """
+    Densify points at each step so cv2.polylines draws true vertical walls,
+    not diagonals between two far-apart samples.
+    """
+    X = [x[0]]; Y = [y[0]]
+    for i in range(len(x) - 1):
+        x0, x1 = x[i], x[i+1]
+        y0, y1 = y[i], y[i+1]
+        if y0 == y1:
+            X.append(x1); Y.append(y1)          # horizontal continuation
+        else:
+            xm = 0.5 * (x0 + x1)                # insert a vertical wall at xm
+            X.extend([xm, xm, x1])
+            Y.extend([y0, y1, y1])
+    return np.column_stack([np.asarray(X, np.float32), np.asarray(Y, np.float32)])
+
+def _sample_edge(p0, p1, n):
+    """n points from p0→p1 (excluding p1)."""
+    t = np.linspace(0.0, 1.0, n, endpoint=False, dtype=np.float32)[:, None]
+    p0 = np.asarray(p0, np.float32); p1 = np.asarray(p1, np.float32)
+    return p0 + (p1 - p0) * t
+
+def polyline_rectangle(center, w, h, points_per_edge=120):
+    """Axis-aligned rectangle outline as a closed polyline."""
+    cx, cy = center
+    hw, hh = 0.5 * w, 0.5 * h
+    # corners (clockwise)
+    v0 = (cx - hw, cy - hh)
+    v1 = (cx + hw, cy - hh)
+    v2 = (cx + hw, cy + hh)
+    v3 = (cx - hw, cy + hh)
+
+    e01 = _sample_edge(v0, v1, points_per_edge)
+    e12 = _sample_edge(v1, v2, points_per_edge)
+    e23 = _sample_edge(v2, v3, points_per_edge)
+    e30 = _sample_edge(v3, v0, points_per_edge)
+
+    poly = np.vstack([e01, e12, e23, e30, np.asarray(v0, np.float32)[None, :]])  # close
+    return poly.astype(np.float32)
+
+def polyline_equilateral_triangle(center, side, rot_deg=0.0, points_per_edge=150):
+    """Equilateral triangle outline as a closed polyline."""
+    cx, cy = center
+    R = side / np.sqrt(3)  # circumradius
+    ang0 = np.deg2rad(rot_deg)
+    a0 = ang0
+    a1 = ang0 + 2*np.pi/3
+    a2 = ang0 + 4*np.pi/3
+    v0 = (cx + R*np.cos(a0), cy + R*np.sin(a0))
+    v1 = (cx + R*np.cos(a1), cy + R*np.sin(a1))
+    v2 = (cx + R*np.cos(a2), cy + R*np.sin(a2))
+
+    e01 = _sample_edge(v0, v1, points_per_edge)
+    e12 = _sample_edge(v1, v2, points_per_edge)
+    e20 = _sample_edge(v2, v0, points_per_edge)
+
+    poly = np.vstack([e01, e12, e20, np.asarray(v0, np.float32)[None, :]])  # close
+    return poly.astype(np.float32)
+
+def best_pivot_xy(best, N, bbox):
+    x, y = idx_to_cont(
+        np.array([best["col"]], np.float32),
+        np.array([best["row"]], np.float32),
+        N, *bbox
+    )
+    return float(x[0]), float(y[0])
+
+def input_pivot_xy(meta, N, bbox):
+    # kernel center in kernel coords
+    cx, cy = meta["center"]
+    ox, oy = meta["kernel_to_grid_origin"]
+    # pivot in grid coordinates
+    gx = ox + cx
+    gy = oy + cy
+    # convert to continuous coordinates
+    x, y = idx_to_cont(np.array([gx], np.float32),
+                       np.array([gy], np.float32),
+                       N, *bbox)
+    return float(x[0]), float(y[0])
 # ======================= geometry & kernel utilities ============================
 def rotate_points(points_xy, angle_deg, center_xy):
     pts = np.asarray(points_xy, np.float32)
@@ -273,6 +393,10 @@ def generate_F(N, xmin=-x_range_sample, xmax=x_range_sample, ymin=-x_range_sampl
     for yi, y in enumerate(tqdm(ys, desc="Rows")):
         for xi, x in enumerate(xs):
             dist = math.hypot(x, y)
+            """
+            if dist > 3.0:
+                continue
+            """
             theta = math.atan2(y, x)
             nearest_idx = nearest_x_index(dist)
             reliable_beta_ranges = all_reliable_beta_ranges[nearest_idx]
@@ -294,21 +418,67 @@ def generate_F(N, xmin=-x_range_sample, xmax=x_range_sample, ymin=-x_range_sampl
 
 # ============================= example paths ===================================
 def path_short():
-    x = np.linspace(-0.35, 0.35, 50, dtype=np.float32)
+    x = np.linspace(-0.8, 0.8, 150, dtype=np.float32)
     y = 0.22 * np.sin(2.5 * np.pi * x / 0.7)
-    return np.column_stack([x, y])
+    return clip_to_circle(np.column_stack([x, y]))
+    #return np.column_stack([x, y])
 
 def path_medium():
-    x = np.linspace(-1.1, 1.1, 90, dtype=np.float32)
-    y = 0.45 * np.sin(2.0 * np.pi * x / 2.2)
-    return np.column_stack([x, y])
+    # Closed EQUILATERAL TRIANGLE, roughly centered; sized to fit inside r=3
+    tri = polyline_equilateral_triangle(center=(0.0, -0.2),
+                                        side=2.0,        # adjust size as you like
+                                        rot_deg=0.0,
+                                        points_per_edge=160)
+    return clip_to_circle(tri)  # keeps it inside your radius=3 window
+
 
 def path_long():
-    x = np.linspace(-2.5, 2.5, 150, dtype=np.float32)
-    y = 0.75 * np.sin(2.5 * np.pi * x / 5.0) + 0.15 * np.sin(7.0 * np.pi * x / 5.0)
+    # Closed AXIS-ALIGNED RECTANGLE
+    rect = polyline_rectangle(center=(0.8, -0.2),
+                              w=1.8, h=0.7,   # width/height; tweak to taste
+                              points_per_edge=160)
+    return clip_to_circle(rect)
+
+def path_line():
+    # Horizontal straight line from -2 to +2
+    x = np.linspace(-1, 1, 80, dtype=np.float32)
+    y = np.zeros_like(x)
     return np.column_stack([x, y])
 
-def _catmull_rom_chain(P, samples_per_seg=40, box=3.0):
+def path_circle(num_pts=300, radius=1.2):
+    # Circle centered at origin
+    theta = np.linspace(0, 2*np.pi, num_pts, endpoint=True, dtype=np.float32)
+    x = radius * np.cos(theta)
+    y = radius * np.sin(theta)
+    return np.column_stack([x, y])
+
+def path_square(side=1, pts_per_edge=50):
+    # Axis-aligned closed square centered at origin
+    half = side / 2.0
+    # define corners (clockwise)
+    v0 = (-half, -half)
+    v1 = ( half, -half)
+    v2 = ( half,  half)
+    v3 = (-half,  half)
+
+    # sample each edge
+    x0 = np.linspace(v0[0], v1[0], pts_per_edge, endpoint=False)
+    y0 = np.full_like(x0, v0[1])
+
+    x1 = np.full(pts_per_edge, v1[0])
+    y1 = np.linspace(v1[1], v2[1], pts_per_edge, endpoint=False)
+
+    x2 = np.linspace(v2[0], v3[0], pts_per_edge, endpoint=False)
+    y2 = np.full_like(x2, v2[1])
+
+    x3 = np.full(pts_per_edge, v3[0])
+    y3 = np.linspace(v3[1], v0[1], pts_per_edge, endpoint=False)
+
+    xs = np.concatenate([x0, x1, x2, x3, [v0[0]]])
+    ys = np.concatenate([y0, y1, y2, y3, [v0[1]]])
+    return np.column_stack([xs.astype(np.float32), ys.astype(np.float32)])
+
+def _catmull_rom_chain(P, samples_per_seg=40, box=x_range_sample):
     P = np.asarray(P, dtype=np.float32)
     m = len(P)
     if m < 2:
@@ -344,12 +514,11 @@ def _path_length(curve: np.ndarray) -> float:
     d = np.diff(curve, axis=0)
     return float(np.sum(np.hypot(d[:, 0], d[:, 1])))
 
-def gen_random_continuous_inputs(n=2, num_ctrl=8, samples_per_seg=36, box=3.0, max_length=7.0, seed=None):
+def gen_random_continuous_inputs(n=2, num_ctrl=8, samples_per_seg=36, box=x_range_sample, max_length=7, seed=None):
     rng = np.random.default_rng(seed)
     paths = []
     min_possible = 2.0 * box
     target_max = max(max_length, min_possible)
-
     for _ in range(n):
         amp = 0.35 * box
         for _try in range(12):
@@ -363,6 +532,7 @@ def gen_random_continuous_inputs(n=2, num_ctrl=8, samples_per_seg=36, box=3.0, m
                 break
             amp *= 0.65
 
+        path = clip_to_circle(path, radius=3.0)
         paths.append(path)
 
     return paths
@@ -386,14 +556,17 @@ if __name__ == "__main__":
     print(f"reliability map computation took {end - start:.6f} seconds")
 
     paths = {
-        "Short":  path_short(),
-        "Medium": path_medium(),
-        "Long":   path_long(),
+        "Sin curve":  path_short(),
+        "Triangle": path_medium(),
+        #"Rectangle":   path_long(),
+        "Line": path_line(),
+        "Circle": path_circle(),
+        "Square": path_square(),
     }
 
-    rand_paths = gen_random_continuous_inputs(n=3, num_ctrl=7, samples_per_seg=32, box=3.0, max_length=7.0, seed=None)
+    rand_paths = gen_random_continuous_inputs(n=1, num_ctrl=7, samples_per_seg=32, box=1, max_length=4, seed=None)
     for i, p in enumerate(rand_paths, start=1):
-        paths[f"Random{i}"] = p
+        paths[f"Random curve{i}"] = p
 
     fig, axes = plt.subplots(2, 3, figsize=(14, 9), constrained_layout=True)
     axes = axes.ravel()
@@ -401,54 +574,91 @@ if __name__ == "__main__":
     im = None
 
     for ax, (label, path_cont) in zip(axes, paths.items()):
-        # ---- first search
         t0 = time.perf_counter()
         best, meta, ker, best_ker_r, orig_indices, best_indices = run_search_and_indices(
             F, path_cont, thickness_px=THICKNESS_PX, angles_deg=None, bbox=bbox, supersample=0, close=False
         )
         t1 = time.perf_counter()
 
-        # ---- coverage sanity check & retry
         need_retry = (len(orig_indices) > 0 and len(best_indices) < COVERAGE_RETRY_RATIO * len(orig_indices))
         if need_retry:
-            print(f"[{label}] coverage drop: best {len(best_indices)} vs original {len(orig_indices)} "
-                  f"(< {COVERAGE_RETRY_RATIO*100:.0f}%). Retrying with supersample={RETRY_SUPERSAMPLE}, close={RETRY_CLOSE}...")
             best, meta, ker, best_ker_r, orig_indices, best_indices = run_search_and_indices(
                 F, path_cont, thickness_px=THICKNESS_PX, angles_deg=None, bbox=bbox,
                 supersample=RETRY_SUPERSAMPLE, close=RETRY_CLOSE
             )
-
         print(f"Search time [{label}]: {t1 - t0:.6f}s" + (" + retry" if need_retry else ""))
 
-        # ---- print the best indices
-        best_indices_arr = np.array(best_indices, dtype=int)
-        print(f"[{label}] BEST covered indices (row, col) — {len(best_indices_arr)} cells:")
-        #print(best_indices_arr)
+        # ---- compute pivots (solution in global coords; input in original coords)
+        px, py = best_pivot_xy(best, N, bbox)  # solution pivot (keep global)
+        ix, iy = input_pivot_xy(meta, N, bbox)  # input pivot (original)
 
-        # ---- background field
+        # ---- compute the shifted input (to top-left of the global window)
+        path_arr = np.asarray(path_cont, np.float32)
+        shifted_path, (dx, dy) = shift_to_top_left(path_arr, 2.9)
+        ix_shift, iy_shift = shift_point(ix, iy, dx, dy)
+
+        pts_grid_shifted = cont_to_idx(shifted_path, N, *bbox)
+        ker_shift, meta_shift = rasterize_path_kernel_with_meta(
+            pts_grid_shifted, thickness_px=THICKNESS_PX
+        )
+        shifted_input_indices = footprint_indices_original(ker_shift, meta_shift, F.shape)
+
+        best_sum = float(best["score"])
+        n_cells_best = len(best_indices)
+        best_avg = (best_sum / n_cells_best) if n_cells_best > 0 else float("nan")
+
+        # Shifted-input footprint (sum the field values at those cells)
+        if shifted_input_indices:
+            rr_s, cc_s = np.array(shifted_input_indices, dtype=int).T
+            sum_shifted = float(F[rr_s, cc_s].sum())
+            n_cells_shifted = len(shifted_input_indices)
+            avg_shifted = sum_shifted / n_cells_shifted
+        else:
+            sum_shifted, n_cells_shifted, avg_shifted = 0.0, 0, float("nan")
+
+        # Print a concise report line
+        print(
+            f"[{label}] cells: input_shifted={n_cells_shifted}, solution={n_cells_best}; "
+            f"avg_shifted={avg_shifted:.4f}, avg_solution={best_avg:.4f}"
+        )
+        # ---- background field only (no extra markers)
         im = ax.imshow(
             F, origin="lower", cmap="rainbow", vmin=0.0, vmax=1.0,
             extent=[bbox[0], bbox[1], bbox[2], bbox[3]], zorder=0
         )
 
-        # ---- plot both sets of grid cells (cell centers)
-        plot_indices(ax, orig_indices, N, bbox, "original covered", marker="s",
-                     ms=2.6, mfc="white", mec="black", z=10)
-        plot_indices(ax, best_indices, N, bbox, "best covered", marker="o",
-                     ms=2.6, mfc="yellow", mec="black", z=11)
+        # ---- PLOT ONLY THE TWO COVERAGE SETS (no input polyline)
+        # Shifted input coverage (top-left)
+        plot_indices(ax, shifted_input_indices, N, bbox, "input (shifted) covered",
+                     marker="s", ms=2.6, mfc="white", mec="black", z=10)
 
-        # ---- reporting
-        print(f"[{label}] angle={best['angle']:.2f}°, sum={best['score']:.4f}, "
-              f"original |cells|={len(orig_indices)}, best |cells|={len(best_indices)}")
+        # Solution coverage (best placement/rotation)
+        plot_indices(ax, best_indices, N, bbox, "solution covered",
+                     marker="o", ms=2.6, mfc="black", mec="white", z=11)
 
-        ax.set_title(f"{label}\nangle {best['angle']:.2f}°, sum {best['score']:.3f}")
-        ax.set_xlim(bbox[0], bbox[1]); ax.set_ylim(bbox[2], bbox[3])
-        ax.set_aspect("equal"); ax.set_xlabel("x", fontsize=11)
-        ax.legend(loc="upper right", fontsize=8, frameon=True)
+        # ---- pivots
+        ax.plot(ix_shift, iy_shift, marker="o", markersize=7,
+                color="white", mec="black", mew=1.0, zorder=12, label="input pivot (shifted)")
+        ax.plot(px, py, marker="o", markersize=7,
+                color="black", mec="white", mew=1.0, zorder=13, label="solution pivot")
 
-    axes[0].set_ylabel("y", fontsize=11)
+        # ---- tidy axes
+        ax.set_title(
+            f"{label}\nangle {best['angle']:.2f}°, "
+            f"pivot ({px:.3f}, {py:.3f}), "
+            f"avg {best_avg:.3f}"
+        )
+        ax.set_xlim(bbox[0], bbox[1])
+        ax.set_ylim(bbox[2], bbox[3])  # <-- note: parentheses, not brackets
+        ax.set_aspect("equal")
+        ax.set_xlabel("x", fontsize=11)
+        ax.set_ylabel("y", fontsize=11)
+
 
     # one shared colorbar
+    from mpl_toolkits.axes_grid1 import make_axes_locatable
+
+    # Create an axis on the right side of the figure
     cbar = fig.colorbar(im, ax=axes.ravel().tolist(), fraction=0.046, pad=0.02)
     cbar.set_label("Value (0–1)", fontsize=11)
 
