@@ -164,7 +164,7 @@ index_of_chioce=[9,34,83]
 for ind in index_of_chioce:
     #color_list_ori,sm_ori=compute_length_of_ranges(all_data[ind][3])
     #color_list_ori, sm_ori = color_by_reliability(all_data[ind][4])
-    color_list_ori, sm_ori = color_by_reliability(all_data[ind][5])
+    color_list_ori, sm_ori = normalize_and_map_colors(all_data[ind][5])
     plot_voronoi_regions_on_sphere(theta_phi_list,
                                    color_list_ori,
                                    sm_ori

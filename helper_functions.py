@@ -360,6 +360,7 @@ def plot_voronoi_regions_on_sphere(theta_phi_list,
     ax.set_zticks([])
 
     cbar = plt.colorbar(sm_ori, ticks=tick_values,ax=ax)
+    cbar.ax.tick_params(labelsize=20, length=10)
     plt.show()
 
 
@@ -967,18 +968,18 @@ def plot_alpha_beta_ranges(theta_phi_list, alpha_ranges_list, beta_ranges_list):
     ax.legend(handles=legend_elements, loc='upper right')
 
     # Axis labels
-    ax.set_ylabel("Failure Tolerant Rotation Angles of α and β", fontsize=18)  # 3x size
-    ax.set_xlabel(r"φ, ψ Tuples", fontsize=18)
+    ax.set_ylabel("Failure Tolerant Rotation Angles of α and β", fontsize=27)  # 3x size
+    ax.set_xlabel(r"φ, ψ Tuples", fontsize=27)
 
     # Tick parameters (2x larger)
-    ax.tick_params(axis='x', labelsize=15)
-    ax.tick_params(axis='y', labelsize=15)
+    ax.tick_params(axis='x', labelsize=23)
+    ax.tick_params(axis='y', labelsize=23)
 
     # Y-tick labels (redefine with fontsize)
-    ax.set_yticklabels(tick_labels, fontsize=12)
+    ax.set_yticklabels(tick_labels, fontsize=18)
 
     # X-tick labels (already set, now add fontsize)
-    ax.set_xticklabels(label_texts, rotation=45, ha='right', fontsize=12)
+    ax.set_xticklabels(label_texts, rotation=45, ha='right', fontsize=18)
 
     # Legend (2x larger)
     ax.legend(

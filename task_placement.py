@@ -11,7 +11,8 @@ from tqdm import tqdm
 from helper_functions import compute_reliability_by_f_list
 from planar3R_FTW_morphological_estimation_ssm import compute_beta_range
 
-
+# max min max% min% angle pivot avg sum size
+# 10 times physical exp for 2 trj
 # ----------------------- Global config -----------------------
 N = 256
 joint_reliabilities = [0.5, 0.6, 0.7]
@@ -688,9 +689,11 @@ if __name__ == "__main__":
 
     rand_paths = gen_random_continuous_inputs(n=1, num_ctrl=7, samples_per_seg=32, box=1, max_length=4, seed=None)
     for i, p in enumerate(rand_paths, start=1):
-        paths[f"Random curve{i}"] = p
+        paths[f"Random curve"] = p
 
-    fig, axes = plt.subplots(2, 3, figsize=(14, 9), constrained_layout=True)
+    """
+
+    fig, axes = plt.subplots(3, 2, figsize=(9, 14), constrained_layout=True)
     axes = axes.ravel()
     bbox = (-x_range_sample, x_range_sample, -x_range_sample, x_range_sample)
     im = None
@@ -709,6 +712,8 @@ if __name__ == "__main__":
                 supersample=RETRY_SUPERSAMPLE, close=RETRY_CLOSE
             )
         print(f"Search time [{label}]: {t1 - t0:.6f}s" + (" + retry" if need_retry else ""))
+
+
 
         # ---- compute pivots (solution in global coords; input in original coords)
         px, py = best_pivot_xy(best, N, bbox)  # solution pivot (keep global)
@@ -743,11 +748,54 @@ if __name__ == "__main__":
             f"[{label}] cells: input_shifted={n_cells_shifted}, solution={n_cells_best}; "
             f"avg_shifted={avg_shifted:.4f}, avg_solution={best_avg:.4f}"
         )
+
+        # ---- gather stats on the solution footprint
+        if best_indices:
+            rr_b, cc_b = np.array(best_indices, dtype=int).T
+            vals_b = F[rr_b, cc_b].astype(np.float32)
+            solution_sum = float(vals_b.sum())
+            n_cells_best = int(vals_b.size)
+            solution_avg = float(solution_sum / max(n_cells_best, 1))
+            vmin = float(vals_b.min())
+            vmax = float(vals_b.max())
+            pct_at_max = 100.0 * float((vals_b == vmax).sum()) / n_cells_best
+            pct_at_min = 100.0 * float((vals_b == vmin).sum()) / n_cells_best
+        else:
+            solution_sum = 0.0
+            n_cells_best = 0
+            solution_avg = float("nan")
+            vmin = float("nan")
+            vmax = float("nan")
+            pct_at_max = float("nan")
+            pct_at_min = float("nan")
+
+        # ---- input coverage stats (shifted input you already computed)
+        n_input_cells = int(len(shifted_input_indices))
+
+        # ---- print the 10 requested values
+        if label == list(paths.keys())[0]:
+            print("label,n_input_cells,solution_sum,solution_avg,pivot_x,pivot_y,angle_deg,"
+                  "min_value_in_solution,max_value_in_solution,pct_cells_at_max(%),pct_cells_at_min(%)")
+
+        print(f"{label},"
+              f"{n_input_cells},"
+              f"{solution_sum:.6f},"
+              f"{solution_avg:.6f},"
+              f"{px:.6f},"
+              f"{py:.6f},"
+              f"{best['angle']:.4f},"
+              f"{vmin:.6f},"
+              f"{vmax:.6f},"
+              f"{pct_at_max:.2f},"
+              f"{pct_at_min:.2f}")
+
         # ---- background field only (no extra markers)
+
         im = ax.imshow(
             F, origin="lower", cmap="rainbow", vmin=0.0, vmax=1.0,
             extent=[bbox[0], bbox[1], bbox[2], bbox[3]], zorder=0
         )
+
 
         # ---- PLOT ONLY THE TWO COVERAGE SETS (no input polyline)
         # Shifted input coverage (top-left)
@@ -765,23 +813,129 @@ if __name__ == "__main__":
                 color="black", mec="white", mew=1.0, zorder=13, label="solution pivot")
 
         # ---- tidy axes
-        ax.set_title(
-            f"{label}\nangle {best['angle']:.2f}°, "
-            f"pivot ({px:.3f}, {py:.3f}), "
-            f"avg {best_avg:.3f}"
-        )
+        
         ax.set_xlim(bbox[0], bbox[1])
         ax.set_ylim(bbox[2], bbox[3])  # <-- note: parentheses, not brackets
         ax.set_aspect("equal")
         ax.set_xlabel("x", fontsize=11)
         ax.set_ylabel("y", fontsize=11)
 
-
     # one shared colorbar
     from mpl_toolkits.axes_grid1 import make_axes_locatable
 
     # Create an axis on the right side of the figure
-    cbar = fig.colorbar(im, ax=axes.ravel().tolist(), fraction=0.046, pad=0.02)
-    cbar.set_label("Value (0–1)", fontsize=11)
+    #cbar = fig.colorbar(im, ax=axes.ravel().tolist(), fraction=0.046, pad=0.02)
+    #cbar.set_label("Value (0–1)", fontsize=11)
+    #fig.set_constrained_layout_pads(w_pad=0.05, h_pad=0.2, hspace=0.05, wspace=0.05)
 
+    plt.show()
+    """
+
+    bbox = (-x_range_sample, x_range_sample, -x_range_sample, x_range_sample)
+    angles = np.linspace(-180, 180, n_angles, dtype=np.float32)
+    for i, (label, path_cont) in enumerate(list(paths.items())[:6], start=1):
+        # Create an individual figure per input
+        fig_i, ax = plt.subplots(figsize=(5.8, 5.8))
+        im = None
+
+        t0 = time.perf_counter()
+        best, meta, ker, best_ker_r, orig_indices, best_indices = run_search_and_indices(
+            F, path_cont, thickness_px=THICKNESS_PX, angles_deg=angles, bbox=bbox,
+            supersample=0, close=False
+        )
+        t1 = time.perf_counter()
+
+        need_retry = (len(orig_indices) > 0 and len(best_indices) < COVERAGE_RETRY_RATIO * len(orig_indices))
+        if need_retry:
+            best, meta, ker, best_ker_r, orig_indices, best_indices = run_search_and_indices(
+                F, path_cont, thickness_px=THICKNESS_PX, angles_deg=angles, bbox=bbox,
+                supersample=RETRY_SUPERSAMPLE, close=RETRY_CLOSE
+            )
+        print(f"Search time [{label}]: {t1 - t0:.6f}s" + (" + retry" if need_retry else ""))
+
+        # ---- compute pivots
+        px, py = best_pivot_xy(best, N, bbox)  # solution pivot (global)
+        ix, iy = input_pivot_xy(meta, N, bbox)  # input pivot (original)
+
+        # ---- shifted input to top-left
+        path_arr = np.asarray(path_cont, np.float32)
+        shifted_path, (dx, dy) = shift_to_top_left(path_arr, 2.9)
+        ix_shift, iy_shift = shift_point(ix, iy, dx, dy)
+        pts_grid_shifted = cont_to_idx(shifted_path, N, *bbox)
+        ker_shift, meta_shift = rasterize_path_kernel_with_meta(
+            pts_grid_shifted, thickness_px=THICKNESS_PX
+        )
+        shifted_input_indices = footprint_indices_original(ker_shift, meta_shift, F.shape)
+
+        # ---- compute stats (10 values, including max)
+        if best_indices:
+            rr_b, cc_b = np.array(best_indices, dtype=int).T
+            vals_b = F[rr_b, cc_b].astype(np.float32)
+            solution_sum = float(vals_b.sum())
+            n_cells_best = int(vals_b.size)
+            solution_avg = float(solution_sum / max(n_cells_best, 1))
+            vmin = float(vals_b.min())
+            vmax = float(vals_b.max())
+            pct_at_max = 100.0 * float((vals_b == vmax).sum()) / n_cells_best
+            pct_at_min = 100.0 * float((vals_b == vmin).sum()) / n_cells_best
+        else:
+            solution_sum = 0.0
+            n_cells_best = 0
+            solution_avg = float("nan")
+            vmin = float("nan")
+            vmax = float("nan")
+            pct_at_max = float("nan")
+            pct_at_min = float("nan")
+
+        n_input_cells = int(len(shifted_input_indices))
+
+        if i == 1:
+            print("label,n_input_cells,solution_sum,solution_avg,pivot_x,pivot_y,angle_deg,"
+                  "min_value_in_solution,max_value_in_solution,pct_cells_at_max(%),pct_cells_at_min(%)")
+        print(f"{label},"
+              f"{n_input_cells},"
+              f"{solution_sum:.6f},"
+              f"{solution_avg:.6f},"
+              f"{px:.6f},"
+              f"{py:.6f},"
+              f"{best['angle']:.4f},"
+              f"{vmin:.6f},"
+              f"{vmax:.6f},"
+              f"{pct_at_max:.2f},"
+              f"{pct_at_min:.2f}")
+
+        # ---- plot background field
+        im = ax.imshow(
+            F, origin="lower", cmap="rainbow", vmin=0.0, vmax=1.0,
+            extent=[bbox[0], bbox[1], bbox[2], bbox[3]], zorder=0
+        )
+
+        # ---- coverage outlines
+        shifted_mask = indices_to_mask(shifted_input_indices, F.shape)
+        draw_mask_boundary(ax, shifted_mask, N, bbox, lw=1.8, color="white", z=12)
+
+        best_mask = indices_to_mask(best_indices, F.shape)
+        draw_mask_boundary(ax, best_mask, N, bbox, lw=2.2, color="black", z=13)
+
+        # ---- pivots
+        ax.plot(ix_shift, iy_shift, marker="o", markersize=7,
+                color="white", mec="black", mew=1.0, zorder=12, label="input pivot (shifted)")
+        ax.plot(px, py, marker="o", markersize=7,
+                color="black", mec="white", mew=1.0, zorder=13, label="solution pivot")
+
+        # ---- axes & title
+        ax.set_xlim(bbox[0], bbox[1])
+        ax.set_ylim(bbox[2], bbox[3])
+        ax.set_aspect("equal")
+        ax.set_xlabel("x", fontsize=22)
+        ax.set_ylabel("y", fontsize=22)
+        ax.tick_params(axis='x', labelsize=18)  # Increase font size for X-axis ticks
+        ax.tick_params(axis='y', labelsize=18)
+        #ax.set_title(f"{label}: angle {best['angle']:.2f}°, avg {solution_avg:.3f}")
+
+        # per-figure colorbar on the right
+        #cbar = fig_i.colorbar(im, ax=ax, fraction=0.046, pad=0.02)
+        #cbar.set_label("Value (0–1)", fontsize=10)
+
+    # show all figures at once
     plt.show()

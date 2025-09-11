@@ -1213,11 +1213,11 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     tick_labels = [r'$-\pi$', r'$-\pi/2$', '0', r'$\pi/2$', r'$\pi$']
     ax.set_ylim(-np.pi, np.pi)
     ax.set_yticks(tick_positions)
-    ax.set_yticklabels(tick_labels, fontsize=12)
+    ax.set_yticklabels(tick_labels, fontsize=18)
     #ax.set_xticks(range(len(grid_centers)))
     #ax.set_xticklabels([f"({x:.2f},{z:.2f})" for x,y,z in grid_centers], rotation=45, ha="right", fontsize=12)
-    ax.set_ylabel("Failure Tolerant Rotation Angles of β", fontsize=18)
-    ax.set_xlabel("x, z Task Space Locations", fontsize=18)
+    ax.set_ylabel("Failure Tolerant Rotation Angles of β", fontsize=27)
+    ax.set_xlabel("x, z Task Space Locations", fontsize=27)
     ax.grid(axis='y', linestyle='--', alpha=0.6)
     plt.tight_layout()
     NDIGITS = 8
@@ -1411,8 +1411,11 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     set_sparse_xyz_labels(ax, sub_grid_centers, max_labels=20, ndigits=2)
     ax.set_xlim(-0.5, len(sub_grid_centers) - 0.5)
     ax.set_facecolor("white")
-    ax2.set_xlabel('X')
-    ax2.set_ylabel('Z')
+    ax2.set_xlabel('X', fontsize=24)
+    ax2.set_ylabel('Z', fontsize=24)
+    ax2.tick_params(axis='both', which='major', labelsize=18)
+
+
     frame_points = [
         (x_range[0], z_range[0]), (x_range[1], z_range[0]),
         (x_range[1], z_range[1]), (x_range[0], z_range[1]),
