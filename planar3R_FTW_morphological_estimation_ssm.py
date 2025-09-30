@@ -22,9 +22,9 @@ sample_num = 16
 #r1 =0.3
 #r2 =0.2
 #r3 =0.1
-r1 = 0.5
-r2 = 0.6
-r3 = 0.7
+r1 = 1.0/3.0
+r2 = 1.0/3.0
+r3 = 1.0/3.0
 
 # L = [0.4888656043245976, 1.3992499610293656, 1.1118844346460368]
 # L = [1, 1, 1]
@@ -33,7 +33,8 @@ r3 = 0.7
 #     (-3.119803865520389, 0.38031991292340495)]
 # L=[1.42,1,0.58]
 #L=[np.sqrt(0.5),np.sqrt(0.5),np.sqrt(2.0/3.0)]
-L = [1, 1, 1]
+#L = [1, 1, 1]
+L=[0.4454,0.3143,0.2553]
 # CA=[(-3.031883452592004, 3.031883452592004), (-1.619994146091692, -0.8276157453255935), (-1.6977602095460234, -0.7265946655975718)]
 #CA = [(-0.7391244590957556, 0.7391244590957556), (-0.7422740927125862, 1.9756037937159996),
  #     (-2.11211741668124, 2.12020510030)]
@@ -255,6 +256,34 @@ def find_single_intersection(ssm_theta_list):
 
     return tof
 
+def dls(x_target, initial_config):
+    q = np.array(initial_config).T.reshape((3, 1))
+    step_num = 0
+    error_threshold = 1e-6
+    error = 10
+    while error > error_threshold:
+        x_current = forward_kinematics_3R(q, L)
+        delta_x = x_target - x_current
+        error = np.linalg.norm(x_target - x_current)
+        J = Jacobian_3R(q, L)
+        correction = J.T @ np.linalg.inv(J @ J.T + 0.5 ** 2 * np.eye(2)) @ delta_x
+        if np.linalg.norm(correction) <= 1e-9: return None
+        q = q + 0.1 * correction
+
+        for i in range(len(q)):
+            q[i] %= 2 * np.pi
+            if q[i] > np.pi: q[i] -= 2 * np.pi
+            if q[i] < -np.pi: q[i] += 2 * np.pi
+
+        step_num += 1
+        previous_x = x_current
+        x_current = forward_kinematics_3R(q, L)
+        consecutive_delta_x = np.linalg.norm(previous_x - x_current)
+        if consecutive_delta_x < 1e-8:
+            return None
+    sol = q
+    return sol
+
 
 def find_random_ssm(x_target, all_ssm_theta_list):
     ssm_found = False
@@ -337,7 +366,7 @@ def find_random_ssm(x_target, all_ssm_theta_list):
         num += 1
         ssm_theta_list.append(theta)
     all_ssm_theta_list.extend(ssm_theta_list)
-    if x_target[0]==2 and x_target[1]==0:
+    if x_target[0]==1.96875 and x_target[1]==0:
         list_of_lists = [arr.flatten().tolist() for arr in ssm_theta_list]  # Convert np.array to list
         with open('plot_list.txt', 'w') as file:
             json.dump(list_of_lists, file, indent=4)
@@ -346,7 +375,7 @@ def find_random_ssm(x_target, all_ssm_theta_list):
 
     #if x == -1.875 and y == 0.375:
     """
-    if x == 1.912 and y == 0:
+    if x == 2 and y == 0:
         ppoints = np.array(ssm_theta_list)
 
         figp = plt.figure()
@@ -623,14 +652,14 @@ def main_function():
     # z_levels = cr_list
     # np.linspace(-3, 3, num_reliable_ranges)
 
-    """ original approach
+    #""" original approach
     section_length = 3.0 / sample_num
     x_values = (np.arange(sample_num) + 0.5) * section_length
     y_values = np.zeros(sample_num)
     points = np.column_stack((x_values, y_values))
-    """
+    #"""
 
-    #""" uniform sample
+    """ uniform sample
     d = 3.0 / sample_num
     edges = np.arange(-3, 3 + 1e-6, d)
     n_cells = edges.size - 1             # cells per axis
@@ -641,9 +670,9 @@ def main_function():
     y_values=y_c[mask]
     points = np.column_stack((x_values, y_values))
     print(len(points))
-    #"""
+    """
 
-    #""" uniform and random
+    """ uniform and random
     # ---------- plotting ----------
     fig, ax = plt.subplots(figsize=(6, 6))
 
@@ -652,7 +681,7 @@ def main_function():
     ax.plot(3*np.cos(theta), 3*np.sin(theta), linewidth=1.2, color='black')
     circle = patches.Circle((0, 0), np.sum(L), edgecolor=color_list[-1], facecolor=color_list[-1], linewidth=0, zorder=0)
     ax.add_patch(circle)
-    #"""
+    """
 
 
 
@@ -668,7 +697,7 @@ def main_function():
     diam = 3.0 / sample_num
     """
 
-    """ original approach
+    #""" original approach
     ring_width = 2.0*x_values[0]
     
     
@@ -696,7 +725,7 @@ def main_function():
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
     N=0
-    """
+    #"""
 
     def plot_prefailure_boundary(ax,sample_num):
         section_length = 3.0 / sample_num
@@ -731,7 +760,7 @@ def main_function():
         point = points[i]
         x, y = point
 
-        #print(point)
+        print(point)
         beta_ranges, reliable_beta_ranges,F_list = compute_beta_range(x, y)  # Get multiple beta ranges
 
         # for b_r_index in range(len(reliable_beta_ranges)):
@@ -761,7 +790,7 @@ def main_function():
 
             f_to=F_list[b_r_index]
             if f_to:
-                #""" uniform sample
+                """ uniform sample
                 rect = Rectangle(
                     (x - d / 2, y - d / 2),
                     d, d,
@@ -772,7 +801,7 @@ def main_function():
                     alpha=1.0
                 )
                 ax.add_patch(rect)
-                #"""
+                """
 
                 """random sample
                 circ = Circle(
@@ -788,7 +817,7 @@ def main_function():
                 """
 
             for beta_range in b_r:
-                """ original approach
+                #""" original approach
                 # Compute angles in degrees (as required by Wedge)
                 theta1 = np.degrees(beta_range[0])  # Start angle (-π)
                 theta2 = np.degrees(beta_range[1])  # End angle (π)
@@ -838,7 +867,7 @@ def main_function():
                     final_wedges.append(wedge)
                     final_colors.append(color)
     
-                """
+                #"""
 
     """ original
     if polys2d:  
@@ -849,7 +878,7 @@ def main_function():
     #plot_prefailure_boundary(ax,sample_num)
 
 
-    #""" uniform sample
+    """ uniform sample
     # draw grid lines
     for e in edges:
         ax.plot([edges[0], edges[-1]], [e, e], linewidth=1, alpha=1,zorder=8)  # horizontal
@@ -860,7 +889,7 @@ def main_function():
     #"""
     end = time.perf_counter()
     print(f"Loop took {end - start:.6f} seconds")
-    #""" uniform and random
+    """ uniform and random
 
     ax.set_aspect('equal', adjustable='box')
     ax.set_xlim(-3, 3)
@@ -874,10 +903,10 @@ def main_function():
     ax.tick_params(axis='y', labelsize=18)  # Increase font size for Y-axis ticks
     plt.tight_layout()
     plt.show()
-    #"""
+    """
 
 
-    """ original approach
+    #""" original approach
     #ax2d3.scatter(-1.875,0.375, s=8, color='black')
     ax2d3.tick_params(axis='x', labelsize=18)  # Increase font size for X-axis ticks
     ax2d3.tick_params(axis='y', labelsize=18)  # Increase font size for Y-axis ticks
@@ -942,7 +971,19 @@ def main_function():
     # ax2d.set_title("Fault tolerant workspace")
     fig2.show()
     plt.show()
-    """
-
+    #"""
+test_points=[
+    (0.557901,0.231449),
+    (0.6152935,0.149558),
+    (0.672686,0.067667),
+    (0.730079, -0.014224),
+    (0.787471,-0.096115)
+]
 
 #main_function()
+initial_config=np.random.uniform(low=-np.pi, high=np.pi, size=(3,))
+for tp in test_points:
+    (x,y)=tp
+    sol=dls(np.array([x, y]).T.reshape((2, 1)),initial_config)
+    initial_config=sol
+    print(sol)

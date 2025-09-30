@@ -15,8 +15,8 @@ from planar3R_FTW_morphological_estimation_ssm import compute_beta_range
 # 10 times physical exp for 2 trj
 # ----------------------- Global config -----------------------
 N = 256
-joint_reliabilities = [0.5, 0.6, 0.7]
-x_range_sample = 3
+joint_reliabilities = [1.0/3.0,1.0/3.0, 1.0/3.0]
+x_range_sample = np.sum([0.4454,0.3143,0.2553])
 n_angles=1440
 
 # Search/robustness knobs
@@ -562,11 +562,11 @@ def path_line():
     # Horizontal straight line from -2 to +2
     #x = np.linspace(-1.7, 1.7, 300, dtype=np.float32)
     #y = np.zeros_like(x)
-    y = np.linspace(-1.7, 1.7, 300, dtype=np.float32)
+    y = np.linspace(-0.20, 0.20, 100, dtype=np.float32)
     x = np.zeros_like(y)
     return np.column_stack([x, y])
 
-def path_circle(num_pts=300, radius=1.2):
+def path_circle(num_pts=300, radius=0.12):
     # Circle centered at origin
     theta = np.linspace(0, 2*np.pi, num_pts, endpoint=True, dtype=np.float32)
     x = radius * np.cos(theta)
@@ -677,17 +677,17 @@ if __name__ == "__main__":
     print(f"reliability map computation took {end - start:.6f} seconds")
 
     paths = {
-        "Sin curve":  path_short(),
-        "Triangle": path_medium(),
+        #"Sin curve":  path_short(),
+        #"Triangle": path_medium(),
         #"Rectangle":   path_long(),
         "Line": path_line(),
         #"Half-Moon": clip_to_circle(path_half_moon(center=(1.1, -1.0), R=1.1, r=0.6, dx=0.7)),
         "Circle": path_circle(),
         #"Square": path_square(),
-        "Rectangle":   path_long(),
+        #"Rectangle":   path_long(),
     }
 
-    rand_paths = gen_random_continuous_inputs(n=1, num_ctrl=7, samples_per_seg=32, box=1, max_length=4, seed=None)
+    rand_paths = gen_random_continuous_inputs(n=0, num_ctrl=7, samples_per_seg=32, box=1, max_length=4, seed=None)
     for i, p in enumerate(rand_paths, start=1):
         paths[f"Random curve"] = p
 
@@ -859,7 +859,7 @@ if __name__ == "__main__":
 
         # ---- shifted input to top-left
         path_arr = np.asarray(path_cont, np.float32)
-        shifted_path, (dx, dy) = shift_to_top_left(path_arr, 2.9)
+        shifted_path, (dx, dy) = shift_to_top_left(path_arr, x_range_sample-x_range_sample/30.0)
         ix_shift, iy_shift = shift_point(ix, iy, dx, dy)
         pts_grid_shifted = cont_to_idx(shifted_path, N, *bbox)
         ker_shift, meta_shift = rasterize_path_kernel_with_meta(

@@ -16,6 +16,9 @@ points = np.hstack(array_list)  # Shape will be (3, N)
 # Extract theta values
 theta1, theta2, _ = points  # Ignore theta3
 
+t1_max = np.max(theta1)
+t2_max = np.max(theta2)
+
 # Find min and max values for theta1 and theta2
 theta1_min, theta1_max = np.min(theta1), np.max(theta1)
 theta2_min, theta2_max = np.min(theta2), np.max(theta2)
@@ -41,14 +44,14 @@ if extreme_theta1:
     ax.scatter(t1_vals, t2_vals, c='green', marker='o', s=100, label=r"$\theta_1^{\text{extreme}}$")
     # Add dashed lines to the x-axis
     for t1, t2 in extreme_theta1:
-        ax.plot([t1, t1], [t2, -np.pi], linestyle="dashed", color="green", linewidth=1.5, alpha=0.7)
+        ax.plot([t1, t1], [t2_max, -np.pi], linestyle="dashed", color="green", linewidth=1.5, alpha=0.7)
 
 if extreme_theta2:
     t1_vals, t2_vals = zip(*extreme_theta2)
-    ax.scatter(t1_vals, t2_vals, c='blue', marker='o', s=100, label=r"$\theta_2^{\text{extreme}}$")
+    ax.scatter(t1_vals, t2_vals, c='green', marker='o', s=100, label=r"$\theta_2^{\text{extreme}}$")
     # Add dashed lines to the y-axis
     for t1, t2 in extreme_theta2:
-        ax.plot([t1, -np.pi], [t2, t2], linestyle="dashed", color="blue", linewidth=1.5, alpha=0.7)
+        ax.plot([t1_max, -np.pi], [t2, t2], linestyle="dashed", color="green", linewidth=1.5, alpha=0.7)
 
 # Set labels
 ax.set_xlabel(r"$\theta_1$", fontsize=30)
@@ -97,7 +100,7 @@ def color_ticks(axis, tick_values, min_val, max_val, extra_ticks, min_color, max
 
 # Color extreme and extra ticks
 color_ticks(ax.xaxis, theta1_ticks, theta1_min, theta1_max, extra_ticks_theta1, 'green', 'green', 'k')
-color_ticks(ax.yaxis, theta2_ticks, theta2_min, theta2_max, extra_ticks_theta2, 'blue', 'blue', 'k')
+color_ticks(ax.yaxis, theta2_ticks, theta2_min, theta2_max, extra_ticks_theta2, 'green', 'green', 'k')
 
 
 ax.fill_betweenx(

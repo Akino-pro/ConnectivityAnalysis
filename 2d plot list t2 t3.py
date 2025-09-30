@@ -16,6 +16,9 @@ points = np.hstack(array_list)  # Shape will be (3, N)
 # Extract theta values
 _, theta2, theta3 = points  # Ignore theta3
 
+t2_max = np.max(theta2)
+t3_max = np.max(theta3)
+
 # Find min and max values for theta1 and theta2
 theta2_min, theta2_max = np.min(theta2), np.max(theta2)
 theta3_min, theta3_max = np.min(theta3), np.max(theta3)
@@ -39,17 +42,17 @@ extreme_theta3 = [(t2, t3) for t2, t3 in extreme_points if t3 in [theta3_min, th
 
 if extreme_theta2:
     t2_vals, t3_vals = zip(*extreme_theta2)
-    ax.scatter(t2_vals, t3_vals, c='blue', marker='o', s=100, label=r"$\theta_2^{\text{extreme}}$")
+    ax.scatter(t2_vals, t3_vals, c='green', marker='o', s=100, label=r"$\theta_2^{\text{extreme}}$")
     # Add dashed lines to the x-axis
     for t2, t3 in extreme_theta2:
-        ax.plot([t2, t2], [t3, -np.pi], linestyle="dashed", color="blue", linewidth=1.5, alpha=0.7)
+        ax.plot([t2, t2], [t3_max, -np.pi], linestyle="dashed", color="green", linewidth=1.5, alpha=0.7)
 
 if extreme_theta3:
     t2_vals, t3_vals = zip(*extreme_theta3)
-    ax.scatter(t2_vals, t3_vals, c='red', marker='o', s=100, label=r"$\theta_3^{\text{extreme}}$")
+    ax.scatter(t2_vals, t3_vals, c='green', marker='o', s=100, label=r"$\theta_3^{\text{extreme}}$")
     # Add dashed lines to the y-axis
     for t2, t3 in extreme_theta3:
-        ax.plot([t2, -np.pi], [t3, t3], linestyle="dashed", color="red", linewidth=1.5, alpha=0.7)
+        ax.plot([t2_max, -np.pi], [t3, t3], linestyle="dashed", color="green", linewidth=1.5, alpha=0.7)
 
 # Set labels
 ax.set_xlabel(r"$\theta_2$", fontsize=30)
@@ -97,8 +100,8 @@ def color_ticks(axis, tick_values, min_val, max_val, extra_ticks, min_color, max
             label.set_color('black')  # Default color for regular ticks
 
 # Color extreme and extra ticks
-color_ticks(ax.xaxis, theta2_ticks, theta2_min, theta2_max, extra_ticks_theta2, 'blue', 'blue', 'k')
-color_ticks(ax.yaxis, theta3_ticks, theta3_min, theta3_max, extra_ticks_theta3, 'red', 'red', 'k')
+color_ticks(ax.xaxis, theta2_ticks, theta2_min, theta2_max, extra_ticks_theta2, 'green', 'green', 'k')
+color_ticks(ax.yaxis, theta3_ticks, theta3_min, theta3_max, extra_ticks_theta3, 'green', 'green', 'k')
 
 ax.fill_betweenx(
     y=np.linspace(extra_ticks_theta3[0], extra_ticks_theta3[1], 100),  # Range in theta3
