@@ -11,7 +11,8 @@ import matplotlib.cm as cm
 from shapely.geometry import MultiPolygon
 from shapely.ops import unary_union
 
-from helper_functions import normalize_and_map_colors, sorted_indices, wedge_polygon, plot_exterior_boundary
+from helper_functions import normalize_and_map_colors, sorted_indices, wedge_polygon, plot_exterior_boundary, \
+    sample_line
 
 step_size = 0.01
 # terminate_threshold = step_size / 2.0
@@ -35,6 +36,7 @@ r3 = 1.0/3.0
 #L=[np.sqrt(0.5),np.sqrt(0.5),np.sqrt(2.0/3.0)]
 #L = [1, 1, 1]
 L=[0.4454,0.3143,0.2553]
+print(np.sum(L))
 # CA=[(-3.031883452592004, 3.031883452592004), (-1.619994146091692, -0.8276157453255935), (-1.6977602095460234, -0.7265946655975718)]
 #CA = [(-0.7391244590957556, 0.7391244590957556), (-0.7422740927125862, 1.9756037937159996),
  #     (-2.11211741668124, 2.12020510030)]
@@ -73,6 +75,16 @@ print(cr_list)
 indices = sorted_indices(cr_list)
 print(indices)
 
+def forward_kinematics_2R(theta, L,base_point):
+    theta = theta.flatten().tolist()
+    x1 = L[0] * np.cos(theta[0])
+    y1 = L[0] * np.sin(theta[0])
+
+    x2 = x1 + L[1] * np.cos(theta[0] + theta[1])
+    y2 = y1 + L[1] * np.sin(theta[0] + theta[1])
+    x2+=base_point[0]
+    y2+=base_point[1]
+    return np.array([x2, y2]).T.reshape((2, 1))
 
 def forward_kinematics_3R(theta, L):
     """
@@ -283,6 +295,74 @@ def dls(x_target, initial_config):
             return None
     sol = q
     return sol
+
+def ik_2r_single(x, y, L1, L2, prev_angle=None, joint_index=1, base=(0.0, 0.0)):
+    """
+    Inverse kinematics for a 2R planar robot with arbitrary base point.
+    Returns a single solution in radians.
+
+    Args:
+        x, y       : target end-effector coordinates (global frame)
+        L1, L2     : link lengths
+        prev_angle : previous known joint angle (radians)
+        joint_index: 1 for joint1, 2 for joint2 (which joint is known)
+        base       : (x0, y0) base coordinates of the robot in global frame
+
+    Returns:
+        (theta1, theta2) in radians
+    """
+    # Shift target into base-centered frame
+    x0, y0 = base
+    X = x - x0
+    Y = y - y0
+
+    r = np.hypot(X, Y)
+    if r > L1 + L2 or r < abs(L1 - L2):
+        raise ValueError("Target out of reach")
+
+    # cos(theta2), clamp for safety
+    c2 = (X*X + Y*Y - L1*L1 - L2*L2) / (2*L1*L2)
+    c2 = np.clip(c2, -1.0, 1.0)
+
+    # elbow up and down
+    s2_pos = np.sqrt(1.0 - c2*c2)
+    s2_neg = -s2_pos
+
+    def solve(s2):
+        th2 = np.arctan2(s2, c2)
+        th1 = np.arctan2(Y, X) - np.arctan2(L2*s2, L1 + L2*c2)
+        return th1, th2
+
+    sol_up = solve(s2_pos)
+    sol_dn = solve(s2_neg)
+
+    # If no previous joint angle is given, return both solutions
+    if prev_angle is None:
+        return [sol_up, sol_dn]
+
+    # Compare to previous joint angle
+    if joint_index == 1:
+        diff_up = abs(np.arctan2(np.sin(sol_up[0]-prev_angle), np.cos(sol_up[0]-prev_angle)))
+        diff_dn = abs(np.arctan2(np.sin(sol_dn[0]-prev_angle), np.cos(sol_dn[0]-prev_angle)))
+    elif joint_index == 2:
+        diff_up = abs(np.arctan2(np.sin(sol_up[1]-prev_angle), np.cos(sol_up[1]-prev_angle)))
+        diff_dn = abs(np.arctan2(np.sin(sol_dn[1]-prev_angle), np.cos(sol_dn[1]-prev_angle)))
+    else:
+        raise ValueError("joint_index must be 1 or 2")
+
+    return sol_up if diff_up <= diff_dn else sol_dn
+
+def lock_joint_1(theta_1):
+    new_base_point=(L[0]*np.cos(theta_1),L[0]*np.sin(theta_1))
+    return [L[1],L[2]],new_base_point
+
+def lock_joint_2(theta_2):
+    new_L1=np.sqrt(L[0]**2+L[1]**2-2.0*L[0]*L[1]*np.cos(np.pi-np.abs(theta_2)))
+    return [new_L1,L[2]],(0,0)
+
+def lock_joint_3(theta_3):
+    new_L1=np.sqrt(L[1]**2+L[2]**2-2.0*L[1]*L[2]*np.cos(np.pi-np.abs(theta_3)))
+    return [L[0],new_L1],(0,0)
 
 
 def find_random_ssm(x_target, all_ssm_theta_list):
@@ -972,6 +1052,17 @@ def main_function():
     fig2.show()
     plt.show()
     #"""
+
+
+
+p1 = (0.557901, 0.231449)
+p2 = (0.787471, -0.096115)
+sample_number=40
+points = sample_line(p1, p2, sample_number)
+random_lock_time = np.random.randint(1, sample_number+2)
+random_lock_joint = np.random.randint(0, 3)
+
+
 test_points=[
     (0.557901,0.231449),
     (0.6152935,0.149558),
@@ -980,10 +1071,70 @@ test_points=[
     (0.787471,-0.096115)
 ]
 
+shifted_points=[
+    (0.357901,0.231449),
+    (0.452935,0.149558),
+    (0.472686,0.067667),
+    (0.530079, -0.014224),
+    (0.587471,-0.096115)
+]
+#q = np.array([10*np.pi/180.0,10*np.pi/180.0,10*np.pi/180.0]).T.reshape((3, 1))
+#print(forward_kinematics_3R(q, L))
+
 #main_function()
 initial_config=np.random.uniform(low=-np.pi, high=np.pi, size=(3,))
-for tp in test_points:
-    (x,y)=tp
-    sol=dls(np.array([x, y]).T.reshape((2, 1)),initial_config)
-    initial_config=sol
-    print(sol)
+base=(0,0)
+new_L=L
+reference_index=0
+reference_angle=0
+locked_angle=0
+for index, tp in enumerate(points) :
+    print(tp)
+    (x, y)=tp
+    if index==random_lock_time:
+        match random_lock_joint:
+            case 0:
+                locked_angle=initial_config[0]
+                new_L,new_base=lock_joint_1(locked_angle)
+                base =new_base
+                reference_index=1
+                reference_angle=initial_config[reference_index]
+            case 1:
+                locked_angle = initial_config[1]
+                new_L,new_base=lock_joint_2(locked_angle)
+                base = new_base
+                reference_index = 2
+                reference_angle = initial_config[reference_index]
+            case 2:
+                locked_angle=initial_config[2]
+                new_L,new_base=lock_joint_3(locked_angle)
+                base = new_base
+                reference_index = 0
+                reference_angle = initial_config[reference_index]
+    print("-----------------------")
+    print(f"joint {reference_index} is locked at angle {locked_angle/np.pi*180.0}")
+    print("-----------------------")
+    if index>=random_lock_time:
+        theta1, theta2=ik_2r_single(x, y, new_L[0], new_L[1], reference_angle, reference_index, base)
+        match random_lock_joint:
+            case 0:
+                 print(locked_angle/np.pi*180.0)
+                 print(theta1 / np.pi * 180.0)
+                 print(theta2 / np.pi * 180.0)
+            case 1:
+                 print(theta1 / np.pi * 180.0)
+                 print(locked_angle / np.pi * 180.0)
+                 print(theta2 / np.pi * 180.0)
+            case 2:
+                 print(theta1 / np.pi * 180.0)
+                 print(theta2 / np.pi * 180.0)
+                 print(locked_angle / np.pi * 180.0)
+        print("-----------------------")
+    else:
+        sol=dls(np.array([x, y]).T.reshape((2, 1)),initial_config)
+        initial_config=sol
+        for i in sol:
+            print(i/np.pi*180.0)
+        #print(sol)
+        print("-----------------------")
+

@@ -682,7 +682,7 @@ if __name__ == "__main__":
         #"Rectangle":   path_long(),
         "Line": path_line(),
         #"Half-Moon": clip_to_circle(path_half_moon(center=(1.1, -1.0), R=1.1, r=0.6, dx=0.7)),
-        "Circle": path_circle(),
+        #"Circle": path_circle(),
         #"Square": path_square(),
         #"Rectangle":   path_long(),
     }

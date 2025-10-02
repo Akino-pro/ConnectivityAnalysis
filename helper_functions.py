@@ -1278,3 +1278,20 @@ def plot_exterior_boundary(ax, geom, **kw):
     else:
         x, y = geom.exterior.xy
         ax.plot(x, y, **kw,zorder=999)
+
+
+def sample_line(p1, p2, n_between=40):
+    """
+    Uniformly sample points along the line segment between p1 and p2.
+
+    Parameters:
+        p1 (tuple or list): First point (x1, y1)
+        p2 (tuple or list): Second point (x2, y2)
+        n_between (int): Number of points between p1 and p2 (default=40)
+
+    Returns:
+        list of tuples: (n_between + 2) points including endpoints
+    """
+    x_vals = np.linspace(p1[0], p2[0], n_between + 2)
+    y_vals = np.linspace(p1[1], p2[1], n_between + 2)
+    return list(zip(x_vals, y_vals))
