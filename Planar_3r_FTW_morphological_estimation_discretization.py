@@ -294,10 +294,15 @@ def planar_3R_connectivity_analysis(L, joint_limits, pfs, championship):
 #planar_3R_connectivity_analysis([1.0, 1.0, 1.0],
 #                                [(-3.031883452592004, 3.031883452592004), (-1.619994146091692, -0.8276157453255935), (-1.6977602095460234, -0.7265946655975718)], pfs=60,
  #                               championship=0)
+"""
 planar_3R_connectivity_analysis([1,0, 1.0, 1.0],
                                 [(-18.2074 * np.pi / 180, 18.2074 * np.pi / 180),
                                  (-111.3415 * np.pi / 180, 111.3415 * np.pi / 180),
                                 (-111.3415 * np.pi / 180, 111.3415 * np.pi / 180)], pfs=60,
                                 championship=0)
+"""
 
+planar_3R_connectivity_analysis([0.4454,0.3143,0.2553],
+                                [(-0.5779611440942315, 0.5779611440942315), (-1.1887031063410372, 0.6453736884533061), (-1.7852473794934884, 1.8681718728028136)], pfs=60,
+                                championship=0)
 

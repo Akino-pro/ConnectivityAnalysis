@@ -1062,33 +1062,19 @@ def fold_offset(La, Lb, theta_locked):
 
 
 
-p1 = (0.557901, 0.231449)
-p2 = (0.787471, -0.096115)
+p1 = (0.6015959713, 0.2279385242)
+p2 = (0.7384040287, -0.1479385242)
 sample_number=40
 points = sample_line(p1, p2, sample_number)
 random_lock_time = np.random.randint(1, sample_number+2)
 random_lock_joint = np.random.randint(0, 3)
 
 
-test_points=[
-    (0.557901,0.231449),
-    (0.6152935,0.149558),
-    (0.672686,0.067667),
-    (0.730079, -0.014224),
-    (0.787471,-0.096115)
-]
-
-shifted_points=[
-    (0.357901,0.231449),
-    (0.452935,0.149558),
-    (0.472686,0.067667),
-    (0.530079, -0.014224),
-    (0.587471,-0.096115)
-]
 #q = np.array([10*np.pi/180.0,10*np.pi/180.0,10*np.pi/180.0]).T.reshape((3, 1))
 #print(forward_kinematics_3R(q, L))
 
 #main_function()
+
 initial_config = [np.random.uniform(low, high) for (low, high) in CA]
 base=(0,0)
 new_L=[]
@@ -1172,12 +1158,17 @@ for index, tp in enumerate(points) :
         print("-----------------------")
         success+=1
     else:
-        sol=dls(np.array([x, y]).T.reshape((2, 1)),initial_config)
+        sol = dls(np.array([x, y]).reshape((2, 1)), initial_config)
+        while not all(low <= s <= high for s, (low, high) in zip(sol, CA)):
+            initial_config = [np.random.uniform(low, high) for (low, high) in CA]
+            sol = dls(np.array([x, y]).reshape((2, 1)), initial_config)
         initial_config=sol
+        #if not all(low <= initial_config <= high for initial_config, (low, high) in zip(initial_config, CA)):print("At least one angle is out of range")
         for i in sol:
             print(i/np.pi*180.0)
         #print(sol)
         print("-----------------------")
         success+=1
 if success == 42: print('task complete!')
+
 

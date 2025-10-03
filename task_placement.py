@@ -2,6 +2,7 @@ import ast
 import math
 import os
 import time
+import random
 
 import numpy as np
 import cv2
@@ -18,6 +19,7 @@ N = 256
 joint_reliabilities = [1.0/3.0,1.0/3.0, 1.0/3.0]
 x_range_sample = np.sum([0.4454,0.3143,0.2553])
 n_angles=1440
+N_MAX = 3
 
 # Search/robustness knobs
 THICKNESS_PX = 1               # default rasterization thickness
@@ -30,7 +32,22 @@ RETRY_CLOSE = True                # on retry, apply 3x3 morphological close
 plt.rcParams.update({"figure.facecolor": "white", "axes.facecolor": "white"})
 
 # ========== mapping between continuous [-x,x] and grid indices 0..N-1 ==========
+def pick_optimal_subset(ties, n_max=N_MAX, seed=None):
+    """
+    From a list of tied optima, return:
+      - n_max random distinct entries if len(ties) >= n_max
+      - otherwise exactly ONE entry (ties[0]) when len(ties) < n_max
+    """
+    if not ties:
+        return []
 
+    if seed is not None:
+        random.seed(seed)
+
+    if len(ties) >= n_max:
+        return random.sample(ties, n_max)
+    else:
+        return [ties[0]]
 def shift_to_top_left(path_xy: np.ndarray, box: float):
     """
     Shift a polyline so that xmin -> -box and ymax -> +box.
@@ -370,8 +387,143 @@ def place_path_on_grid_sum(
             best_ker_r = ker_r
 
     return best, meta0, ker0, best_ker_r
+def plot_manual_solution(
+    F,
+    path_cont,
+    angle_deg,
+    pivot_xy,
+    thickness_px=THICKNESS_PX,
+    bbox=(-x_range_sample, x_range_sample, -x_range_sample, x_range_sample),
+    ax=None,
+):
+    """
+    Plot the standard figure using a user-specified angle (deg) and pivot (continuous x,y),
+    with the given input path.
 
+    - F:      (N,N) field
+    - path_cont: Nx2 float32 continuous coords (same units as bbox)
+    - angle_deg: float, rotation angle to apply to the input path before placement
+    - pivot_xy: (px, py) in continuous coords where the rotated footprint will be anchored
+    - thickness_px: rasterization thickness
+    - bbox:  (xmin, xmax, ymin, ymax) continuous extents
+    - ax:    optional Matplotlib Axes; if None, creates its own figure/axes
+    """
+    import numpy as np
+    import matplotlib.pyplot as plt
 
+    N = F.shape[0]
+    xmin, xmax, ymin, ymax = bbox
+
+    # ---------- helpers ----------
+    def cont_to_idx_points(pts_cont):
+        return cont_to_idx(pts_cont, N, *bbox)
+
+    def rotate_points_local(points_xy, angle_deg, center_xy):
+        return rotate_points(points_xy, angle_deg, center_xy)
+
+    def place_kernel_at_pivot_mask(Fshape, ker_r, pivot_xy_cont):
+        """
+        Place a rotated kernel so that its integer anchor (h//2,w//2)
+        lands at the grid index corresponding to pivot_xy_cont.
+        Returns a binary mask (H,W) with the footprint.
+        """
+        H, W = Fshape
+        h, w = ker_r.shape
+        cy_anchor = h // 2
+        cx_anchor = w // 2
+
+        # convert pivot continuous -> grid index (col=x, row=y)
+        x_idx, y_idx = cont_to_idx(
+            np.array([[pivot_xy_cont[0], pivot_xy_cont[1]]], dtype=np.float32),
+            N, *bbox
+        )[0]
+        r = int(round(y_idx))
+        c = int(round(x_idx))
+
+        top_left_row = r - cy_anchor
+        top_left_col = c - cx_anchor
+
+        r0 = max(0, top_left_row); c0 = max(0, top_left_col)
+        r1 = min(H, top_left_row + h); c1 = min(W, top_left_col + w)
+
+        kr0 = r0 - top_left_row; kc0 = c0 - top_left_col
+        kr1 = kr0 + (r1 - r0);     kc1 = kc0 + (c1 - c0)
+
+        mask = np.zeros(Fshape, np.uint8)
+        mask[r0:r1, c0:c1] = (ker_r[kr0:kr1, kc0:kc1] > 0).astype(np.uint8)
+        return mask
+
+    # ---------- build the rotated "solution" kernel ----------
+    path_arr = np.asarray(path_cont, np.float32)
+    pc = path_arr.mean(axis=0)  # rotate about its own centroid (matches your search)
+    rot_pts = rotate_points_local(path_arr, float(angle_deg), center_xy=(float(pc[0]), float(pc[1])))
+    pts_grid_rot = cont_to_idx_points(rot_pts)
+
+    ker_rot, _ = rasterize_path_kernel_with_meta(
+        pts_grid_rot, thickness_px=thickness_px, pad=8, fill_closed=False
+    )
+
+    # ---------- make solution footprint mask at the requested pivot ----------
+    px, py = float(pivot_xy[0]), float(pivot_xy[1])
+    best_mask = place_kernel_at_pivot_mask(F.shape, ker_rot, (px, py))
+
+    # ---------- build the "shifted input" footprint (top-left) and its pivot ----------
+    # - use same shift_to_top_left convention (with a tight box)
+    shifted_path, (dx, dy) = shift_to_top_left(path_arr, x_range_sample - x_range_sample / 30.0)
+    ix, iy = path_arr.mean(axis=0)  # input pivot = kernel center in unshifted coords
+    ix_shift, iy_shift = shift_point(ix, iy, dx, dy)
+
+    pts_grid_shifted = cont_to_idx_points(shifted_path)
+    ker_shift, meta_shift = rasterize_path_kernel_with_meta(
+        pts_grid_shifted, thickness_px=thickness_px
+    )
+    # indices → mask for outline plotting
+    shifted_input_indices = footprint_indices_original(ker_shift, meta_shift, F.shape)
+    shifted_mask = indices_to_mask(shifted_input_indices, F.shape)
+
+    # ---------- plotting ----------
+    created_fig = False
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(5.8, 5.8))
+        created_fig = True
+
+    # background field
+    im = ax.imshow(
+        F, origin="lower", cmap="rainbow", vmin=0.0, vmax=1.0,
+        extent=[xmin, xmax, ymin, ymax], zorder=0
+    )
+
+    # outlines
+    draw_mask_boundary(ax, shifted_mask, N, bbox, lw=1.8, color="white", z=12)
+    draw_mask_boundary(ax, best_mask,    N, bbox, lw=2.2, color="black", z=13)
+
+    # pivots
+    ax.plot(ix_shift, iy_shift, marker="o", markersize=7,
+            color="white", mec="black", mew=1.0, zorder=12, label="input pivot (shifted)")
+    ax.plot(px, py, marker="o", markersize=7,
+            color="black", mec="white", mew=1.0, zorder=13, label="solution pivot")
+
+    # axes & labels
+    ax.set_xlim(xmin, xmax)
+    ax.set_ylim(ymin, ymax)
+    ax.set_aspect("equal")
+    ax.set_xlabel("x", fontsize=22)
+    ax.set_ylabel("y", fontsize=22)
+    ax.tick_params(axis='x', labelsize=18)
+    ax.tick_params(axis='y', labelsize=18)
+    # ax.set_title(f"angle {angle_deg:.2f}°, pivot=({px:.3f},{py:.3f})")
+
+    if created_fig:
+        plt.show()
+
+    # return some useful artifacts if caller wants stats
+    return {
+        "solution_mask": best_mask,
+        "shifted_mask": shifted_mask,
+        "solution_pivot": (px, py),
+        "input_pivot_shifted": (ix_shift, iy_shift),
+        "angle_deg": float(angle_deg),
+    }
 def run_search_and_indices(
     F, path_cont, thickness_px=None, angles_deg=None, bbox=(-x_range_sample, x_range_sample, -x_range_sample, x_range_sample),
     supersample=0, close=False
@@ -939,3 +1091,12 @@ if __name__ == "__main__":
 
     # show all figures at once
     plt.show()
+    bbox = (-x_range_sample, x_range_sample, -x_range_sample, x_range_sample)
+    angles = np.linspace(-180, 180, n_angles, dtype=np.float32)
+    path_cont = path_line()  # or any of your generators
+    angle_deg = -160
+    pivot_xy = (0.67,0.04)
+    _ = plot_manual_solution(F, path_cont, angle_deg, pivot_xy,
+                             thickness_px=THICKNESS_PX, bbox=bbox, ax=None)
+
+
