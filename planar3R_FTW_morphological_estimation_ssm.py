@@ -76,7 +76,6 @@ indices = sorted_indices(cr_list)
 print(indices)
 
 def forward_kinematics_2R(theta, L,base_point):
-    theta = theta.flatten().tolist()
     x1 = L[0] * np.cos(theta[0])
     y1 = L[0] * np.sin(theta[0])
 
@@ -317,7 +316,11 @@ def ik_2r_single(x, y, L1, L2, prev_angle=None, joint_index=1, base=(0.0, 0.0)):
     Y = y - y0
 
     r = np.hypot(X, Y)
-    if r > L1 + L2 or r < abs(L1 - L2):
+    if r > L1 + L2:
+        print('too far')
+        raise ValueError("Target out of reach")
+    if r < abs(L1 - L2):
+        print('too close')
         raise ValueError("Target out of reach")
 
     # cos(theta2), clamp for safety
@@ -1053,6 +1056,10 @@ def main_function():
     plt.show()
     #"""
 
+def fold_offset(La, Lb, theta_locked):
+    # orientation offset of the rigid pair relative to the first link
+    return np.arctan2(Lb*np.sin(theta_locked), La + Lb*np.cos(theta_locked))
+
 
 
 p1 = (0.557901, 0.231449)
@@ -1082,12 +1089,14 @@ shifted_points=[
 #print(forward_kinematics_3R(q, L))
 
 #main_function()
-initial_config=np.random.uniform(low=-np.pi, high=np.pi, size=(3,))
+initial_config = [np.random.uniform(low, high) for (low, high) in CA]
 base=(0,0)
-new_L=L
+new_L=[]
 reference_index=0
+true_index=0
 reference_angle=0
 locked_angle=0
+success=0
 for index, tp in enumerate(points) :
     print(tp)
     (x, y)=tp
@@ -1098,38 +1107,70 @@ for index, tp in enumerate(points) :
                 new_L,new_base=lock_joint_1(locked_angle)
                 base =new_base
                 reference_index=1
-                reference_angle=initial_config[reference_index]
+                true_index=0
+                reference_angle=initial_config[1]
             case 1:
                 locked_angle = initial_config[1]
                 new_L,new_base=lock_joint_2(locked_angle)
                 base = new_base
                 reference_index = 2
-                reference_angle = initial_config[reference_index]
+                true_index=1
+                reference_angle = initial_config[2]
             case 2:
                 locked_angle=initial_config[2]
                 new_L,new_base=lock_joint_3(locked_angle)
                 base = new_base
-                reference_index = 0
-                reference_angle = initial_config[reference_index]
-    print("-----------------------")
-    print(f"joint {reference_index} is locked at angle {locked_angle/np.pi*180.0}")
-    print("-----------------------")
+                reference_index = 1
+                true_index=2
+                reference_angle = initial_config[0]
     if index>=random_lock_time:
-        theta1, theta2=ik_2r_single(x, y, new_L[0], new_L[1], reference_angle, reference_index, base)
+        print("-----------------------")
+        print(f"joint {true_index} is locked at angle {locked_angle / np.pi * 180.0}")
+        print("-----------------------")
+        try:
+            theta1, theta2 = ik_2r_single(
+                x, y,
+                new_L[0], new_L[1],
+                prev_angle=reference_angle,
+                joint_index=reference_index,
+                base=base
+            )
+            #x_t,y_t=forward_kinematics_2R([theta1, theta2],new_L,base)
+            #print(x_t)
+            #print(y_t)
+        except ValueError as e:
+            print(f"IK failed at index {index}: {e}")
+            break  # quit the loop
         match random_lock_joint:
             case 0:
-                 print(locked_angle/np.pi*180.0)
-                 print(theta1 / np.pi * 180.0)
-                 print(theta2 / np.pi * 180.0)
+                 initial_config=[locked_angle,theta1-locked_angle,theta2]
+                 print(initial_config[0] / np.pi * 180.0)
+                 print(initial_config[1] / np.pi * 180.0)
+                 print(initial_config[2] / np.pi * 180.0)
+                 #print(f'computed 2R position:{forward_kinematics_2R([theta1, theta2],new_L, base)}')
+                 #print(f'computed 3R position:{forward_kinematics_3R(np.array(initial_config), L)}')
+                 #print(f'true position:{tp}')
             case 1:
-                 print(theta1 / np.pi * 180.0)
-                 print(locked_angle / np.pi * 180.0)
-                 print(theta2 / np.pi * 180.0)
+                 phi2 = fold_offset(L[0], L[1], locked_angle)
+                 initial_config = [theta1 - phi2, locked_angle, theta2 - locked_angle + phi2]
+
+                 print(initial_config[0]/ np.pi * 180.0)
+                 print(initial_config[1] / np.pi * 180.0)
+                 print(initial_config[2] / np.pi * 180.0)
+                 #print(f'computed 2R position:{forward_kinematics_2R([theta1, theta2], new_L, base)}')
+                 #print(f'computed 3R position:{forward_kinematics_3R(np.array(initial_config), L)}')
+                 #print(f'true position:{tp}')
             case 2:
-                 print(theta1 / np.pi * 180.0)
-                 print(theta2 / np.pi * 180.0)
-                 print(locked_angle / np.pi * 180.0)
+                 phi3 = fold_offset(L[1], L[2], locked_angle)
+                 initial_config = [theta1, theta2 - phi3, locked_angle]
+                 print(initial_config[0] / np.pi * 180.0)
+                 print(initial_config[1] / np.pi * 180.0)
+                 print(initial_config[2] / np.pi * 180.0)
+                 #print(f'computed 2R position:{forward_kinematics_2R([theta1, theta2], new_L, base)}')
+                 #print(f'computed 3R position:{forward_kinematics_3R(np.array(initial_config), L)}')
+                 #print(f'true position:{tp}')
         print("-----------------------")
+        success+=1
     else:
         sol=dls(np.array([x, y]).T.reshape((2, 1)),initial_config)
         initial_config=sol
@@ -1137,4 +1178,6 @@ for index, tp in enumerate(points) :
             print(i/np.pi*180.0)
         #print(sol)
         print("-----------------------")
+        success+=1
+if success == 42: print('task complete!')
 
