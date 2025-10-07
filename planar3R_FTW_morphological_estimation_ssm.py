@@ -1,4 +1,5 @@
 import json
+import math
 import time
 
 import numpy as np
@@ -278,7 +279,7 @@ def dls(x_target, initial_config):
         error = np.linalg.norm(x_target - x_current)
         J = Jacobian_3R(q, L)
         correction = J.T @ np.linalg.inv(J @ J.T + 0.5 ** 2 * np.eye(2)) @ delta_x
-        if np.linalg.norm(correction) <= 1e-9: return None
+        if np.linalg.norm(correction) <= 1e-9: return []
         q = q + 0.1 * correction
 
         for i in range(len(q)):
@@ -291,11 +292,11 @@ def dls(x_target, initial_config):
         x_current = forward_kinematics_3R(q, L)
         consecutive_delta_x = np.linalg.norm(previous_x - x_current)
         if consecutive_delta_x < 1e-8:
-            return None
+            return []
     sol = q
     return sol
 
-def ik_2r_single(x, y, L1, L2, prev_angle=None, joint_index=1, base=(0.0, 0.0)):
+def ik_2r_single(x, y, L1, L2, base=(0.0, 0.0)):
     """
     Inverse kinematics for a 2R planar robot with arbitrary base point.
     Returns a single solution in radians.
@@ -339,21 +340,7 @@ def ik_2r_single(x, y, L1, L2, prev_angle=None, joint_index=1, base=(0.0, 0.0)):
     sol_up = solve(s2_pos)
     sol_dn = solve(s2_neg)
 
-    # If no previous joint angle is given, return both solutions
-    if prev_angle is None:
-        return [sol_up, sol_dn]
-
-    # Compare to previous joint angle
-    if joint_index == 1:
-        diff_up = abs(np.arctan2(np.sin(sol_up[0]-prev_angle), np.cos(sol_up[0]-prev_angle)))
-        diff_dn = abs(np.arctan2(np.sin(sol_dn[0]-prev_angle), np.cos(sol_dn[0]-prev_angle)))
-    elif joint_index == 2:
-        diff_up = abs(np.arctan2(np.sin(sol_up[1]-prev_angle), np.cos(sol_up[1]-prev_angle)))
-        diff_dn = abs(np.arctan2(np.sin(sol_dn[1]-prev_angle), np.cos(sol_dn[1]-prev_angle)))
-    else:
-        raise ValueError("joint_index must be 1 or 2")
-
-    return sol_up if diff_up <= diff_dn else sol_dn
+    return sol_up, sol_dn
 
 def lock_joint_1(theta_1):
     new_base_point=(L[0]*np.cos(theta_1),L[0]*np.sin(theta_1))
@@ -1062,14 +1049,21 @@ def fold_offset(La, Lb, theta_locked):
 
 
 
-p1 = (0.6015959713, 0.2279385242)
+import json
+results = []
+
+p1 = (0.6015959713, 0.2279385242)#y+=0.4
 p2 = (0.7384040287, -0.1479385242)
+#p1 = (0.4015959713, -0.4279385242)#y+=0.4
+#p2 = (0.5384040287, -0.7479385242)
+
 sample_number=40
 points = sample_line(p1, p2, sample_number)
-random_lock_time = np.random.randint(1, sample_number+2)
+#random_lock_time = np.random.randint(1, sample_number+2)
+#print(random_lock_time)
+random_lock_time= 7 #7,14,21,28,35,
 random_lock_joint = np.random.randint(0, 3)
-
-
+#random_lock_joint=1
 #q = np.array([10*np.pi/180.0,10*np.pi/180.0,10*np.pi/180.0]).T.reshape((3, 1))
 #print(forward_kinematics_3R(q, L))
 
@@ -1114,11 +1108,9 @@ for index, tp in enumerate(points) :
         print(f"joint {true_index} is locked at angle {locked_angle / np.pi * 180.0}")
         print("-----------------------")
         try:
-            theta1, theta2 = ik_2r_single(
+            sol1, sol2 = ik_2r_single(
                 x, y,
                 new_L[0], new_L[1],
-                prev_angle=reference_angle,
-                joint_index=reference_index,
                 base=base
             )
             #x_t,y_t=forward_kinematics_2R([theta1, theta2],new_L,base)
@@ -1129,29 +1121,98 @@ for index, tp in enumerate(points) :
             break  # quit the loop
         match random_lock_joint:
             case 0:
-                 initial_config=[locked_angle,theta1-locked_angle,theta2]
+                 theta10,theta20=sol1
+                 theta11,theta21=sol2
+                 test_config1=[locked_angle,theta10-locked_angle,theta20]
+                 test_config2 = [locked_angle, theta11 - locked_angle, theta21]
+                 previous=initial_config
+                 initial_config = test_config2
+                 if math.sqrt(sum((a - b) ** 2 for a, b in zip(test_config1, previous)))<math.sqrt(sum((a - b) ** 2 for a, b in zip(test_config2, previous))):
+                     initial_config=test_config1
                  print(initial_config[0] / np.pi * 180.0)
                  print(initial_config[1] / np.pi * 180.0)
                  print(initial_config[2] / np.pi * 180.0)
+                 joint1 = float(initial_config[0])
+                 joint4 = float(initial_config[1])
+                 joint6 = float(initial_config[2])
+
+                 # Append full 7-joint configuration
+                 full_config = [
+                     joint1,  # joint 1
+                     90.0 * np.pi / 180.0,  # joint 2 fixed at 90 deg
+                     90.0 * np.pi / 180.0,  # joint 3 fixed at 90 deg
+                     joint4,  # joint 4
+                     0.0,  # joint 5 fixed at 0 deg
+                     joint6,  # joint 6
+                     180.0 * (np.pi-1e-3) / 180.0  # joint 7 fixed at 180 deg
+                 ]
+                 results.append(full_config)
                  #print(f'computed 2R position:{forward_kinematics_2R([theta1, theta2],new_L, base)}')
                  #print(f'computed 3R position:{forward_kinematics_3R(np.array(initial_config), L)}')
                  #print(f'true position:{tp}')
             case 1:
                  phi2 = fold_offset(L[0], L[1], locked_angle)
-                 initial_config = [theta1 - phi2, locked_angle, theta2 - locked_angle + phi2]
+                 theta10, theta20 = sol1
+                 theta11, theta21 = sol2
+                 test_config1 = [theta10 - phi2, locked_angle, theta20 - locked_angle + phi2]
+                 test_config2 = [theta11 - phi2, locked_angle, theta21 - locked_angle + phi2]
+                 previous = initial_config
+                 initial_config = test_config2
+                 if math.sqrt(sum((a - b) ** 2 for a, b in zip(test_config1, previous))) < math.sqrt(
+                         sum((a - b) ** 2 for a, b in zip(test_config2, previous))):
+                     initial_config = test_config1
 
                  print(initial_config[0]/ np.pi * 180.0)
                  print(initial_config[1] / np.pi * 180.0)
                  print(initial_config[2] / np.pi * 180.0)
+                 joint1 = float(initial_config[0])
+                 joint4 = float(initial_config[1])
+                 joint6 = float(initial_config[2])
+
+                 # Append full 7-joint configuration
+                 full_config = [
+                     joint1,  # joint 1
+                     90.0 * np.pi / 180.0,  # joint 2 fixed at 90 deg
+                     90.0 * np.pi / 180.0,  # joint 3 fixed at 90 deg
+                     joint4,  # joint 4
+                     0.0,  # joint 5 fixed at 0 deg
+                     joint6,  # joint 6
+                     180.0 * (np.pi-1e-3)/ 180.0  # joint 7 fixed at 180 deg
+                 ]
+                 results.append(full_config)
                  #print(f'computed 2R position:{forward_kinematics_2R([theta1, theta2], new_L, base)}')
                  #print(f'computed 3R position:{forward_kinematics_3R(np.array(initial_config), L)}')
                  #print(f'true position:{tp}')
             case 2:
                  phi3 = fold_offset(L[1], L[2], locked_angle)
-                 initial_config = [theta1, theta2 - phi3, locked_angle]
+                 theta10, theta20 = sol1
+                 theta11, theta21 = sol2
+                 test_config1 = [theta10, theta20 - phi3, locked_angle]
+                 test_config2 = [theta11, theta21 - phi3, locked_angle]
+                 previous = initial_config
+                 initial_config = test_config2
+                 if math.sqrt(sum((a - b) ** 2 for a, b in zip(test_config1, previous))) < math.sqrt(
+                         sum((a - b) ** 2 for a, b in zip(test_config2, previous))):
+                     initial_config = test_config1
+
                  print(initial_config[0] / np.pi * 180.0)
                  print(initial_config[1] / np.pi * 180.0)
                  print(initial_config[2] / np.pi * 180.0)
+                 joint1 = float(initial_config[0])
+                 joint4 = float(initial_config[1])
+                 joint6 = float(initial_config[2])
+
+                 # Append full 7-joint configuration
+                 full_config = [
+                     joint1,  # joint 1
+                     90.0 * np.pi / 180.0,  # joint 2 fixed at 90 deg
+                     90.0 * np.pi / 180.0,  # joint 3 fixed at 90 deg
+                     joint4,  # joint 4
+                     0.0,  # joint 5 fixed at 0 deg
+                     joint6,  # joint 6
+                     180.0 * (np.pi-1e-3) / 180.0  # joint 7 fixed at 180 deg
+                 ]
+                 results.append(full_config)
                  #print(f'computed 2R position:{forward_kinematics_2R([theta1, theta2], new_L, base)}')
                  #print(f'computed 3R position:{forward_kinematics_3R(np.array(initial_config), L)}')
                  #print(f'true position:{tp}')
@@ -1159,10 +1220,25 @@ for index, tp in enumerate(points) :
         success+=1
     else:
         sol = dls(np.array([x, y]).reshape((2, 1)), initial_config)
-        while not all(low <= s <= high for s, (low, high) in zip(sol, CA)):
+        while not all(low <= s <= high for s, (low, high) in zip(sol, CA)) or sol == []:
             initial_config = [np.random.uniform(low, high) for (low, high) in CA]
             sol = dls(np.array([x, y]).reshape((2, 1)), initial_config)
         initial_config=sol
+        joint1 = float(initial_config[0])
+        joint4 = float(initial_config[1])
+        joint6 = float(initial_config[2])
+
+        # Append full 7-joint configuration
+        full_config = [
+            joint1,  # joint 1
+            90.0 * np.pi / 180.0,  # joint 2 fixed at 90 deg
+            90.0 * np.pi / 180.0,  # joint 3 fixed at 90 deg
+            joint4,  # joint 4
+            0.0,  # joint 5 fixed at 0 deg
+            joint6,  # joint 6
+            180.0 * (np.pi-1e-3) / 180.0  # joint 7 fixed at 180 deg
+        ]
+        results.append(full_config)
         #if not all(low <= initial_config <= high for initial_config, (low, high) in zip(initial_config, CA)):print("At least one angle is out of range")
         for i in sol:
             print(i/np.pi*180.0)
@@ -1170,5 +1246,33 @@ for index, tp in enumerate(points) :
         print("-----------------------")
         success+=1
 if success == 42: print('task complete!')
+
+DT = 0.5  # seconds between trajectory points
+
+traj = {
+    "joint_names": ["joint_1","joint_2","joint_3","joint_4","joint_5","joint_6","joint_7"],
+    "points": []
+}
+
+for i, q in enumerate(results):
+    sec = int(i * DT)
+    nanosec = int((i * DT - sec) * 1e9)
+    traj["points"].append({
+        "positions": [float(x) for x in q],
+        "time_from_start": {"sec": sec, "nanosec": nanosec}
+    })
+
+# Compact JSON payload
+payload = json.dumps(traj, separators=(",", ":"))
+
+# Compose the final ROS2 command (single-line, paste-ready)
+ros_cmd = f"ros2 topic pub --once /joint_trajectory_controller/joint_trajectory trajectory_msgs/JointTrajectory '{payload}'"
+
+# Save it to a file
+with open("ros2_trajectory_command.txt", "w") as f:
+    f.write(ros_cmd)
+
+print(f"✅ Saved ready-to-run ROS2 command to ros2_trajectory_command.txt")
+print("➡  Open it and paste the entire command into your terminal to execute.")
 
 
