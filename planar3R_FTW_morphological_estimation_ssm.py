@@ -1048,6 +1048,7 @@ def fold_offset(La, Lb, theta_locked):
     return np.arctan2(Lb*np.sin(theta_locked), La + Lb*np.cos(theta_locked))
 
 
+"""
 
 import json
 results = []
@@ -1061,9 +1062,9 @@ sample_number=40
 points = sample_line(p1, p2, sample_number)
 #random_lock_time = np.random.randint(1, sample_number+2)
 #print(random_lock_time)
-random_lock_time= 7 #7,14,21,28,35,
+random_lock_time= 35 #7,14,21,28,35,
 random_lock_joint = np.random.randint(0, 3)
-#random_lock_joint=1
+random_lock_joint=2
 #q = np.array([10*np.pi/180.0,10*np.pi/180.0,10*np.pi/180.0]).T.reshape((3, 1))
 #print(forward_kinematics_3R(q, L))
 
@@ -1275,4 +1276,4 @@ with open("ros2_trajectory_command.txt", "w") as f:
 print(f"✅ Saved ready-to-run ROS2 command to ros2_trajectory_command.txt")
 print("➡  Open it and paste the entire command into your terminal to execute.")
 
-
+"""

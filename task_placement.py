@@ -257,6 +257,118 @@ def score_sum(F, ker_r):
     return cv2.filter2D(F.astype(np.float32), -1, ker_r, anchor=(-1, -1), borderType=cv2.BORDER_CONSTANT)
 
 # ========================== helpers: index extraction ==========================
+def plot_two_manual_solutions(
+    F,
+    path_cont,
+    case_optimal,         # (angle_deg, (px, py))  -> white
+    case_nonoptimal,      # (angle_deg, (px, py))  -> black
+    thickness_px=THICKNESS_PX,
+    bbox=(-x_range_sample, x_range_sample, -x_range_sample, x_range_sample),
+    ax=None,
+):
+    """
+    Plot two manual placements on a single figure:
+      - Optimal task placement (white)
+      - Non-optimal task placement (black)
+    Adds legend (line + dot) near the left-center, enlarged font.
+    """
+    N = F.shape[0]
+    xmin, xmax, ymin, ymax = bbox
+
+    def cont_to_idx_points(pts_cont):
+        return cont_to_idx(pts_cont, N, *bbox)
+
+    def place_kernel_at_pivot_mask(Fshape, ker_r, pivot_xy_cont):
+        H, W = Fshape
+        h, w = ker_r.shape
+        cy_anchor = h // 2
+        cx_anchor = w // 2
+        x_idx, y_idx = cont_to_idx(
+            np.array([[pivot_xy_cont[0], pivot_xy_cont[1]]], dtype=np.float32),
+            N, *bbox
+        )[0]
+        r = int(round(y_idx))
+        c = int(round(x_idx))
+        top_left_row = r - cy_anchor
+        top_left_col = c - cx_anchor
+        r0 = max(0, top_left_row)
+        c0 = max(0, top_left_col)
+        r1 = min(H, top_left_row + h)
+        c1 = min(W, top_left_col + w)
+        kr0 = r0 - top_left_row
+        kc0 = c0 - top_left_col
+        kr1 = kr0 + (r1 - r0)
+        kc1 = kc0 + (c1 - c0)
+        mask = np.zeros(Fshape, np.uint8)
+        mask[r0:r1, c0:c1] = (ker_r[kr0:kr1, kc0:kc1] > 0).astype(np.uint8)
+        return mask
+
+    created_fig = False
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(5.8, 5.8))
+        created_fig = True
+
+    # --- background reliability field ---
+    ax.imshow(
+        F, origin="lower", cmap="rainbow", vmin=0.0, vmax=1.0,
+        extent=[xmin, xmax, ymin, ymax], zorder=0
+    )
+
+    path_arr = np.asarray(path_cont, np.float32)
+
+    def _draw_one(angle_deg, pivot_xy, color):
+        pc = path_arr.mean(axis=0)
+        rot_pts = rotate_points(path_arr, float(angle_deg), center_xy=(float(pc[0]), float(pc[1])))
+        pts_grid_rot = cont_to_idx_points(rot_pts)
+        ker_rot, _ = rasterize_path_kernel_with_meta(
+            pts_grid_rot, thickness_px=thickness_px, pad=8, fill_closed=False
+        )
+        mask = place_kernel_at_pivot_mask(F.shape, ker_rot, pivot_xy)
+        draw_mask_boundary(ax, mask, N, bbox, lw=2.2, color=color, z=13)
+        px, py = float(pivot_xy[0]), float(pivot_xy[1])
+        ax.plot(
+            px, py, "o", markersize=7,
+            color=color, mec="black" if color == "white" else "white",
+            mew=1.0, zorder=14
+        )
+
+    # --- draw both placements ---
+    _draw_one(case_optimal[0], case_optimal[1], "white")
+    _draw_one(case_nonoptimal[0], case_nonoptimal[1], "black")
+
+    # --- styling ---
+    ax.set_xlim(xmin, xmax)
+    ax.set_ylim(ymin, ymax)
+    ax.set_aspect("equal")
+    ax.set_xlabel("x", fontsize=22)
+    ax.set_ylabel("y", fontsize=22)
+    ax.tick_params(axis='x', labelsize=18)
+    ax.tick_params(axis='y', labelsize=18)
+
+    # --- legend (line + dot) ---
+    from matplotlib.lines import Line2D
+    legend_elements = [
+        Line2D([0], [0], color="white", marker="o", markerfacecolor="white",
+               markeredgecolor="black", linewidth=2.2, markersize=7,
+               label="Optimal task placement"),
+        Line2D([0], [0], color="black", marker="o", markerfacecolor="black",
+               markeredgecolor="white", linewidth=2.2, markersize=7,
+               label="Non-optimal task placement"),
+    ]
+    # Place near left-center with larger text (×1.5 previous size)
+    legend = ax.legend(
+        handles=legend_elements,
+        loc="center left",        # base position
+        bbox_to_anchor=(0.05, 0.5),  # shift near left-center
+        fontsize=18,              # enlarged text (~1.5×)
+        frameon=True,
+        facecolor="white"
+    )
+    legend.get_frame().set_alpha(0.9)
+
+    if created_fig:
+        plt.show()
+        
 def mask_to_indices(mask):
     rr, cc = np.where(mask > 0)
     return list(zip(rr.tolist(), cc.tolist()))
@@ -1091,12 +1203,33 @@ if __name__ == "__main__":
 
     # show all figures at once
     plt.show()
+    """
     bbox = (-x_range_sample, x_range_sample, -x_range_sample, x_range_sample)
     angles = np.linspace(-180, 180, n_angles, dtype=np.float32)
     path_cont = path_line()  # or any of your generators
+    
     angle_deg = -160
     pivot_xy = (0.67,0.04)
     _ = plot_manual_solution(F, path_cont, angle_deg, pivot_xy,
                              thickness_px=THICKNESS_PX, bbox=bbox, ax=None)
+    angle_deg = -160
+    pivot_xy = (0.47, -0.56)
+    _ = plot_manual_solution(F, path_cont, angle_deg, pivot_xy,
+                             thickness_px=THICKNESS_PX, bbox=bbox, ax=None)
+    """
+    bbox = (-x_range_sample, x_range_sample, -x_range_sample, x_range_sample)
+    path_cont = path_line()
 
+    case1 = (-160, (0.67, 0.04))
+    case2 = (-160, (0.47, -0.56))
+
+    plot_two_manual_solutions(
+        F,
+        path_cont,
+        case1,
+        case2,
+        thickness_px=THICKNESS_PX,
+        bbox=bbox,
+        ax=None,  # or pass an existing ax to embed in a larger figure
+    )
 
