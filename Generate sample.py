@@ -7,7 +7,7 @@ def generate_greyscale_ring(
     inner_radius=120,
     outer_radius=200,
     greys=(220, 170, 100, 40),
-    filename="ring_pure.png"
+    filename="pure_ring.png"
 ):
     """
     Generate a ring split into 4 greyscale regions on a perfectly white background.

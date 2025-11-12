@@ -2,102 +2,92 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 
-# ============================================================
-# 1. Load grayscale image
-# ============================================================
-img = cv2.imread("ring_pure.png", cv2.IMREAD_GRAYSCALE)
-if img is None:
-    raise FileNotFoundError("Could not load image. Check the filename/path.")
+# ============================
+# Adjustable parameters
+# ============================
+FILENAME     = "pure_ring.png"   # pure white background
+KERNEL_SIZE  = 3                # kernel size (odd recommended)
+ITERATIONS   = 200                # number of steps
+DISP_CONST   = 5                 # grayscale change per step
+SHAPE_THRESH = 250               # ring (shape) = gray < SHAPE_THRESH
+WHITE_VAL    = 255
+BLACK_VAL    = 0
 
-# Copy for erosion and dilation versions
-ero_img = img.astype(np.float32).copy()
-dil_img = img.astype(np.float32).copy()
+# ============================
+# Load image & kernel
+# ============================
+img0 = cv2.imread(FILENAME, cv2.IMREAD_GRAYSCALE)
+if img0 is None:
+    raise FileNotFoundError(f"Could not load {FILENAME}")
+img0 = img0.astype(np.float32)
 
-# ============================================================
-# 2. Parameters
-# ============================================================
-iteration   = 50
-kernel_size = 3
+kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (KERNEL_SIZE, KERNEL_SIZE))
 
-# Binary kernel (shape only matters; values are 0/1 internally)
-kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (kernel_size, kernel_size))
+# ============================
+# Propagating EROSION (inward, unchanged)
+# ============================
+def propagate_erosion(gray_f32, n_iter, step):
+    g = gray_f32.copy()
+    for _ in range(n_iter):
+        white_mask = (g >= WHITE_VAL).astype(np.uint8)
+        dilated = cv2.dilate(white_mask, kernel, iterations=1)
+        frontier = (dilated == 1) & (g < WHITE_VAL)
+        g[frontier] += step
+        np.clip(g, 0, 255, out=g)
+    return g
 
-# Threshold to separate shape from background (tune if needed)
-# Assumes background is pure white (255) and ring is darker.
-shape_thresh = 250
+# ============================
+# Propagating DILATION (hard-skin outward model)
+# - Starts from the ring’s edge.
+# - Once a pixel becomes black (0), it becomes part of the hard shell.
+# - The shell expands outward each iteration.
+# ============================
+def propagate_dilation_hardskin(gray_f32, n_iter, step):
+    g = gray_f32.copy()
+    # Original ring acts as the initial seed
+    seed_mask = (g < SHAPE_THRESH).astype(np.uint8)
+    hard_mask = np.zeros_like(g, dtype=np.uint8)  # tracks fully hardened (black) pixels
 
-# ============================================================
-# 3. Helper: compute binary shape and background masks
-# ============================================================
-def get_shape_mask(gray):
-    """
-    Return a binary mask where shape = 1 (non-background),
-    background = 0. Threshold can be tuned based on your ring intensities.
-    """
-    return (gray < shape_thresh).astype(np.uint8)
+    for _ in range(n_iter):
+        # Current hard region = original ring + already black pixels
+        hard_mask = np.clip(seed_mask + (g <= BLACK_VAL).astype(np.uint8), 0, 1)
 
-def get_background_mask(gray):
-    return 1 - get_shape_mask(gray)
+        # Dilate to find the next frontier of soft white pixels
+        dilated = cv2.dilate(hard_mask, kernel, iterations=1)
+        frontier = (dilated == 1) & (hard_mask == 0)
 
-# ============================================================
-# 4. Iterative "binary-like" erosion with grayscale averaging
-# ============================================================
-# Erosion: move shape boundary inward
-for _ in range(iteration):
-    shape_mask = get_shape_mask(ero_img)
+        # Darken frontier (simulate hardening)
+        g[frontier] -= step
 
-    # Morphological gradient gives boundary of the shape
-    # (pixels where the shape meets background)
-    shape_mask_u8 = (shape_mask * 255).astype(np.uint8)
-    shape_edge = cv2.morphologyEx(shape_mask_u8, cv2.MORPH_GRADIENT, kernel)
-    edge_mask = shape_edge > 0
+        # Saturate to 0 so new black regions join the hard shell
+        np.clip(g, 0, 255, out=g)
 
-    # On the edge, move intensity towards white (255) by averaging
-    # and rounding up: new = ceil((I + 255) / 2)
-    ero_img[edge_mask] = np.ceil(0.5 * (ero_img[edge_mask] + 255.0))
+    return g
 
-# Clip and convert back to uint8
-ero_out = np.clip(ero_img, 0, 255).astype(np.uint8)
+# ============================
+# Run both processes
+# ============================
+ero = propagate_erosion(img0, ITERATIONS, DISP_CONST)
+dil = propagate_dilation_hardskin(img0, ITERATIONS, DISP_CONST)
 
-# ============================================================
-# 5. Iterative "binary-like" dilation with grayscale averaging
-# ============================================================
-# Dilation: move shape boundary outward into background
-for _ in range(iteration):
-    # Background is where gray ~ 255 (or above threshold)
-    bg_mask = get_background_mask(dil_img)
-
-    bg_mask_u8 = (bg_mask * 255).astype(np.uint8)
-    # Background edge: boundary between background and shape
-    bg_edge = cv2.morphologyEx(bg_mask_u8, cv2.MORPH_GRADIENT, kernel)
-    edge_mask = bg_edge > 0
-
-    # On the edge, move intensity towards black (0) by averaging
-    # and rounding up: new = ceil((I + 0) / 2) = ceil(I / 2)
-    # Darker pixels (small I) get closer to 0 faster in relative terms.
-    dil_img[edge_mask] = np.ceil(0.5 * dil_img[edge_mask])
-
-# Clip and convert back to uint8
-dil_out = np.clip(dil_img, 0, 255).astype(np.uint8)
-
-# ============================================================
-# 6. Display results
-# ============================================================
+# ============================
+# Display results
+# ============================
 plt.figure(figsize=(15, 5))
 
 plt.subplot(1, 3, 1)
-plt.imshow(img, cmap='gray', vmin=0, vmax=255)
+plt.imshow(img0.astype(np.uint8), cmap='gray', vmin=0, vmax=255)
 plt.title("Original")
 plt.axis("off")
 
 plt.subplot(1, 3, 2)
-plt.imshow(ero_out, cmap='gray', vmin=0, vmax=255)
-plt.title(f"Custom Erosion\n(white 255 averaging, {iteration} iters)")
+plt.imshow(ero.astype(np.uint8), cmap='gray', vmin=0, vmax=255)
+plt.title(f"Erosion (inward)\nK={KERNEL_SIZE}, it={ITERATIONS}, step={DISP_CONST}")
 plt.axis("off")
 
 plt.subplot(1, 3, 3)
-plt.imshow(dil_out, cmap='gray', vmin=0, vmax=255)
-plt.title(f"Custom Dilation\n(black 0 averaging, {iteration} iters)")
+plt.imshow(dil.astype(np.uint8), cmap='gray', vmin=0, vmax=255)
+plt.title(f"Dilation (hard-skin outward)\nK={KERNEL_SIZE}, it={ITERATIONS}, step={DISP_CONST}")
 plt.axis("off")
 
 plt.tight_layout()
