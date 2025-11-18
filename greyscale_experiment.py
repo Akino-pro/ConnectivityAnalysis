@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 # ============================
 # Adjustable parameters
 # ============================
-FILENAME     = "black_ring.png"   # pure white background
+FILENAME     = "Figure_1.png"   # pure white background
 KERNEL_SIZE  = 5                 # kernel size (odd recommended)
 DISP_CONST   = 1                # grayscale change per step
 SHAPE_THRESH = 250               # ring (shape) = gray < SHAPE_THRESH
@@ -158,6 +158,7 @@ def compute_connectivity(gray_img, erosion_step=DISP_CONST,
 # ============================
 # MAIN: compute connectivity and plot vs erosion depth
 # ============================
+"""
 connectivity_value, depths, conn_curve = compute_connectivity(img0)
 
 print(f"Final connectivity: {connectivity_value:.6f}")
@@ -170,3 +171,4 @@ plt.title("Connectivity vs Erosion Depth")
 plt.grid(True)
 plt.tight_layout()
 plt.show()
+"""
