@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 # Adjustable parameters
 # ============================
 FILENAME     = "pure_ring.png"   # pure white background
-KERNEL_SIZE  = 3                 # kernel size (odd recommended)
+KERNEL_SIZE  = 5                # kernel size (odd recommended)
 ITERATIONS   = 280               # number of steps
 DISP_CONST   = 5                 # grayscale change per step
 SHAPE_THRESH = 250               # ring (shape) = gray < SHAPE_THRESH

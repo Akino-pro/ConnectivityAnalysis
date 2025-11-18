@@ -20,13 +20,13 @@ step_size = 0.01
 terminate_threshold = 9.0 / 5.0 * step_size
 ssm_finding_num = 20
 max_ssm = 2
-sample_num = 16
-#r1 =0.3
-#r2 =0.2
-#r3 =0.1
-r1 = 1.0/3.0
-r2 = 1.0/3.0
-r3 = 1.0/3.0
+sample_num = 100
+# r1 =0.3
+# r2 =0.2
+# r3 =0.1
+r1 = 1.0 / 3.0
+r2 = 1.0 / 3.0
+r3 = 1.0 / 3.0
 
 # L = [0.4888656043245976, 1.3992499610293656, 1.1118844346460368]
 # L = [1, 1, 1]
@@ -34,18 +34,19 @@ r3 = 1.0/3.0
 # CA = [(-2.312033825326607, 2.312033825326607), (-2.1986530478299358, 1.3083974620434837),
 #     (-3.119803865520389, 0.38031991292340495)]
 # L=[1.42,1,0.58]
-#L=[np.sqrt(0.5),np.sqrt(0.5),np.sqrt(2.0/3.0)]
+# L=[np.sqrt(0.5),np.sqrt(0.5),np.sqrt(2.0/3.0)]
 L = [1, 1, 1]
-#L=[0.4454,0.3143,0.2553]
+# L=[0.4454,0.3143,0.2553]
 print(np.sum(L))
 # CA=[(-3.031883452592004, 3.031883452592004), (-1.619994146091692, -0.8276157453255935), (-1.6977602095460234, -0.7265946655975718)]
-#CA = [(-0.7391244590957556, 0.7391244590957556), (-0.7422740927125862, 1.9756037937159996),
- #     (-2.11211741668124, 2.12020510030)]
+# CA = [(-0.7391244590957556, 0.7391244590957556), (-0.7422740927125862, 1.9756037937159996),
+#     (-2.11211741668124, 2.12020510030)]
 
-CA=[(-0.5779611440942315, 0.5779611440942315), (-1.1887031063410372, 0.6453736884533061), (-1.7852473794934884, 1.8681718728028136)]
-#CA = [(-18.2074 * np.pi / 180, 18.2074 * np.pi / 180), (-111.3415 * np.pi / 180, 111.3415 * np.pi / 180),(-111.3415 * np.pi / 180, 111.3415 * np.pi / 180)]
+CA = [(-0.5779611440942315, 0.5779611440942315), (-1.1887031063410372, 0.6453736884533061),
+      (-1.7852473794934884, 1.8681718728028136)]
+# CA = [(-18.2074 * np.pi / 180, 18.2074 * np.pi / 180), (-111.3415 * np.pi / 180, 111.3415 * np.pi / 180),(-111.3415 * np.pi / 180, 111.3415 * np.pi / 180)]
 
-#CA = [(-42.35 * np.pi / 180, 42.35 * np.pi / 180), (-42.53 * np.pi / 180, 113.19 * np.pi / 180),(-121.02 * np.pi / 180, 121.48 * np.pi / 180)]
+# CA = [(-42.35 * np.pi / 180, 42.35 * np.pi / 180), (-42.53 * np.pi / 180, 113.19 * np.pi / 180),(-121.02 * np.pi / 180, 121.48 * np.pi / 180)]
 """
 CA = [(-30 * np.pi / 180, 30 * np.pi / 180), (-120 * np.pi / 180, 60 * np.pi / 180),
       (-130 * np.pi / 180, 130 * np.pi / 180)]
@@ -76,15 +77,17 @@ print(cr_list)
 indices = sorted_indices(cr_list)
 print(indices)
 
-def forward_kinematics_2R(theta, L,base_point):
+
+def forward_kinematics_2R(theta, L, base_point):
     x1 = L[0] * np.cos(theta[0])
     y1 = L[0] * np.sin(theta[0])
 
     x2 = x1 + L[1] * np.cos(theta[0] + theta[1])
     y2 = y1 + L[1] * np.sin(theta[0] + theta[1])
-    x2+=base_point[0]
-    y2+=base_point[1]
+    x2 += base_point[0]
+    y2 += base_point[1]
     return np.array([x2, y2]).T.reshape((2, 1))
+
 
 def forward_kinematics_3R(theta, L):
     """
@@ -259,6 +262,7 @@ def find_critical_points(ssm_theta_list):
         # thetas_cp_sum[j] = union_ranges(thetas_cp_sum[j])
     return thetas_cp_sum
 
+
 def find_single_intersection(ssm_theta_list):
     tof = False
     for theta_index in range(len(ssm_theta_list)):
@@ -267,6 +271,7 @@ def find_single_intersection(ssm_theta_list):
             tof = True
 
     return tof
+
 
 def dls(x_target, initial_config):
     q = np.array(initial_config).T.reshape((3, 1))
@@ -295,6 +300,7 @@ def dls(x_target, initial_config):
             return []
     sol = q
     return sol
+
 
 def ik_2r_single(x, y, L1, L2, base=(0.0, 0.0)):
     """
@@ -325,16 +331,16 @@ def ik_2r_single(x, y, L1, L2, base=(0.0, 0.0)):
         raise ValueError("Target out of reach")
 
     # cos(theta2), clamp for safety
-    c2 = (X*X + Y*Y - L1*L1 - L2*L2) / (2*L1*L2)
+    c2 = (X * X + Y * Y - L1 * L1 - L2 * L2) / (2 * L1 * L2)
     c2 = np.clip(c2, -1.0, 1.0)
 
     # elbow up and down
-    s2_pos = np.sqrt(1.0 - c2*c2)
+    s2_pos = np.sqrt(1.0 - c2 * c2)
     s2_neg = -s2_pos
 
     def solve(s2):
         th2 = np.arctan2(s2, c2)
-        th1 = np.arctan2(Y, X) - np.arctan2(L2*s2, L1 + L2*c2)
+        th1 = np.arctan2(Y, X) - np.arctan2(L2 * s2, L1 + L2 * c2)
         return th1, th2
 
     sol_up = solve(s2_pos)
@@ -342,17 +348,20 @@ def ik_2r_single(x, y, L1, L2, base=(0.0, 0.0)):
 
     return sol_up, sol_dn
 
+
 def lock_joint_1(theta_1):
-    new_base_point=(L[0]*np.cos(theta_1),L[0]*np.sin(theta_1))
-    return [L[1],L[2]],new_base_point
+    new_base_point = (L[0] * np.cos(theta_1), L[0] * np.sin(theta_1))
+    return [L[1], L[2]], new_base_point
+
 
 def lock_joint_2(theta_2):
-    new_L1=np.sqrt(L[0]**2+L[1]**2-2.0*L[0]*L[1]*np.cos(np.pi-np.abs(theta_2)))
-    return [new_L1,L[2]],(0,0)
+    new_L1 = np.sqrt(L[0] ** 2 + L[1] ** 2 - 2.0 * L[0] * L[1] * np.cos(np.pi - np.abs(theta_2)))
+    return [new_L1, L[2]], (0, 0)
+
 
 def lock_joint_3(theta_3):
-    new_L1=np.sqrt(L[1]**2+L[2]**2-2.0*L[1]*L[2]*np.cos(np.pi-np.abs(theta_3)))
-    return [L[0],new_L1],(0,0)
+    new_L1 = np.sqrt(L[1] ** 2 + L[2] ** 2 - 2.0 * L[1] * L[2] * np.cos(np.pi - np.abs(theta_3)))
+    return [L[0], new_L1], (0, 0)
 
 
 def find_random_ssm(x_target, all_ssm_theta_list):
@@ -370,7 +379,7 @@ def find_random_ssm(x_target, all_ssm_theta_list):
         J_plus = np.linalg.pinv(J)
         # correction = np.dot(J_plus, delta_x)
         correction = J.T @ np.linalg.inv(J @ J.T + 0.5 ** 2 * np.eye(2)) @ delta_x
-        if np.linalg.norm(correction) <= 1e-9: return ik, [], [[], [], [], []], all_ssm_theta_list, ssm_found,False
+        if np.linalg.norm(correction) <= 1e-9: return ik, [], [[], [], [], []], all_ssm_theta_list, ssm_found, False
         q = q + 0.1 * correction
         # correction=J.T @ np.linalg.inv(J @ J.T + 0.5**2 * np.eye(2)) @ delta_x
         # q = q + 0.1 * correction
@@ -388,14 +397,14 @@ def find_random_ssm(x_target, all_ssm_theta_list):
         x_current = forward_kinematics_3R(q, L)
         consecutive_delta_x = np.linalg.norm(previous_x - x_current)
         if consecutive_delta_x < 1e-8:
-            return ik, [], [[], [], [], []], all_ssm_theta_list, ssm_found,False
+            return ik, [], [[], [], [], []], all_ssm_theta_list, ssm_found, False
     ik = True
     sol = q
 
     for configuration in all_ssm_theta_list:
         if np.linalg.norm(configuration - sol) <= terminate_threshold:
             # print('ssm already exists.')
-            return ik, [], [[], [], []], all_ssm_theta_list, ssm_found,False
+            return ik, [], [[], [], []], all_ssm_theta_list, ssm_found, False
     theta = sol
     theta_prime = theta.copy()
 
@@ -420,7 +429,7 @@ def find_random_ssm(x_target, all_ssm_theta_list):
             for configuration in all_ssm_theta_list:
                 if np.linalg.norm(configuration - theta) <= terminate_threshold:
                     print('ssm guided to wrong direction.')
-                    return ik, [], [[], [], []], all_ssm_theta_list, ssm_found,False
+                    return ik, [], [[], [], []], all_ssm_theta_list, ssm_found, False
         n_j = new_n_j
         if num == 15000 and lowest > terminate_threshold:
             print('if you see this printed, then there are still spaces for efficiency improvement.')
@@ -430,20 +439,20 @@ def find_random_ssm(x_target, all_ssm_theta_list):
             for configuration in all_ssm_theta_list:
                 if np.linalg.norm(configuration - theta) <= terminate_threshold:
                     # print('ssm already exists.')
-                    return ik, [], [[], [], []], all_ssm_theta_list, ssm_found,False
+                    return ik, [], [[], [], []], all_ssm_theta_list, ssm_found, False
             ssm_theta_list = [theta]
             num = -1
         num += 1
         ssm_theta_list.append(theta)
     all_ssm_theta_list.extend(ssm_theta_list)
-    if x_target[0]==1.96875 and x_target[1]==0:
+    if x_target[0] == 1.96875 and x_target[1] == 0:
         list_of_lists = [arr.flatten().tolist() for arr in ssm_theta_list]  # Convert np.array to list
         with open('plot_list.txt', 'w') as file:
             json.dump(list_of_lists, file, indent=4)
-    #print(f'found a new ssm with {num} points.')
+    # print(f'found a new ssm with {num} points.')
     ssm_found = True
 
-    #if x == -1.875 and y == 0.375:
+    # if x == -1.875 and y == 0.375:
     """
     if x == 2 and y == 0:
         ppoints = np.array(ssm_theta_list)
@@ -467,10 +476,9 @@ def find_random_ssm(x_target, all_ssm_theta_list):
         plt.show()
     """
 
-
-    #ip_ranges=[]
+    # ip_ranges=[]
     ip_ranges, tof = find_intersection_points(ssm_theta_list)
-    single_intersection_tf=find_single_intersection(ssm_theta_list)
+    single_intersection_tf = find_single_intersection(ssm_theta_list)
     # ip_ranges = union_ranges(ip_ranges)
     cp_ranges = find_critical_points(ssm_theta_list)
     # print(min_theta1, max_theta1)
@@ -518,7 +526,8 @@ def compute_beta_range(x, y):
     F_list = [False] * (8)
     target_x = np.array([x, y]).T.reshape((2, 1))
     all_smm_beta_range = []
-    reliable_beta_ranges = [[], [], [], [], [], [], [],[]] # the last element for prefailure workspace(task space projection of artificial joint limits)
+    reliable_beta_ranges = [[], [], [], [], [], [], [],
+                            []]  # the last element for prefailure workspace(task space projection of artificial joint limits)
     all_theta = []
     beta0_ranges = []
     theta1_ranges = []
@@ -526,11 +535,11 @@ def compute_beta_range(x, y):
     theta3_ranges = []
     find_count = 0
     ssm_found = 0
-    single_intersection_tf_all=False
+    single_intersection_tf_all = False
     while find_count < ssm_finding_num and ssm_found < max_ssm:
         ik, iprs, cp_ranges, all_theta, ssm_found_tf, single_intersection_tf = find_random_ssm(
             target_x, all_theta)
-        single_intersection_tf_all=single_intersection_tf_all or single_intersection_tf
+        single_intersection_tf_all = single_intersection_tf_all or single_intersection_tf
         if not ik: break
         find_count += 1
         iprs = extend_ranges(iprs)
@@ -538,8 +547,8 @@ def compute_beta_range(x, y):
         for intersection_range in iprs:
             beta0_lm = CA[0][0] - intersection_range[1]
             beta0_um = CA[0][1] - intersection_range[0]
-            #print(beta0_lm)
-            #print(beta0_um)
+            # print(beta0_lm)
+            # print(beta0_um)
             if beta0_um - beta0_lm >= 2 * np.pi:
                 beta0_ranges.append([-np.pi, np.pi])
             elif beta0_lm < -np.pi:
@@ -564,8 +573,6 @@ def compute_beta_range(x, y):
         for cp_range in cp_ranges[2]:
             if cp_range[0] > -np.inf:
                 theta3_ranges.append(cp_range)
-
-
 
     theta1_ranges_union = union_ranges(theta1_ranges)
     theta2_ranges_union = union_ranges(theta2_ranges)
@@ -628,7 +635,7 @@ def compute_beta_range(x, y):
     max_beta3 = np.pi
 
     for index in range(len(beta0_ranges)):
-        reliable_beta_ranges[-1].append(beta0_ranges[index])# prefailure workspace
+        reliable_beta_ranges[-1].append(beta0_ranges[index])  # prefailure workspace
         min_beta0, max_beta0 = beta0_ranges[index][0], beta0_ranges[index][1]
         # print(min_beta0, max_beta0)
         # print(min_beta1, max_beta1)
@@ -636,59 +643,53 @@ def compute_beta_range(x, y):
         # print(min_beta3, max_beta3)
         if single_intersection_tf_all: F_list[-1] = True
         if ion1:
-            if single_intersection_tf_all:F_list[0]=True
+            if single_intersection_tf_all: F_list[0] = True
             min_beta_f_1 = max(min_beta0, min_beta1)
             max_beta_f_1 = min(max_beta0, max_beta1)
             if min_beta_f_1 <= max_beta_f_1:
                 reliable_beta_ranges[0].append([min_beta_f_1, max_beta_f_1])
         if ion2:
-            if single_intersection_tf_all:F_list[1] = True
+            if single_intersection_tf_all: F_list[1] = True
             min_beta_f_2 = max(min_beta0, min_beta2)
             max_beta_f_2 = min(max_beta0, max_beta2)
             if min_beta_f_2 <= max_beta_f_2:
-
                 reliable_beta_ranges[1].append([min_beta_f_2, max_beta_f_2])
         if ion3:
-            if single_intersection_tf_all:F_list[2] = True
+            if single_intersection_tf_all: F_list[2] = True
             min_beta_f_3 = max(min_beta0, min_beta3)
             max_beta_f_3 = min(max_beta0, max_beta3)
             if min_beta_f_3 <= max_beta_f_3:
-
                 reliable_beta_ranges[2].append([min_beta_f_3, max_beta_f_3])
         if ion1 and ion2:
-            if single_intersection_tf_all:F_list[3] = True
+            if single_intersection_tf_all: F_list[3] = True
             min_beta_f_12 = max(min_beta0, min_beta1, min_beta2)
             max_beta_f_12 = min(max_beta0, max_beta1, max_beta2)
             if min_beta_f_12 <= max_beta_f_12:
-
                 reliable_beta_ranges[3].append([min_beta_f_12, max_beta_f_12])
         if ion1 and ion3:
-            if single_intersection_tf_all:F_list[4] = True
+            if single_intersection_tf_all: F_list[4] = True
             min_beta_f_13 = max(min_beta0, min_beta1, min_beta3)
             max_beta_f_13 = min(max_beta0, max_beta1, max_beta3)
             if min_beta_f_13 <= max_beta_f_13:
-
                 reliable_beta_ranges[4].append([min_beta_f_13, max_beta_f_13])
         if ion2 and ion3:
-            if single_intersection_tf_all:F_list[5] = True
+            if single_intersection_tf_all: F_list[5] = True
             min_beta_f_23 = max(min_beta0, min_beta2, min_beta3)
             max_beta_f_23 = min(max_beta0, max_beta2, max_beta3)
             if min_beta_f_23 <= max_beta_f_23:
-
                 reliable_beta_ranges[5].append([min_beta_f_23, max_beta_f_23])
         if ion1 and ion2 and ion3:
-            if single_intersection_tf_all:F_list[6] = True
+            if single_intersection_tf_all: F_list[6] = True
             min_beta_f_ftw = max(min_beta0, min_beta1, min_beta2, min_beta3)
             max_beta_f_ftw = min(max_beta0, max_beta1, max_beta2, max_beta3)
 
             if min_beta_f_ftw <= max_beta_f_ftw:
-
                 all_smm_beta_range.append([min_beta_f_ftw, max_beta_f_ftw])
                 reliable_beta_ranges[6].append([min_beta_f_ftw, max_beta_f_ftw])
 
     for rbr_index in range(len(reliable_beta_ranges)):
         reliable_beta_ranges[rbr_index] = union_ranges(reliable_beta_ranges[rbr_index])
-    return union_ranges(all_smm_beta_range), reliable_beta_ranges,F_list
+    return union_ranges(all_smm_beta_range), reliable_beta_ranges, F_list
 
 
 def wedge_to_poly3d(wedge, z_value):
@@ -713,22 +714,23 @@ def wedge_to_poly3d(wedge, z_value):
     vertices = list(zip(x, y, z))
     return vertices
 
+
 def main_function():
     num_reliable_ranges = 7
     cr_list.append(0)
-    #color_list, sm = normalize_and_map_colors(cr_list)
-    color_list, sm =normalize_and_map_greyscale(cr_list)
+    # color_list, sm = normalize_and_map_colors(cr_list)
+    color_list, sm = normalize_and_map_greyscale(cr_list)
     final_wedges = []
     final_colors = []
     # z_levels = cr_list
     # np.linspace(-3, 3, num_reliable_ranges)
 
-    #""" original approach
+    # """ original approach
     section_length = 3.0 / sample_num
     x_values = (np.arange(sample_num) + 0.5) * section_length
     y_values = np.zeros(sample_num)
     points = np.column_stack((x_values, y_values))
-    #"""
+    # """
 
     """ uniform sample
     d = 3.0 / sample_num
@@ -754,10 +756,6 @@ def main_function():
     ax.add_patch(circle)
     """
 
-
-
-
-
     """ random sample
     N = 812
     theta = np.random.rand(N) * 2 * np.pi
@@ -768,17 +766,18 @@ def main_function():
     diam = 3.0 / sample_num
     """
 
-    #""" original approach
-    ring_width = 2.0*x_values[0]
-    
-    
+    # """ original approach
+    ring_width = 2.0 * x_values[0]
+
     fig3, ax2d3 = plt.subplots(figsize=(6, 6))
-    
+
     # Set limits for the 2D plot
 
     ax2d3.set_xlim(-np.sum(L), np.sum(L))
-    ax2d3.set_ylim(-np.sum(L),np.sum(L))
+    ax2d3.set_ylim(-np.sum(L), np.sum(L))
     ax2d3.set_aspect('equal')
+    ax2d3.axis('off')
+    """
     ax2d3.set_xlabel("x", fontsize=25)
     ax2d3.set_ylabel("y", fontsize=25)
     tick_positions = [-2,-1, 0, 1,2]
@@ -792,20 +791,21 @@ def main_function():
     tick_length = 0.05
     for x in x_ticks:
         ax2d3.plot([x, x], [0, tick_length], color='black', linewidth=1)
-    
-    
+    """
+
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
-    N=0
-    #"""
+    N = 0
 
-    def plot_prefailure_boundary(ax,sample_num):
+    # """
+
+    def plot_prefailure_boundary(ax, sample_num):
         section_length = 3.0 / sample_num
         local_x_values = (np.arange(sample_num) + 0.5) * section_length
         local_y_values = np.zeros(sample_num)
         points = np.column_stack((local_x_values, local_y_values))
         ring_width = 2.0 * local_x_values[0]
-        polys2d=[]
+        polys2d = []
         for i in range(len(points)):
             point = points[i]
             x, y = point
@@ -826,24 +826,22 @@ def main_function():
             plot_exterior_boundary(ax, shape2d,  # change to ax for uniform and random, ax2d3 for original
                                    color='k', linewidth=1.8)
 
-
     start = time.perf_counter()
     for i in range(len(points)):
         point = points[i]
         x, y = point
 
         print(point)
-        beta_ranges, reliable_beta_ranges,F_list = compute_beta_range(x, y)  # Get multiple beta ranges
+        beta_ranges, reliable_beta_ranges, F_list = compute_beta_range(x, y)  # Get multiple beta ranges
 
         # for b_r_index in range(len(reliable_beta_ranges)):
-
 
         """ orignial
         prefailure_b_r = reliable_beta_ranges[-1]
         for beta_range in prefailure_b_r:
             theta1 = np.degrees(beta_range[0])  # Start angle (-π)
             theta2 = np.degrees(beta_range[1])  # End angle (π)
-    
+
             # Calculate the outer radius for the ring (x + ring_width / 2)
             outer_radius = x + ring_width / 2.0
             inner_radius = x - ring_width / 2.0
@@ -852,15 +850,13 @@ def main_function():
             )
         """
 
-
         for b_r_index in indices:
             b_r = reliable_beta_ranges[b_r_index]
             # z_level = z_levels[b_r_index]
             z_level = b_r_index * 2
             color = color_list[b_r_index]
 
-
-            f_to=F_list[b_r_index]
+            f_to = F_list[b_r_index]
             if f_to:
                 """ uniform sample
                 rect = Rectangle(
@@ -889,16 +885,17 @@ def main_function():
                 """
 
             for beta_range in b_r:
-                #""" original approach
+                # """ original approach
                 # Compute angles in degrees (as required by Wedge)
                 theta1 = np.degrees(beta_range[0])  # Start angle (-π)
                 theta2 = np.degrees(beta_range[1])  # End angle (π)
-    
+
                 # Calculate the outer radius for the ring (x + ring_width / 2)
                 outer_radius = x + ring_width / 2.0
-                inner_radius = x-ring_width/2.0
-                if b_r_index == 6: N += np.pi * (outer_radius ** 2 -inner_radius**2)/(2*np.pi)*(beta_range[1]-beta_range[0])
-    
+                inner_radius = x - ring_width / 2.0
+                if b_r_index == 6: N += np.pi * (outer_radius ** 2 - inner_radius ** 2) / (2 * np.pi) * (
+                            beta_range[1] - beta_range[0])
+
                 wedge = Wedge(
                     center=(0, 0),
                     r=outer_radius,
@@ -907,9 +904,9 @@ def main_function():
                     facecolor=color,  # Set face color to match 3D plot
                     edgecolor=color,
                     alpha=1.0,
-                    zorder=b_r_index+1
+                    zorder=b_r_index + 1
                 )
-    
+
                 wedge_2d = Wedge(
                     center=(0, 0),
                     r=outer_radius,
@@ -918,9 +915,9 @@ def main_function():
                     facecolor=color,
                     edgecolor=color,
                     alpha=1.0,
-                    zorder=b_r_index+1
+                    zorder=b_r_index + 1
                 )
-                
+
                 poly3d = wedge_to_poly3d(wedge, z_level)
                 # Add the wedge to the plot
                 # ax.add_patch(wedge)
@@ -932,14 +929,14 @@ def main_function():
                         alpha=1.0
                     )
                 )
-    
+
                 ax2d3.add_patch(wedge_2d)  # Add wedge to 2D plot
-    
+
                 if b_r_index == len(reliable_beta_ranges) - 1:
                     final_wedges.append(wedge)
                     final_colors.append(color)
-    
-                #"""
+
+                # """
 
     """ original
     if polys2d:  
@@ -947,8 +944,7 @@ def main_function():
         plot_exterior_boundary(ax, shape2d,  # change to ax for uniform and random, ax2d3 for original
                                    color='k', linewidth=1.8)
     """
-    #plot_prefailure_boundary(ax,sample_num)
-
+    # plot_prefailure_boundary(ax,sample_num)
 
     """ uniform sample
     # draw grid lines
@@ -977,17 +973,16 @@ def main_function():
     plt.show()
     """
 
-
-    #""" original approach
-    #ax2d3.scatter(-1.875,0.375, s=8, color='black')
-    ax2d3.tick_params(axis='x', labelsize=18)  # Increase font size for X-axis ticks
-    ax2d3.tick_params(axis='y', labelsize=18)  # Increase font size for Y-axis ticks
+    # """ original approach
+    # ax2d3.scatter(-1.875,0.375, s=8, color='black')
+    # ----ax2d3.tick_params(axis='x', labelsize=18)  # Increase font size for X-axis ticks
+    # ----ax2d3.tick_params(axis='y', labelsize=18)  # Increase font size for Y-axis ticks
     # cbar = plt.colorbar(sm, ax=ax2d3, label='Reliability Spectrum')  # Ensure colorbar is linked to the mappable
-    #ax2d3.set_title("Fault tolerant workspace")
+    # ax2d3.set_title("Fault tolerant workspace")
     fig3.show()
-    
+
     # Set the plot limits to range from -3 to 3 for both x and y axes
-    radius=np.sum(L)
+    radius = np.sum(L)
     ax.set_xlim(-np.sum(L), np.sum(L))
     ax.set_ylim(-np.sum(L), np.sum(L))
     ax.set_zlim(0, 12)
@@ -996,17 +991,17 @@ def main_function():
     tick_positions = [-2, 0, 2]
     ax.set_xticks(tick_positions)
     ax.set_yticks(tick_positions)
-    
+
     # ax.tick_params(axis='x', labelsize=14)
     # ax.tick_params(axis='y', labelsize=14)
     # ax.tick_params(axis='z', labelsize=14)
-    
+
     # ax.set_zlabel("Failable Joints")
-    
+
     # Set aspect ratio to be equal for correct visualization of circles
     ax.set_aspect('equal')
     print(N)
-    
+
     # Add title and display the plot
     # plt.title("Planar3R Reliable work spaces")
     cbar = plt.colorbar(sm, ax=ax)  # Ensure colorbar is linked to the mappable
@@ -1015,20 +1010,21 @@ def main_function():
     cbar.set_ticklabels([f"{tick:.1f}" for tick in tick_positions])
     # Define the new labels and corresponding tick positionsq
     z_tick_labels = [r'$\mathit{F}=\{1\}$', r'$\mathit{F}=\{2\}$', r'$\mathit{F}=\{3\}$',
-                     r'$\mathit{F}=\{1,2\}$', r'$\mathit{F}=\{1,3\}$', r'$\mathit{F}=\{2,3\}$', r'$\mathit{F}=\{1,2,3\}$']
-    ax.tick_params(axis='z', labelsize=18) 
+                     r'$\mathit{F}=\{1,2\}$', r'$\mathit{F}=\{1,3\}$', r'$\mathit{F}=\{2,3\}$',
+                     r'$\mathit{F}=\{1,2,3\}$']
+    ax.tick_params(axis='z', labelsize=18)
     z_tick_positions = [0, 2, 4, 6, 8, 10, 12]  # These match your z_level values
-    
+
     # Set the new labels on the Z-axis
     ax.set_zticks(z_tick_positions)
     ax.set_zticklabels(z_tick_labels)
     fig2, ax2d = plt.subplots(figsize=(6, 6))
-    
+
     for wedge, color in zip(final_wedges, final_colors):
         ax2d.add_patch(wedge)  # Add the stored wedge
         wedge.set_facecolor(color)  # Ensure colors match
         wedge.set_edgecolor(color)
-    
+
     # Configure the 2D plot
     ax2d.set_xlim(-3, 3)
     ax2d.set_ylim(-3, 3)
@@ -1039,242 +1035,17 @@ def main_function():
     ax2d.set_ylabel("y", fontsize=25)
     ax2d.tick_params(axis='x', labelsize=18)  # Increase font size for X-axis ticks
     ax2d.tick_params(axis='y', labelsize=18)  # Increase font size for Y-axis ticks
-    #ax2d.set_title("Fault tolerant workspace")
+    # ax2d.set_title("Fault tolerant workspace")
     fig2.show()
     plt.show()
-    #"""
+    # """
+
 
 def fold_offset(La, Lb, theta_locked):
     # orientation offset of the rigid pair relative to the first link
-    return np.arctan2(Lb*np.sin(theta_locked), La + Lb*np.cos(theta_locked))
+    return np.arctan2(Lb * np.sin(theta_locked), La + Lb * np.cos(theta_locked))
+
 
 main_function()
 
-"""
-import json
-results = []
 
-p1 = (0.6015959713, 0.2279385242)#y+=0.4
-p2 = (0.7384040287, -0.1479385242)
-#p1 = (0.4015959713, -0.4279385242)#y+=0.4
-#p2 = (0.5384040287, -0.7479385242)
-
-sample_number=40
-points = sample_line(p1, p2, sample_number)
-#random_lock_time = np.random.randint(1, sample_number+2)
-#print(random_lock_time)
-random_lock_time= 35 #7,14,21,28,35,
-random_lock_joint = np.random.randint(0, 3)
-random_lock_joint=2
-#q = np.array([10*np.pi/180.0,10*np.pi/180.0,10*np.pi/180.0]).T.reshape((3, 1))
-#print(forward_kinematics_3R(q, L))
-
-
-
-initial_config = [np.random.uniform(low, high) for (low, high) in CA]
-base=(0,0)
-new_L=[]
-reference_index=0
-true_index=0
-reference_angle=0
-locked_angle=0
-success=0
-for index, tp in enumerate(points) :
-    print(tp)
-    (x, y)=tp
-    if index==random_lock_time:
-        match random_lock_joint:
-            case 0:
-                locked_angle=initial_config[0]
-                new_L,new_base=lock_joint_1(locked_angle)
-                base =new_base
-                reference_index=1
-                true_index=0
-                reference_angle=initial_config[1]
-            case 1:
-                locked_angle = initial_config[1]
-                new_L,new_base=lock_joint_2(locked_angle)
-                base = new_base
-                reference_index = 2
-                true_index=1
-                reference_angle = initial_config[2]
-            case 2:
-                locked_angle=initial_config[2]
-                new_L,new_base=lock_joint_3(locked_angle)
-                base = new_base
-                reference_index = 1
-                true_index=2
-                reference_angle = initial_config[0]
-    if index>=random_lock_time:
-        print("-----------------------")
-        print(f"joint {true_index} is locked at angle {locked_angle / np.pi * 180.0}")
-        print("-----------------------")
-        try:
-            sol1, sol2 = ik_2r_single(
-                x, y,
-                new_L[0], new_L[1],
-                base=base
-            )
-            #x_t,y_t=forward_kinematics_2R([theta1, theta2],new_L,base)
-            #print(x_t)
-            #print(y_t)
-        except ValueError as e:
-            print(f"IK failed at index {index}: {e}")
-            break  # quit the loop
-        match random_lock_joint:
-            case 0:
-                 theta10,theta20=sol1
-                 theta11,theta21=sol2
-                 test_config1=[locked_angle,theta10-locked_angle,theta20]
-                 test_config2 = [locked_angle, theta11 - locked_angle, theta21]
-                 previous=initial_config
-                 initial_config = test_config2
-                 if math.sqrt(sum((a - b) ** 2 for a, b in zip(test_config1, previous)))<math.sqrt(sum((a - b) ** 2 for a, b in zip(test_config2, previous))):
-                     initial_config=test_config1
-                 print(initial_config[0] / np.pi * 180.0)
-                 print(initial_config[1] / np.pi * 180.0)
-                 print(initial_config[2] / np.pi * 180.0)
-                 joint1 = float(initial_config[0])
-                 joint4 = float(initial_config[1])
-                 joint6 = float(initial_config[2])
-
-                 # Append full 7-joint configuration
-                 full_config = [
-                     joint1,  # joint 1
-                     90.0 * np.pi / 180.0,  # joint 2 fixed at 90 deg
-                     90.0 * np.pi / 180.0,  # joint 3 fixed at 90 deg
-                     joint4,  # joint 4
-                     0.0,  # joint 5 fixed at 0 deg
-                     joint6,  # joint 6
-                     180.0 * (np.pi-1e-3) / 180.0  # joint 7 fixed at 180 deg
-                 ]
-                 results.append(full_config)
-                 #print(f'computed 2R position:{forward_kinematics_2R([theta1, theta2],new_L, base)}')
-                 #print(f'computed 3R position:{forward_kinematics_3R(np.array(initial_config), L)}')
-                 #print(f'true position:{tp}')
-            case 1:
-                 phi2 = fold_offset(L[0], L[1], locked_angle)
-                 theta10, theta20 = sol1
-                 theta11, theta21 = sol2
-                 test_config1 = [theta10 - phi2, locked_angle, theta20 - locked_angle + phi2]
-                 test_config2 = [theta11 - phi2, locked_angle, theta21 - locked_angle + phi2]
-                 previous = initial_config
-                 initial_config = test_config2
-                 if math.sqrt(sum((a - b) ** 2 for a, b in zip(test_config1, previous))) < math.sqrt(
-                         sum((a - b) ** 2 for a, b in zip(test_config2, previous))):
-                     initial_config = test_config1
-
-                 print(initial_config[0]/ np.pi * 180.0)
-                 print(initial_config[1] / np.pi * 180.0)
-                 print(initial_config[2] / np.pi * 180.0)
-                 joint1 = float(initial_config[0])
-                 joint4 = float(initial_config[1])
-                 joint6 = float(initial_config[2])
-
-                 # Append full 7-joint configuration
-                 full_config = [
-                     joint1,  # joint 1
-                     90.0 * np.pi / 180.0,  # joint 2 fixed at 90 deg
-                     90.0 * np.pi / 180.0,  # joint 3 fixed at 90 deg
-                     joint4,  # joint 4
-                     0.0,  # joint 5 fixed at 0 deg
-                     joint6,  # joint 6
-                     180.0 * (np.pi-1e-3)/ 180.0  # joint 7 fixed at 180 deg
-                 ]
-                 results.append(full_config)
-                 #print(f'computed 2R position:{forward_kinematics_2R([theta1, theta2], new_L, base)}')
-                 #print(f'computed 3R position:{forward_kinematics_3R(np.array(initial_config), L)}')
-                 #print(f'true position:{tp}')
-            case 2:
-                 phi3 = fold_offset(L[1], L[2], locked_angle)
-                 theta10, theta20 = sol1
-                 theta11, theta21 = sol2
-                 test_config1 = [theta10, theta20 - phi3, locked_angle]
-                 test_config2 = [theta11, theta21 - phi3, locked_angle]
-                 previous = initial_config
-                 initial_config = test_config2
-                 if math.sqrt(sum((a - b) ** 2 for a, b in zip(test_config1, previous))) < math.sqrt(
-                         sum((a - b) ** 2 for a, b in zip(test_config2, previous))):
-                     initial_config = test_config1
-
-                 print(initial_config[0] / np.pi * 180.0)
-                 print(initial_config[1] / np.pi * 180.0)
-                 print(initial_config[2] / np.pi * 180.0)
-                 joint1 = float(initial_config[0])
-                 joint4 = float(initial_config[1])
-                 joint6 = float(initial_config[2])
-
-                 # Append full 7-joint configuration
-                 full_config = [
-                     joint1,  # joint 1
-                     90.0 * np.pi / 180.0,  # joint 2 fixed at 90 deg
-                     90.0 * np.pi / 180.0,  # joint 3 fixed at 90 deg
-                     joint4,  # joint 4
-                     0.0,  # joint 5 fixed at 0 deg
-                     joint6,  # joint 6
-                     180.0 * (np.pi-1e-3) / 180.0  # joint 7 fixed at 180 deg
-                 ]
-                 results.append(full_config)
-                 #print(f'computed 2R position:{forward_kinematics_2R([theta1, theta2], new_L, base)}')
-                 #print(f'computed 3R position:{forward_kinematics_3R(np.array(initial_config), L)}')
-                 #print(f'true position:{tp}')
-        print("-----------------------")
-        success+=1
-    else:
-        sol = dls(np.array([x, y]).reshape((2, 1)), initial_config)
-        while not all(low <= s <= high for s, (low, high) in zip(sol, CA)) or sol == []:
-            initial_config = [np.random.uniform(low, high) for (low, high) in CA]
-            sol = dls(np.array([x, y]).reshape((2, 1)), initial_config)
-        initial_config=sol
-        joint1 = float(initial_config[0])
-        joint4 = float(initial_config[1])
-        joint6 = float(initial_config[2])
-
-        # Append full 7-joint configuration
-        full_config = [
-            joint1,  # joint 1
-            90.0 * np.pi / 180.0,  # joint 2 fixed at 90 deg
-            90.0 * np.pi / 180.0,  # joint 3 fixed at 90 deg
-            joint4,  # joint 4
-            0.0,  # joint 5 fixed at 0 deg
-            joint6,  # joint 6
-            180.0 * (np.pi-1e-3) / 180.0  # joint 7 fixed at 180 deg
-        ]
-        results.append(full_config)
-        #if not all(low <= initial_config <= high for initial_config, (low, high) in zip(initial_config, CA)):print("At least one angle is out of range")
-        for i in sol:
-            print(i/np.pi*180.0)
-        #print(sol)
-        print("-----------------------")
-        success+=1
-if success == 42: print('task complete!')
-
-DT = 0.5  # seconds between trajectory points
-
-traj = {
-    "joint_names": ["joint_1","joint_2","joint_3","joint_4","joint_5","joint_6","joint_7"],
-    "points": []
-}
-
-for i, q in enumerate(results):
-    sec = int(i * DT)
-    nanosec = int((i * DT - sec) * 1e9)
-    traj["points"].append({
-        "positions": [float(x) for x in q],
-        "time_from_start": {"sec": sec, "nanosec": nanosec}
-    })
-
-# Compact JSON payload
-payload = json.dumps(traj, separators=(",", ":"))
-
-# Compose the final ROS2 command (single-line, paste-ready)
-ros_cmd = f"ros2 topic pub --once /joint_trajectory_controller/joint_trajectory trajectory_msgs/JointTrajectory '{payload}'"
-
-# Save it to a file
-with open("ros2_trajectory_command.txt", "w") as f:
-    f.write(ros_cmd)
-
-print(f"✅ Saved ready-to-run ROS2 command to ros2_trajectory_command.txt")
-print("➡  Open it and paste the entire command into your terminal to execute.")
-
-"""

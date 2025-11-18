@@ -645,6 +645,49 @@ def normalize_and_map_colors(values, cmap_name='rainbow', shallow_factor=0.5, sn
     return colors, sm
 
 
+def normalize_and_map_greyscale(values, snap_eps=1e-8):
+    """
+    Map normalized reliability values [0,1] to grayscale colors:
+      - v=0 → white
+      - v=1 → black
+    Returns:
+        colors: list of RGBA tuples
+        sm: ScalarMappable for colorbar
+    """
+
+    values = np.asarray(values, dtype=float)
+
+    # ----- Build grayscale spectrum -----
+    # 256 levels from white→black
+    greys = np.linspace(1.0, 0.0, 256)  # 1 = white, 0 = black
+    arr = np.zeros((256, 4))
+    arr[:, 0] = greys
+    arr[:, 1] = greys
+    arr[:, 2] = greys
+    arr[:, 3] = 1.0  # alpha
+
+    custom_cmap = ListedColormap(arr)
+    norm = mpl.colors.Normalize(vmin=0, vmax=1)
+
+    # scalar mappable for colorbar
+    sm = plt.cm.ScalarMappable(cmap=custom_cmap, norm=norm)
+    sm.set_array([])
+
+    # ----- Assign individual colors -----
+    colors = []
+    for v in values:
+        if v <= 0 + snap_eps:
+            gray = 1.0  # white
+        elif v >= 1 - snap_eps:
+            gray = 0.0  # black
+        else:
+            gray = 1.0 - v  # linear mapping
+
+        colors.append((gray, gray, gray, 1.0))
+
+    return colors, sm
+
+
 def normalize_and_map_colors_green(values, cmap_name='rainbow', vmin=0, vmax=2*np.pi):
     """
     Maps unnormalized values to colors using a colormap.
