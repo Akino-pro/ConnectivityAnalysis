@@ -15,7 +15,7 @@ step_size = 0.01
 terminate_threshold = 9.0 / 5.0 * step_size
 ssm_finding_num = 20
 max_ssm = 2
-sample_num = 16
+sample_num = 100
 # r1 =0.3
 # r2 =0.2
 # r3 =0.1
@@ -30,15 +30,10 @@ r3 = 1.0 / 3.0
 #     (-3.119803865520389, 0.38031991292340495)]
 # L=[1.42,1,0.58]
 # L=[np.sqrt(0.5),np.sqrt(0.5),np.sqrt(2.0/3.0)]
-L = [1, 1, 1]
 # L=[0.4454,0.3143,0.2553]
-print(np.sum(L))
 # CA=[(-3.031883452592004, 3.031883452592004), (-1.619994146091692, -0.8276157453255935), (-1.6977602095460234, -0.7265946655975718)]
 # CA = [(-0.7391244590957556, 0.7391244590957556), (-0.7422740927125862, 1.9756037937159996),
 #     (-2.11211741668124, 2.12020510030)]
-
-CA = [(-0.5779611440942315, 0.5779611440942315), (-1.1887031063410372, 0.6453736884533061),
-      (-1.7852473794934884, 1.8681718728028136)]
 # CA = [(-18.2074 * np.pi / 180, 18.2074 * np.pi / 180), (-111.3415 * np.pi / 180, 111.3415 * np.pi / 180),(-111.3415 * np.pi / 180, 111.3415 * np.pi / 180)]
 
 # CA = [(-42.35 * np.pi / 180, 42.35 * np.pi / 180), (-42.53 * np.pi / 180, 113.19 * np.pi / 180),(-121.02 * np.pi / 180, 121.48 * np.pi / 180)]
@@ -52,8 +47,7 @@ CA = [(-3.141592653589793, 3.141592653589793), (-0.9272951769138392, 2.214295731
 # for a in range(len(CA)):
 #    if CA[a][1] - CA[a][0] < step_size: CA[a] = (
 #        CA[a][0] - terminate_threshold, CA[a][1] + terminate_threshold)
-C_dot_A = CA.copy()
-C_dot_A[0] = (-np.pi, np.pi)
+
 
 
 def reliability_computation(r1, r2, r3):
@@ -68,9 +62,8 @@ def reliability_computation(r1, r2, r3):
 
 
 cr_list = reliability_computation(r1, r2, r3)
-print(cr_list)
 indices = sorted_indices(cr_list)
-print(indices)
+
 
 
 def forward_kinematics_2R(theta, L, base_point):
@@ -122,7 +115,7 @@ def Jacobian_3R(theta, L):
     return J
 
 
-def stepwise_ssm(theta, n_j, x_target, previous_n_j):
+def stepwise_ssm(theta, n_j, x_target, previous_n_j,L):
     a = np.array(n_j).reshape(-1)  # Converts 3x1 to 1D array
     b = np.array(previous_n_j).reshape(-1)
     dot_product = np.dot(a, b)
@@ -194,7 +187,7 @@ def extend_ranges(union_ranges):
     return extended_ranges
 
 
-def find_intersection_points(ssm_theta_list):
+def find_intersection_points(ssm_theta_list,C_dot_A):
     tof = False
     counter = 0
     ip_ranges = []
@@ -258,7 +251,7 @@ def find_critical_points(ssm_theta_list):
     return thetas_cp_sum
 
 
-def find_single_intersection(ssm_theta_list):
+def find_single_intersection(ssm_theta_list,CA):
     tof = False
     for theta_index in range(len(ssm_theta_list)):
         theta_flatten = ssm_theta_list[theta_index].flatten()
@@ -268,33 +261,6 @@ def find_single_intersection(ssm_theta_list):
     return tof
 
 
-def dls(x_target, initial_config):
-    q = np.array(initial_config).T.reshape((3, 1))
-    step_num = 0
-    error_threshold = 1e-6
-    error = 10
-    while error > error_threshold:
-        x_current = forward_kinematics_3R(q, L)
-        delta_x = x_target - x_current
-        error = np.linalg.norm(x_target - x_current)
-        J = Jacobian_3R(q, L)
-        correction = J.T @ np.linalg.inv(J @ J.T + 0.5 ** 2 * np.eye(2)) @ delta_x
-        if np.linalg.norm(correction) <= 1e-9: return []
-        q = q + 0.1 * correction
-
-        for i in range(len(q)):
-            q[i] %= 2 * np.pi
-            if q[i] > np.pi: q[i] -= 2 * np.pi
-            if q[i] < -np.pi: q[i] += 2 * np.pi
-
-        step_num += 1
-        previous_x = x_current
-        x_current = forward_kinematics_3R(q, L)
-        consecutive_delta_x = np.linalg.norm(previous_x - x_current)
-        if consecutive_delta_x < 1e-8:
-            return []
-    sol = q
-    return sol
 
 
 def ik_2r_single(x, y, L1, L2, base=(0.0, 0.0)):
@@ -344,22 +310,9 @@ def ik_2r_single(x, y, L1, L2, base=(0.0, 0.0)):
     return sol_up, sol_dn
 
 
-def lock_joint_1(theta_1):
-    new_base_point = (L[0] * np.cos(theta_1), L[0] * np.sin(theta_1))
-    return [L[1], L[2]], new_base_point
 
 
-def lock_joint_2(theta_2):
-    new_L1 = np.sqrt(L[0] ** 2 + L[1] ** 2 - 2.0 * L[0] * L[1] * np.cos(np.pi - np.abs(theta_2)))
-    return [new_L1, L[2]], (0, 0)
-
-
-def lock_joint_3(theta_3):
-    new_L1 = np.sqrt(L[1] ** 2 + L[2] ** 2 - 2.0 * L[1] * L[2] * np.cos(np.pi - np.abs(theta_3)))
-    return [L[0], new_L1], (0, 0)
-
-
-def find_random_ssm(x_target, all_ssm_theta_list,L):
+def find_random_ssm(x_target, all_ssm_theta_list,L,CA):
     ssm_found = False
     q = np.array(np.random.uniform(low=-np.pi, high=np.pi, size=(3,))).T.reshape((3, 1))
     step_num = 0
@@ -408,7 +361,7 @@ def find_random_ssm(x_target, all_ssm_theta_list,L):
     while True:
         if threshold <= terminate_threshold and num > 4: break
         old_theta = theta.copy()
-        theta, new_n_j, old_n_j = stepwise_ssm(theta, n_j, x_target, old_n_j)
+        theta, new_n_j, old_n_j = stepwise_ssm(theta, n_j, x_target, old_n_j,L)
         threshold = np.linalg.norm(theta - theta_prime)
         d_theta = np.linalg.norm(theta - old_theta)
         if threshold < lowest: lowest = threshold
@@ -434,43 +387,14 @@ def find_random_ssm(x_target, all_ssm_theta_list,L):
         num += 1
         ssm_theta_list.append(theta)
     all_ssm_theta_list.extend(ssm_theta_list)
-    if x_target[0] == 1.96875 and x_target[1] == 0:
-        list_of_lists = [arr.flatten().tolist() for arr in ssm_theta_list]  # Convert np.array to list
-        with open('plot_list.txt', 'w') as file:
-            json.dump(list_of_lists, file, indent=4)
     # print(f'found a new ssm with {num} points.')
     ssm_found = True
 
-    # if x == -1.875 and y == 0.375:
-    """
-    if x == 2 and y == 0:
-        ppoints = np.array(ssm_theta_list)
-
-        figp = plt.figure()
-        axp = figp.add_subplot(111, projection='3d')
-
-        # Plot the points
-        axp.scatter(ppoints[:, 0], ppoints[:, 1], ppoints[:, 2], c='b', marker='o')
-
-        # Set labels
-        axp.set_xlabel('theta1')
-        axp.set_ylabel('theta2')
-        axp.set_zlabel('theta3')
-
-        # Set plot limits for better visualization
-        axp.set_xlim([-np.pi, np.pi])
-        axp.set_ylim([-np.pi, np.pi])
-        axp.set_zlim([-np.pi, np.pi])
-
-        plt.show()
-    """
-
-    # ip_ranges=[]
-    ip_ranges, tof = find_intersection_points(ssm_theta_list)
-    single_intersection_tf = find_single_intersection(ssm_theta_list)
-    # ip_ranges = union_ranges(ip_ranges)
+    C_dot_A = CA.copy()
+    C_dot_A[0] = (-np.pi, np.pi)
+    ip_ranges, tof = find_intersection_points(ssm_theta_list,C_dot_A)
+    single_intersection_tf = find_single_intersection(ssm_theta_list,CA)
     cp_ranges = find_critical_points(ssm_theta_list)
-    # print(min_theta1, max_theta1)
     return ik, ip_ranges, cp_ranges, all_ssm_theta_list, ssm_found, single_intersection_tf
 
 
@@ -511,46 +435,107 @@ def union_ranges(ranges):
     return merged
 
 
-def compute_beta_range(x, y,L,CA):
-    F_list = [False] * (8)
-    target_x = np.array([x, y]).T.reshape((2, 1))
+def compute_beta_range(x, y, L, CA):
+    target_x = np.array([x, y]).reshape((2, 1))
+
     all_smm_beta_range = []
-    reliable_beta_ranges = [[], [], [], [], [], [], [],
-                            []]  # the last element for prefailure workspace(task space projection of artificial joint limits)
+    # 0: J1, 1: J2, 2: J3, 3: 12, 4: 13, 5: 23, 6: 123 (FTW), 7: prefailure
+    reliable_beta_ranges = [[] for _ in range(8)]
+
     all_theta = []
     beta0_ranges = []
     theta1_ranges = []
     theta2_ranges = []
     theta3_ranges = []
+
     find_count = 0
     ssm_found = 0
     single_intersection_tf_all = False
+
+    # ------ small helpers inside to avoid repeated code ------
+
+    def normalize_beta0_range(beta0_lm, beta0_um):
+        """Normalize a [beta0_lm, beta0_um] interval to [-π, π] with wrap-around."""
+        if beta0_um - beta0_lm >= 2 * np.pi:
+            return [[-np.pi, np.pi]]
+        elif beta0_lm < -np.pi:
+            return [
+                [beta0_lm + 2 * np.pi, np.pi],
+                [-np.pi, beta0_um]
+            ]
+        elif beta0_um > np.pi:
+            return [
+                [-np.pi, beta0_um - 2 * np.pi],
+                [beta0_lm, np.pi]
+            ]
+        else:
+            return [[beta0_lm, beta0_um]]
+
+    def check_CA_on_theta_union(theta_ranges_union, CA_k):
+        """
+        Given unioned theta ranges (on [-π, π]) and CA[k] = [ak, bk],
+        decide if CA[k] is fully 'inside' on the circle and
+        return (ion, min_beta_k, max_beta_k).
+
+        For joint 1: we need the shifted beta limits, for joints 2 & 3:
+        we only need a flag and keep [-π, π] as default.
+        """
+        ak, bk = CA_k
+        ion = False
+        has_negative_pi_range = None
+        has_positive_pi_range = None
+
+        for tr in theta_ranges_union:
+            t0, t1 = tr
+
+            if t0 == -np.pi:
+                has_negative_pi_range = t1
+            if t1 == np.pi:
+                has_positive_pi_range = t0
+
+            if ak >= t0 and bk <= t1:
+                ion = True
+
+        # Handle wrap-around of CA_k across ±π
+        if ak < -np.pi:
+            if has_negative_pi_range is not None and has_positive_pi_range is not None:
+                if (bk <= has_negative_pi_range) and (ak + 2 * np.pi >= has_positive_pi_range):
+                    ion = True
+
+        if bk > np.pi:
+            if has_negative_pi_range is not None and has_positive_pi_range is not None:
+                if (bk - 2 * np.pi <= has_negative_pi_range) and (ak >= has_positive_pi_range):
+                    ion = True
+
+        return ion
+
+    # --------------------------------------------------------
+
+    # --- Main search loop for SSMs ---
     while find_count < ssm_finding_num and ssm_found < max_ssm:
         ik, iprs, cp_ranges, all_theta, ssm_found_tf, single_intersection_tf = find_random_ssm(
-            target_x, all_theta,L)
+            target_x, all_theta, L, CA
+        )
         single_intersection_tf_all = single_intersection_tf_all or single_intersection_tf
-        if not ik: break
+        if not ik:
+            break
+
         find_count += 1
         iprs = extend_ranges(iprs)
 
+        # Build beta0 ranges from iprs and CA[0]
         for intersection_range in iprs:
             beta0_lm = CA[0][0] - intersection_range[1]
             beta0_um = CA[0][1] - intersection_range[0]
-            # print(beta0_lm)
-            # print(beta0_um)
-            if beta0_um - beta0_lm >= 2 * np.pi:
-                beta0_ranges.append([-np.pi, np.pi])
-            elif beta0_lm < -np.pi:
-                beta0_ranges.append([beta0_lm + 2 * np.pi, np.pi])
-                beta0_ranges.append([-np.pi, beta0_um])
-            elif beta0_um > np.pi:
-                beta0_ranges.append([-np.pi, beta0_um - 2 * np.pi])
-                beta0_ranges.append([beta0_lm, np.pi])
-            else:
-                beta0_ranges.append([beta0_lm, beta0_um])
 
-        if ssm_found_tf:  ssm_found += 1; find_count = 0
+            for r in normalize_beta0_range(beta0_lm, beta0_um):
+                beta0_ranges.append(r)
 
+        if ssm_found_tf:
+            ssm_found += 1
+            find_count = 0
+
+        # Collect theta ranges (only finite ranges)
         for cp_range in cp_ranges[0]:
             if cp_range[0] > -np.inf:
                 theta1_ranges.append(cp_range)
@@ -563,16 +548,20 @@ def compute_beta_range(x, y,L,CA):
             if cp_range[0] > -np.inf:
                 theta3_ranges.append(cp_range)
 
+    # --- Union theta ranges for each joint ---
     theta1_ranges_union = union_ranges(theta1_ranges)
     theta2_ranges_union = union_ranges(theta2_ranges)
     theta3_ranges_union = union_ranges(theta3_ranges)
-    # print(theta1_ranges_union)
-    # print(theta2_ranges_union)
-    # print(theta3_ranges_union)
-    ion1 = False
-    min_beta1 = 0
-    max_beta1 = 0
+
+    # For joint 1, you also extend ranges again
     theta1_ranges_union = extend_ranges(theta1_ranges_union)
+
+    # --- Determine availability (ion1, ion2, ion3) and beta limits ---
+    ion1 = False
+    min_beta1 = 0.0
+    max_beta1 = 0.0
+
+    # Joint 1: special handling that defines min_beta1, max_beta1
     for tr in theta1_ranges_union:
         if CA[0][0] >= tr[0] and CA[0][1] <= tr[1]:
             ion1 = True
@@ -581,104 +570,77 @@ def compute_beta_range(x, y,L,CA):
             if (max_beta1 - min_beta1 >= 2 * np.pi) or (tr[0] == -np.pi and tr[1] == np.pi):
                 max_beta1 = np.pi
                 min_beta1 = -np.pi
-    ion2 = False
-    has_negative_pi_range = None
-    has_positive_pi_range = None
-    for tr in theta2_ranges_union:
-        if tr[0] == -np.pi:
-            has_negative_pi_range = tr[1]
-        if tr[1] == np.pi:
-            has_positive_pi_range = tr[0]
-        if CA[1][0] >= tr[0] and CA[1][1] <= tr[1]:
-            ion2 = True
-    if CA[1][0] < -np.pi:
-        if has_negative_pi_range is not None and has_positive_pi_range is not None:
-            if CA[1][1] <= has_negative_pi_range and CA[1][0] + 2 * np.pi >= has_positive_pi_range:
-                ion2 = True
-    if CA[1][1] > np.pi:
-        if has_negative_pi_range is not None and has_positive_pi_range is not None:
-            if CA[1][1] - 2 * np.pi <= has_negative_pi_range and CA[1][0] >= has_positive_pi_range:
-                ion2 = True
-    min_beta2 = -np.pi
-    max_beta2 = np.pi
 
-    ion3 = False
-    has_negative_pi_range = None
-    has_positive_pi_range = None
-    for tr in theta3_ranges_union:
-        if tr[0] == -np.pi:
-            has_negative_pi_range = tr[1]
-        if tr[1] == np.pi:
-            has_positive_pi_range = tr[0]
-        if CA[2][0] >= tr[0] and CA[2][1] <= tr[1]:
-            ion3 = True
-    if CA[2][0] < -np.pi:
-        if has_negative_pi_range is not None and has_positive_pi_range is not None:
-            if CA[2][1] <= has_negative_pi_range and CA[2][0] + 2 * np.pi >= has_positive_pi_range:
-                ion3 = True
-    if CA[2][1] > np.pi:
-        if has_negative_pi_range is not None and has_positive_pi_range is not None:
-            if CA[2][1] - 2 * np.pi <= has_negative_pi_range and CA[2][0] >= has_positive_pi_range:
-                ion3 = True
-    min_beta3 = -np.pi
-    max_beta3 = np.pi
+    # Joints 2 and 3: use common helper
+    ion2 = check_CA_on_theta_union(theta2_ranges_union, CA[1])
+    ion3 = check_CA_on_theta_union(theta3_ranges_union, CA[2])
 
-    for index in range(len(beta0_ranges)):
-        reliable_beta_ranges[-1].append(beta0_ranges[index])  # prefailure workspace
-        min_beta0, max_beta0 = beta0_ranges[index][0], beta0_ranges[index][1]
-        # print(min_beta0, max_beta0)
-        # print(min_beta1, max_beta1)
-        # print(min_beta2, max_beta2)
-        # print(min_beta3, max_beta3)
-        if single_intersection_tf_all: F_list[-1] = True
+    # For joints 2,3 you keep min_beta2,3 as [-π, π] if ion2/ion3 is True
+    min_beta2, max_beta2 = -np.pi, np.pi
+    min_beta3, max_beta3 = -np.pi, np.pi
+
+    # --- Combine with beta0 ranges to fill reliable_beta_ranges ---
+    for beta0 in beta0_ranges:
+        reliable_beta_ranges[-1].append(beta0)  # prefailure workspace
+        min_beta0, max_beta0 = beta0
+
+
+        # J1 only
         if ion1:
-            if single_intersection_tf_all: F_list[0] = True
             min_beta_f_1 = max(min_beta0, min_beta1)
             max_beta_f_1 = min(max_beta0, max_beta1)
             if min_beta_f_1 <= max_beta_f_1:
                 reliable_beta_ranges[0].append([min_beta_f_1, max_beta_f_1])
+
+        # J2 only
         if ion2:
-            if single_intersection_tf_all: F_list[1] = True
             min_beta_f_2 = max(min_beta0, min_beta2)
             max_beta_f_2 = min(max_beta0, max_beta2)
             if min_beta_f_2 <= max_beta_f_2:
                 reliable_beta_ranges[1].append([min_beta_f_2, max_beta_f_2])
+
+        # J3 only
         if ion3:
-            if single_intersection_tf_all: F_list[2] = True
             min_beta_f_3 = max(min_beta0, min_beta3)
             max_beta_f_3 = min(max_beta0, max_beta3)
             if min_beta_f_3 <= max_beta_f_3:
                 reliable_beta_ranges[2].append([min_beta_f_3, max_beta_f_3])
+
+        # J1 & J2
         if ion1 and ion2:
-            if single_intersection_tf_all: F_list[3] = True
             min_beta_f_12 = max(min_beta0, min_beta1, min_beta2)
             max_beta_f_12 = min(max_beta0, max_beta1, max_beta2)
             if min_beta_f_12 <= max_beta_f_12:
                 reliable_beta_ranges[3].append([min_beta_f_12, max_beta_f_12])
+
+        # J1 & J3
         if ion1 and ion3:
-            if single_intersection_tf_all: F_list[4] = True
             min_beta_f_13 = max(min_beta0, min_beta1, min_beta3)
             max_beta_f_13 = min(max_beta0, max_beta1, max_beta3)
             if min_beta_f_13 <= max_beta_f_13:
                 reliable_beta_ranges[4].append([min_beta_f_13, max_beta_f_13])
+
+        # J2 & J3
         if ion2 and ion3:
-            if single_intersection_tf_all: F_list[5] = True
             min_beta_f_23 = max(min_beta0, min_beta2, min_beta3)
             max_beta_f_23 = min(max_beta0, max_beta2, max_beta3)
             if min_beta_f_23 <= max_beta_f_23:
                 reliable_beta_ranges[5].append([min_beta_f_23, max_beta_f_23])
+
+        # J1 & J2 & J3 (FTW)
         if ion1 and ion2 and ion3:
-            if single_intersection_tf_all: F_list[6] = True
             min_beta_f_ftw = max(min_beta0, min_beta1, min_beta2, min_beta3)
             max_beta_f_ftw = min(max_beta0, max_beta1, max_beta2, max_beta3)
-
             if min_beta_f_ftw <= max_beta_f_ftw:
-                all_smm_beta_range.append([min_beta_f_ftw, max_beta_f_ftw])
-                reliable_beta_ranges[6].append([min_beta_f_ftw, max_beta_f_ftw])
+                interval = [min_beta_f_ftw, max_beta_f_ftw]
+                all_smm_beta_range.append(interval)
+                reliable_beta_ranges[6].append(interval)
 
-    for rbr_index in range(len(reliable_beta_ranges)):
-        reliable_beta_ranges[rbr_index] = union_ranges(reliable_beta_ranges[rbr_index])
-    return union_ranges(all_smm_beta_range), reliable_beta_ranges, F_list
+    # --- Union all reliable ranges for each category ---
+    for i in range(len(reliable_beta_ranges)):
+        reliable_beta_ranges[i] = union_ranges(reliable_beta_ranges[i])
+
+    return union_ranges(all_smm_beta_range), reliable_beta_ranges
 
 
 def wedge_to_poly3d(wedge, z_value):
@@ -743,29 +705,29 @@ def planar_3R_greyscale_connectivity_analysis(L,CA):
     ax2d3.set_aspect('equal')
     ax2d3.axis('off')
 
-    N = 0
+
 
     start = time.perf_counter()
+    total_area=0
     for i in range(len(points)):
         point = points[i]
         x, y = point
 
-        print(point)
-        beta_ranges, reliable_beta_ranges, F_list = compute_beta_range(x, y,L,CA)  # Get multiple beta ranges
+        #print(point)
+        beta_ranges, reliable_beta_ranges = compute_beta_range(x, y,L,CA)  # Get multiple beta ranges
 
+
+        ranges_to_calculate_area=[]
         for b_r_index in indices:
             b_r = reliable_beta_ranges[b_r_index]
             color = color_list[b_r_index]
             for beta_range in b_r:
+                ranges_to_calculate_area.append(beta_range)
                 theta1 = np.degrees(beta_range[0])  # Start angle (-π)
                 theta2 = np.degrees(beta_range[1])  # End angle (π)
 
                 # Calculate the outer radius for the ring (x + ring_width / 2)
                 outer_radius = x + ring_width / 2.0
-                inner_radius = x - ring_width / 2.0
-                if b_r_index == 6: N += np.pi * (outer_radius ** 2 - inner_radius ** 2) / (2 * np.pi) * (
-                            beta_range[1] - beta_range[0])
-
 
                 wedge_2d = Wedge(
                     center=(0, 0),
@@ -778,9 +740,19 @@ def planar_3R_greyscale_connectivity_analysis(L,CA):
                     zorder=b_r_index + 1
                 )
 
-
                 ax2d3.add_patch(wedge_2d)  # Add wedge to 2D plot
+        if ranges_to_calculate_area:
+            merged_ranges = union_ranges(ranges_to_calculate_area)
 
+            inner_radius = x - ring_width / 2.0
+            outer_radius = x + ring_width / 2.0
+            ring_area = np.pi * (outer_radius ** 2 - inner_radius ** 2)  # full ring
+
+            # For each merged β-interval, scale ring area by angular fraction in radians / 2π
+            for beta_range in merged_ranges:
+                beta_start, beta_end = beta_range
+                angular_fraction = (beta_end - beta_start) / (2 * np.pi)
+                total_area += ring_area * angular_fraction
 
     end = time.perf_counter()
     print(f"Loop took {end - start:.6f} seconds")
@@ -789,11 +761,17 @@ def planar_3R_greyscale_connectivity_analysis(L,CA):
     img_gray = figure_to_gray_image(fig3)
 
     connectivity_value, depths, conn_curve = compute_connectivity(img_gray)
+    print(f"area: {total_area:.6f}")
     print(f"Final connectivity: {connectivity_value:.6f}")
-    return connectivity_value
+    return total_area*connectivity_value
 
-
-
+"""
+L = [1, 1, 1]
+CA = [(-0.5779611440942315, 0.5779611440942315), (-1.1887031063410372, 0.6453736884533061),
+      (-1.7852473794934884, 1.8681718728028136)]
+C_dot_A = CA.copy()
+C_dot_A[0] = (-np.pi, np.pi)
 connectivity_value=planar_3R_greyscale_connectivity_analysis(L,CA)
+"""
 
 
