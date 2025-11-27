@@ -5,13 +5,14 @@ import matplotlib.pyplot as plt
 # ============================
 # Adjustable parameters
 # ============================
-FILENAME     = "Figure_1.png"   # pure white background
+#FILENAME     = "Figure_1.png"   # pure white background
 KERNEL_SIZE  = 5                 # kernel size (odd recommended)
 DISP_CONST   = 1                # grayscale change per step
 SHAPE_THRESH = 250               # ring (shape) = gray < SHAPE_THRESH
 WHITE_VAL    = 255
 BLACK_VAL    = 0
 
+"""
 # ============================
 # Load image & kernel
 # ============================
@@ -19,6 +20,7 @@ img0 = cv2.imread(FILENAME, cv2.IMREAD_GRAYSCALE)
 if img0 is None:
     raise FileNotFoundError(f"Could not load {FILENAME}")
 img0 = img0.astype(np.float32)
+"""
 
 kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (KERNEL_SIZE, KERNEL_SIZE))
 

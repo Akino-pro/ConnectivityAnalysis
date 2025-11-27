@@ -6,6 +6,8 @@ import cv2
 import numpy as np
 from matplotlib.patches import Wedge
 from scipy.linalg import null_space
+#import matplotlib
+#matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from greyscale_experiment import compute_connectivity
 from helper_functions import  sorted_indices, normalize_and_map_greyscale
@@ -23,30 +25,7 @@ r1 = 1.0 / 3.0
 r2 = 1.0 / 3.0
 r3 = 1.0 / 3.0
 
-# L = [0.4888656043245976, 1.3992499610293656, 1.1118844346460368]
-# L = [1, 1, 1]
-# L = [0.009651087409352832, 1.6279980832723875, 1.3623508293182596]
-# CA = [(-2.312033825326607, 2.312033825326607), (-2.1986530478299358, 1.3083974620434837),
-#     (-3.119803865520389, 0.38031991292340495)]
-# L=[1.42,1,0.58]
-# L=[np.sqrt(0.5),np.sqrt(0.5),np.sqrt(2.0/3.0)]
-# L=[0.4454,0.3143,0.2553]
-# CA=[(-3.031883452592004, 3.031883452592004), (-1.619994146091692, -0.8276157453255935), (-1.6977602095460234, -0.7265946655975718)]
-# CA = [(-0.7391244590957556, 0.7391244590957556), (-0.7422740927125862, 1.9756037937159996),
-#     (-2.11211741668124, 2.12020510030)]
-# CA = [(-18.2074 * np.pi / 180, 18.2074 * np.pi / 180), (-111.3415 * np.pi / 180, 111.3415 * np.pi / 180),(-111.3415 * np.pi / 180, 111.3415 * np.pi / 180)]
 
-# CA = [(-42.35 * np.pi / 180, 42.35 * np.pi / 180), (-42.53 * np.pi / 180, 113.19 * np.pi / 180),(-121.02 * np.pi / 180, 121.48 * np.pi / 180)]
-"""
-CA = [(-30 * np.pi / 180, 30 * np.pi / 180), (-120 * np.pi / 180, 60 * np.pi / 180),
-      (-130 * np.pi / 180, 130 * np.pi / 180)]
-CA = [(-25 * np.pi / 180, 25 * np.pi / 180), (40 * np.pi / 180, 90 * np.pi / 180),
-      (-60 * np.pi / 180, 120 * np.pi / 180)]
-CA = [(-3.141592653589793, 3.141592653589793), (-0.9272951769138392, 2.2142957313467018), (1.8545903538276785, 1.8545903538276785)]
-"""
-# for a in range(len(CA)):
-#    if CA[a][1] - CA[a][0] < step_size: CA[a] = (
-#        CA[a][0] - terminate_threshold, CA[a][1] + terminate_threshold)
 
 
 
@@ -387,7 +366,7 @@ def find_random_ssm(x_target, all_ssm_theta_list,L,CA):
         num += 1
         ssm_theta_list.append(theta)
     all_ssm_theta_list.extend(ssm_theta_list)
-    # print(f'found a new ssm with {num} points.')
+    #print(f'found a new ssm with {num} points.')
     ssm_found = True
 
     C_dot_A = CA.copy()
@@ -516,6 +495,7 @@ def compute_beta_range(x, y, L, CA):
         ik, iprs, cp_ranges, all_theta, ssm_found_tf, single_intersection_tf = find_random_ssm(
             target_x, all_theta, L, CA
         )
+        if len(all_theta) >= 100000: return [],[[] for _ in range(8)]
         single_intersection_tf_all = single_intersection_tf_all or single_intersection_tf
         if not ik:
             break
@@ -686,7 +666,14 @@ def figure_to_gray_image(fig):
 
 
 
-def planar_3R_greyscale_connectivity_analysis(L,CA):
+def planar_3R_greyscale_connectivity_analysis(L, CA, timeout=90.0):
+    """
+    Compute greyscale connectivity for planar 3R.
+    If the function runs longer than `timeout` seconds (default 90s),
+    it will close the figure and return 0.
+    """
+    func_start = time.perf_counter()  # <--- overall timer
+
     cr_list.append(0)
     color_list, sm = normalize_and_map_greyscale(cr_list)
 
@@ -699,34 +686,37 @@ def planar_3R_greyscale_connectivity_analysis(L,CA):
 
     fig3, ax2d3 = plt.subplots(figsize=(6, 6))
 
-
     ax2d3.set_xlim(-np.sum(L), np.sum(L))
     ax2d3.set_ylim(-np.sum(L), np.sum(L))
     ax2d3.set_aspect('equal')
     ax2d3.axis('off')
 
-
-
     start = time.perf_counter()
-    total_area=0
+    total_area = 0.0
+
     for i in range(len(points)):
+        # ------------ timeout check inside main loop ------------
+        if time.perf_counter() - func_start > timeout:
+            print(f"Timeout inside planar_3R_greyscale_connectivity_analysis at point index {i}, "
+                  f"elapsed ~{time.perf_counter() - func_start:.2f} s. Returning 0.")
+            plt.close(fig3)
+            return 0.0
+        # --------------------------------------------------------
+
         point = points[i]
         x, y = point
 
-        #print(point)
-        beta_ranges, reliable_beta_ranges = compute_beta_range(x, y,L,CA)  # Get multiple beta ranges
+        beta_ranges, reliable_beta_ranges = compute_beta_range(x, y, L, CA)
 
-
-        ranges_to_calculate_area=[]
+        ranges_to_calculate_area = []
         for b_r_index in indices:
             b_r = reliable_beta_ranges[b_r_index]
             color = color_list[b_r_index]
             for beta_range in b_r:
                 ranges_to_calculate_area.append(beta_range)
-                theta1 = np.degrees(beta_range[0])  # Start angle (-π)
-                theta2 = np.degrees(beta_range[1])  # End angle (π)
+                theta1 = np.degrees(beta_range[0])  # Start angle
+                theta2 = np.degrees(beta_range[1])  # End angle
 
-                # Calculate the outer radius for the ring (x + ring_width / 2)
                 outer_radius = x + ring_width / 2.0
 
                 wedge_2d = Wedge(
@@ -740,7 +730,8 @@ def planar_3R_greyscale_connectivity_analysis(L,CA):
                     zorder=b_r_index + 1
                 )
 
-                ax2d3.add_patch(wedge_2d)  # Add wedge to 2D plot
+                ax2d3.add_patch(wedge_2d)
+
         if ranges_to_calculate_area:
             merged_ranges = union_ranges(ranges_to_calculate_area)
 
@@ -748,22 +739,31 @@ def planar_3R_greyscale_connectivity_analysis(L,CA):
             outer_radius = x + ring_width / 2.0
             ring_area = np.pi * (outer_radius ** 2 - inner_radius ** 2)  # full ring
 
-            # For each merged β-interval, scale ring area by angular fraction in radians / 2π
             for beta_range in merged_ranges:
                 beta_start, beta_end = beta_range
                 angular_fraction = (beta_end - beta_start) / (2 * np.pi)
                 total_area += ring_area * angular_fraction
 
+    # One more timeout check before the expensive image & connectivity steps
+    if time.perf_counter() - func_start > timeout:
+        print(f"Timeout in planar_3R_greyscale_connectivity_analysis after area loop, "
+              f"elapsed ~{time.perf_counter() - func_start:.2f} s. Returning 0.")
+        plt.close(fig3)
+        return 0.0
+
     end = time.perf_counter()
     print(f"Loop took {end - start:.6f} seconds")
-    #plt.show()
 
+    # From here on, we assume we are within time budget
     img_gray = figure_to_gray_image(fig3)
 
     connectivity_value, depths, conn_curve = compute_connectivity(img_gray)
-    print(f"area: {total_area:.6f}")
-    print(f"Final connectivity: {connectivity_value:.6f}")
-    return total_area*connectivity_value
+    plt.close(fig3)
+
+    #print(f"area: {total_area:.6f}")
+    #print(f"Final connectivity: {connectivity_value:.6f}")
+
+    return total_area * connectivity_value
 
 """
 L = [1, 1, 1]

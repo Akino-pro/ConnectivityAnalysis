@@ -1,5 +1,7 @@
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
+
 from planar_3R_greyscale_reliability_map import planar_3R_greyscale_connectivity_analysis
 
 pd.set_option('display.max_colwidth', None)  # No column width truncation
@@ -8,8 +10,8 @@ pd.set_option('display.width', 1000)        # Set display width to a large value
 # ============================================
 # GA Hyperparameters
 # ============================================
-sample_number = 100
-num_generations = 1
+sample_number = 128
+num_generations = 16
 alpha = 0.05            # Top α fraction kept by elitism
 mutation_rate = 0.15    # Fraction of children to mutate
 
@@ -203,17 +205,11 @@ def connectivity_analysis(samples: pd.DataFrame, global_elite_limit):
     elites = [global_elite_limit]
     limit_size = int(sample_number * alpha) if int(sample_number * alpha) > 0 else 1
 
-    for index, row in samples.iterrows():
-        """
-        connectivity_value = planar_3R_connectivity_analysis(
-            row['link_lengths'],
-            row['joint_limits'],
-            pfs,
-            elites[-1]
-        )
-        """
-        connectivity_value = planar_3R_greyscale_connectivity_analysis(row['link_lengths'], row['joint_limits'])
+    for index, row in tqdm(samples.iterrows(), total=len(samples), desc="Evaluating samples"):
 
+        connectivity_value = planar_3R_greyscale_connectivity_analysis( row['link_lengths'], row['joint_limits'] )
+
+        # ---- elite update logic ----
         if connectivity_value > elites[-1]:
             if len(elites) < limit_size:
                 elites.append(connectivity_value)
@@ -259,18 +255,34 @@ def next_generation(samples: pd.DataFrame, global_elite_limit, alpha: float = al
 # ============================================
 # Prior knowledge (optional seeds)
 # ============================================
-"""
-prior_knowledge = [{
-    'link_lengths': [1, 1, 1],
-    'joint_limits': [(-0.7491244590957556, 0.7491244590957556),
-                     (-0.2590887855330002, 1.5556037937159994),
-                     (-2.11211741668124, 2.1202051003030054)]
-},
- ...
-]
-"""
 
-prior_knowledge = []
+prior_knowledge = [{
+    'link_lengths': [0.4552022160816049, 0.799788779878076, 1.7450090040403197],
+    'joint_limits': [(-2.719260436928861, 2.719260436928861), (-0.8672802511511213, 0.618132640562292), (-3.0246087669394037, 0.5785881733063678)]
+},
+{
+    'link_lengths': [1.1087656764379812, 0.07607469296918844, 1.8151596305928301],
+    'joint_limits': [(-3.0020939720963584, 3.0020939720963584), (-0.7225154838519172, 2.01652742068731), (-3.0684530534773904, 2.103355729370379)]
+},
+{
+    'link_lengths':  [0.9552319984428475, 0.6263218072417285, 1.4184461943154243],
+    'joint_limits': [(-2.719260436928861, 2.719260436928861), (-0.8672802511511213, 0.618132640562292), (-3.0246087669394037, 0.5785881733063678)]
+},
+
+{
+    'link_lengths': [1.6344044746801216, 0.054523338545966055, 1.3110721867739128],
+    'joint_limits': [(-3.11899284757939, 3.11899284757939), (-2.4943211003310157, 0.2699786307052907), (-0.009939675206693366, 1.5363085818598088)]
+},
+
+{
+    'link_lengths': [0.13747246785659767, 1.5353425960267606, 1.327184936116642],
+    'joint_limits': [(-2.719260436928861, 2.719260436928861), (-0.8672802511511213, 0.618132640562292), (-3.0246087669394037, 0.5785881733063678)]
+},
+
+]
+
+
+#prior_knowledge = []
 
 
 # ============================================
