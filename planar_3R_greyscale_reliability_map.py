@@ -17,13 +17,18 @@ step_size = 0.01
 terminate_threshold = 9.0 / 5.0 * step_size
 ssm_finding_num = 20
 max_ssm = 2
-sample_num = 100
+sample_num = 64
 # r1 =0.3
 # r2 =0.2
 # r3 =0.1
 r1 = 1.0 / 3.0
 r2 = 1.0 / 3.0
 r3 = 1.0 / 3.0
+section_length = 3.0 / sample_num
+x_values = (np.arange(sample_num) + 0.5) * section_length
+y_values = np.zeros(sample_num)
+points = np.column_stack((x_values, y_values))
+ring_width = 2.0 * x_values[0]
 
 
 
@@ -41,7 +46,10 @@ def reliability_computation(r1, r2, r3):
 
 
 cr_list = reliability_computation(r1, r2, r3)
+#cr_list=[0.11, 0.11, 0.11, 0.44, 0.44,0.44, 0.44]
 indices = sorted_indices(cr_list)
+cr_list.append(0)
+color_list, sm = normalize_and_map_greyscale(cr_list)
 
 
 
@@ -495,7 +503,7 @@ def compute_beta_range(x, y, L, CA):
         ik, iprs, cp_ranges, all_theta, ssm_found_tf, single_intersection_tf = find_random_ssm(
             target_x, all_theta, L, CA
         )
-        if len(all_theta) >= 100000: return [],[[] for _ in range(8)]
+        #if len(all_theta) >= 100000: return [],[[] for _ in range(8)]
         single_intersection_tf_all = single_intersection_tf_all or single_intersection_tf
         if not ik:
             break
@@ -665,25 +673,12 @@ def figure_to_gray_image(fig):
     return img_gray.astype(np.float32)
 
 
+"""
+def planar_3R_greyscale_connectivity_analysis(L, CA):
+    
 
-def planar_3R_greyscale_connectivity_analysis(L, CA, timeout=90.0):
-    """
-    Compute greyscale connectivity for planar 3R.
-    If the function runs longer than `timeout` seconds (default 90s),
-    it will close the figure and return 0.
-    """
-    func_start = time.perf_counter()  # <--- overall timer
-
-    cr_list.append(0)
-    color_list, sm = normalize_and_map_greyscale(cr_list)
-
-    section_length = 3.0 / sample_num
-    x_values = (np.arange(sample_num) + 0.5) * section_length
-    y_values = np.zeros(sample_num)
-    points = np.column_stack((x_values, y_values))
-
-    ring_width = 2.0 * x_values[0]
-
+    #print(L)
+    #print(CA)
     fig3, ax2d3 = plt.subplots(figsize=(6, 6))
 
     ax2d3.set_xlim(-np.sum(L), np.sum(L))
@@ -691,17 +686,10 @@ def planar_3R_greyscale_connectivity_analysis(L, CA, timeout=90.0):
     ax2d3.set_aspect('equal')
     ax2d3.axis('off')
 
-    start = time.perf_counter()
+    #start = time.perf_counter()
     total_area = 0.0
 
     for i in range(len(points)):
-        # ------------ timeout check inside main loop ------------
-        if time.perf_counter() - func_start > timeout:
-            print(f"Timeout inside planar_3R_greyscale_connectivity_analysis at point index {i}, "
-                  f"elapsed ~{time.perf_counter() - func_start:.2f} s. Returning 0.")
-            plt.close(fig3)
-            return 0.0
-        # --------------------------------------------------------
 
         point = points[i]
         x, y = point
@@ -744,34 +732,138 @@ def planar_3R_greyscale_connectivity_analysis(L, CA, timeout=90.0):
                 angular_fraction = (beta_end - beta_start) / (2 * np.pi)
                 total_area += ring_area * angular_fraction
 
-    # One more timeout check before the expensive image & connectivity steps
-    if time.perf_counter() - func_start > timeout:
-        print(f"Timeout in planar_3R_greyscale_connectivity_analysis after area loop, "
-              f"elapsed ~{time.perf_counter() - func_start:.2f} s. Returning 0.")
-        plt.close(fig3)
-        return 0.0
 
-    end = time.perf_counter()
-    print(f"Loop took {end - start:.6f} seconds")
+    #end = time.perf_counter()
+    #print(f"Loop took {end - start:.6f} seconds")
 
     # From here on, we assume we are within time budget
     img_gray = figure_to_gray_image(fig3)
 
-    connectivity_value, depths, conn_curve = compute_connectivity(img_gray)
+    #connectivity_value, depths, conn_curve = compute_connectivity(img_gray)
+    connectivity_value=compute_connectivity(img_gray)
     plt.close(fig3)
 
     #print(f"area: {total_area:.6f}")
     #print(f"Final connectivity: {connectivity_value:.6f}")
+    #print(connectivity_value)
+    #print(total_area * connectivity_value)
 
-    return total_area * connectivity_value
+    #return total_area * connectivity_value
+    return connectivity_value
+"""
+
+import gc
+import matplotlib
+matplotlib.use("Agg")   # disable GUI backend to reduce RAM
+import matplotlib.pyplot as plt
+from matplotlib.patches import Wedge
+
+def planar_3R_greyscale_connectivity_analysis(L, CA):
+
+
+    # --- Create figure (Agg backend) ---
+    #fig3, ax2d3 = plt.subplots(figsize=(3, 3))
+    fig3, ax2d3 = plt.subplots(figsize=(6, 6))
+
+    # Set limits
+    s = np.sum(L)
+    ax2d3.set_xlim(-s, s)
+    ax2d3.set_ylim(-s, s)
+    ax2d3.set_aspect('equal')
+    ax2d3.axis('off')
+
+    total_area = 0.0
+    wedge_refs = []  # free after loop
+
+    # --- MAIN LOOP ---
+    for i in range(len(points)):
+        x, y = points[i]
+
+        beta_ranges, reliable_beta_ranges = compute_beta_range(x, y, L, CA)
+
+        ranges_to_calculate_area = []
+
+        # Draw wedges
+        for b_r_index in indices:
+            b_r = reliable_beta_ranges[b_r_index]
+            color = color_list[b_r_index]
+
+            for beta_range in b_r:
+                ranges_to_calculate_area.append(beta_range)
+                theta1 = np.degrees(beta_range[0])
+                theta2 = np.degrees(beta_range[1])
+                outer_radius = x + ring_width / 2.0
+
+                # Create wedge
+                wedge = Wedge(
+                    center=(0, 0),
+                    r=outer_radius,
+                    theta1=theta1,
+                    theta2=theta2,
+                    width=ring_width,
+                    facecolor=color,
+                    edgecolor=color,
+                    alpha=1.0,
+                    zorder=b_r_index + 1
+                )
+                ax2d3.add_patch(wedge)
+                wedge_refs.append(wedge)
+
+        # Compute area contribution
+        if ranges_to_calculate_area:
+            merged_ranges = union_ranges(ranges_to_calculate_area)
+            inner_radius = x - ring_width / 2.0
+            outer_radius = x + ring_width / 2.0
+            ring_area = np.pi * (outer_radius**2 - inner_radius**2)
+
+            for beta_range in merged_ranges:
+                beta_start, beta_end = beta_range
+                total_area += ring_area * ((beta_end - beta_start) / (2 * np.pi))
+
+        # --- FREE temporary arrays ---
+        del beta_ranges, reliable_beta_ranges, ranges_to_calculate_area
+        gc.collect()
+
+    # --- Convert figure to grayscale image ---
+    img_gray = figure_to_gray_image(fig3)
+
+    # --- Compute connectivity ---
+    connectivity_value = compute_connectivity(img_gray)
+
+    # --- CLEANUP MATPLOTLIB OBJECTS ---
+    for w in wedge_refs:
+        w.remove()
+    del wedge_refs
+
+    ax2d3.cla()
+    plt.close(fig3)
+    gc.collect()
+
+    # Return connectivity only
+    print(connectivity_value)
+    return connectivity_value
+
 
 """
-L = [1, 1, 1]
-CA = [(-0.5779611440942315, 0.5779611440942315), (-1.1887031063410372, 0.6453736884533061),
-      (-1.7852473794934884, 1.8681718728028136)]
+L =  [0.0001,1.49995,1.49995]
+CA = [(-2.8856310512880317, 2.8856310512880317), (-0.3672802511511213, 1.2181326405622919), (-3.0246087669394037, 1.878588173306368)]
+L =  [1.4644359570957466, 0.04698977532204848, 1.4885742675822051]
+CA = [(-1.4706632955724315, 1.4706632955724315), (-1.5768414877131869, 1.3524303899971144), (0.21929326925655435, 2.252802982198095)]
+L =  [1, 1, 1]
+CA = [(-18.2074 * np.pi / 180, 18.2074 * np.pi / 180), (-111.3415 * np.pi / 180, 111.3415 * np.pi / 180),(-111.3415 * np.pi / 180, 111.3415 * np.pi / 180)]
+#L=[1.273685932707902, 0.47198624642931564, 1.2543278208627822]
+#CA=[(-2.980810601260852, 2.980810601260852), (-2.2294043441860674, 2.9627856964286843), (1.6889140110258536, 1.9469783681522597)]
+L=[0.5, 1.25, 1.25]
+CA=[(-180*np.pi/180.0, 180*np.pi/180.0), (-53.1301*np.pi/180.0, 126.8698*np.pi/180.0), (106.2602*np.pi/180.0, 108.2602*np.pi/180.0)]
 C_dot_A = CA.copy()
 C_dot_A[0] = (-np.pi, np.pi)
 connectivity_value=planar_3R_greyscale_connectivity_analysis(L,CA)
+print(connectivity_value)
+
 """
+
+
+
+
 
 

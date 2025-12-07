@@ -5,22 +5,12 @@ import matplotlib.pyplot as plt
 # ============================
 # Adjustable parameters
 # ============================
-#FILENAME     = "Figure_1.png"   # pure white background
 KERNEL_SIZE  = 5                 # kernel size (odd recommended)
-DISP_CONST   = 1                # grayscale change per step
+DISP_CONST   = 1          # grayscale change per step
 SHAPE_THRESH = 250               # ring (shape) = gray < SHAPE_THRESH
 WHITE_VAL    = 255
 BLACK_VAL    = 0
 
-"""
-# ============================
-# Load image & kernel
-# ============================
-img0 = cv2.imread(FILENAME, cv2.IMREAD_GRAYSCALE)
-if img0 is None:
-    raise FileNotFoundError(f"Could not load {FILENAME}")
-img0 = img0.astype(np.float32)
-"""
 
 kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (KERNEL_SIZE, KERNEL_SIZE))
 
@@ -146,31 +136,35 @@ def compute_connectivity(gray_img, erosion_step=DISP_CONST,
         contributions.append(contribution)
 
     if erosion_count == 0:
-        return 0.0, np.array([]), np.array([])
+        return 0.0
 
     contributions = np.array(contributions, dtype=np.float32)
-    depths = np.array(depths, dtype=int)
+    #depths = np.array(depths, dtype=int)
 
     # cumulative average connectivity vs depth
-    connectivity_curve = np.cumsum(contributions) / np.arange(1, len(contributions) + 1)
-    final_connectivity = connectivity_curve[-1]
-
-    return final_connectivity, depths, connectivity_curve
+    #connectivity_curve = np.cumsum(contributions) / np.arange(1, len(contributions) + 1)
+    #final_connectivity = connectivity_curve[-1]
+    cum_connectivity_curve = np.cumsum(contributions)
+    cum_connectivity=cum_connectivity_curve[-1]
+    return cum_connectivity
+    #return final_connectivity, depths, connectivity_curve
 
 # ============================
 # MAIN: compute connectivity and plot vs erosion depth
 # ============================
+
+
 """
-connectivity_value, depths, conn_curve = compute_connectivity(img0)
+# ============================
+# Load image & kernel
+# ============================
+FILENAME     = "grey ring.png"   # pure white background
+img0 = cv2.imread(FILENAME, cv2.IMREAD_GRAYSCALE)
+if img0 is None:
+    raise FileNotFoundError(f"Could not load {FILENAME}")
+img0 = img0.astype(np.float32)
+
+connectivity_value = compute_connectivity(img0)
 
 print(f"Final connectivity: {connectivity_value:.6f}")
-
-plt.figure(figsize=(6, 4))
-plt.plot(depths, conn_curve, marker='o')
-plt.xlabel("Erosion depth (number of erosions)")
-plt.ylabel("Connectivity (cumulative average)")
-plt.title("Connectivity vs Erosion Depth")
-plt.grid(True)
-plt.tight_layout()
-plt.show()
 """
