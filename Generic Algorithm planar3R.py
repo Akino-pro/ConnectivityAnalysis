@@ -260,7 +260,7 @@ def next_generation(samples: pd.DataFrame, global_elite_limit, alpha: float = al
 # ============================================
 # Prior knowledge (optional seeds)
 # ============================================
-
+"""
 prior_knowledge = [{
     'link_lengths': [0.008849317757047144, 1.465181316077158, 1.525969366165795],
     'joint_limits':  [(-3.104323811217068, 3.104323811217068), (-2.2135476717406846, -2.0770894991977737), (-3.0424740198157405, 0.028968517296451335)]
@@ -293,8 +293,9 @@ prior_knowledge = [{
     'joint_limits': [(-180*np.pi/180.0, 180*np.pi/180.0), (-53.1301*np.pi/180.0, 126.8698*np.pi/180.0), (106.2602*np.pi/180.0, 108.2602*np.pi/180.0)]
 }
 ]
+"""
 
-#prior_knowledge = []
+prior_knowledge = []
 
 
 

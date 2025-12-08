@@ -46,6 +46,9 @@ def reliability_computation(r1, r2, r3):
 
 
 cr_list = reliability_computation(r1, r2, r3)
+#print(cr_list)
+cr_list=[math.pow(cr,2) for cr in cr_list]
+#print(cr_list)
 #cr_list=[0.11, 0.11, 0.11, 0.44, 0.44,0.44, 0.44]
 indices = sorted_indices(cr_list)
 cr_list.append(0)
@@ -868,7 +871,7 @@ def planar_3R_greyscale_connectivity_analysis(L, CA):
 #CA = [(-18.2074 * np.pi / 180, 18.2074 * np.pi / 180), (-111.3415 * np.pi / 180, 111.3415 * np.pi / 180),(-111.3415 * np.pi / 180, 111.3415 * np.pi / 180)]
 #L=[1.273685932707902, 0.47198624642931564, 1.2543278208627822]
 #CA=[(-2.980810601260852, 2.980810601260852), (-2.2294043441860674, 2.9627856964286843), (1.6889140110258536, 1.9469783681522597)]
-"""
+
 L=[0.5, 1.25, 1.25]
 CA=[(-180*np.pi/180.0, 180*np.pi/180.0), (-53.1301*np.pi/180.0, 126.8698*np.pi/180.0), (106.2602*np.pi/180.0, 108.2602*np.pi/180.0)]
 L2=[0.008849317757047144, 1.465181316077158, 1.525969366165795]
@@ -881,7 +884,7 @@ print(connectivity_value)
 print(connectivity_value2)
 print(connectivity_value/connectivity_value2)
 
-"""
+
 
 
 

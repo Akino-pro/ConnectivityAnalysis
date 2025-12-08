@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 # Adjustable parameters
 # ============================
 KERNEL_SIZE  = 5                 # kernel size (odd recommended)
-DISP_CONST   = 5      # grayscale change per step
+DISP_CONST   = 1      # grayscale change per step
 SHAPE_THRESH = 250               # ring (shape) = gray < SHAPE_THRESH
 WHITE_VAL    = 255
 BLACK_VAL    = 0
