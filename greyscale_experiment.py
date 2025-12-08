@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 # Adjustable parameters
 # ============================
 KERNEL_SIZE  = 5                 # kernel size (odd recommended)
-DISP_CONST   = 1          # grayscale change per step
+DISP_CONST   = 5      # grayscale change per step
 SHAPE_THRESH = 250               # ring (shape) = gray < SHAPE_THRESH
 WHITE_VAL    = 255
 BLACK_VAL    = 0
@@ -69,7 +69,7 @@ def count_components(gray_img, connectivity=4):
 # Connectivity metric + curve vs erosion depth
 # ============================
 def compute_connectivity(gray_img, erosion_step=DISP_CONST,
-                         dilation_step=DISP_CONST, max_dilations=1000):
+                         dilation_step=DISP_CONST, max_dilations=10000):
 
     if gray_img.dtype != np.float32:
         g_curr = gray_img.astype(np.float32)

@@ -1,3 +1,5 @@
+import json
+
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
@@ -11,10 +13,10 @@ pd.set_option('display.width', 1000)        # Set display width to a large value
 # GA Hyperparameters
 # ============================================
 sample_number = 128
-num_generations = 10
+num_generations = 1
 alpha = 0.05            # Top α fraction kept by elitism
 mutation_rate = 0.15    # Fraction of children to mutate
-
+POPULATION_FILE = "population_saved.txt"
 # champion_history = []  # If you want to track best fitness per generation
 
 
@@ -207,8 +209,8 @@ def connectivity_analysis(samples: pd.DataFrame, global_elite_limit):
 
     for index, row in tqdm(samples.iterrows(), total=len(samples), desc="Evaluating samples"):
 
-        print(row['link_lengths'])
-        print(row['joint_limits'])
+        #print(row['link_lengths'])
+        #print(row['joint_limits'])
 
         connectivity_value = planar_3R_greyscale_connectivity_analysis( row['link_lengths'], row['joint_limits'] )
 
@@ -261,23 +263,30 @@ def next_generation(samples: pd.DataFrame, global_elite_limit, alpha: float = al
 
 prior_knowledge = [{
     'link_lengths': [0.008849317757047144, 1.465181316077158, 1.525969366165795],
-    'joint_limits': [(-3.104323811217068, 3.104323811217068), (-2.2135476717406846, -2.0770894991977737), (-3.0424740198157405, 0.028968517296451335)]
+    'joint_limits':  [(-3.104323811217068, 3.104323811217068), (-2.2135476717406846, -2.0770894991977737), (-3.0424740198157405, 0.028968517296451335)]
+
 },
 {
-    'link_lengths':   [0.31173610612518565, 1.3257057645366055, 1.3625581293382085],
-    'joint_limits': [(-2.7270335266737122, 2.7270335266737122), (1.0133219258739512, 2.345247247091118), (-1.9665329001925376, 2.8793604157088524)]
+    'link_lengths':     [0.08126735888485531, 1.448468898300624, 1.470263742814521],
+    'joint_limits':   [(-2.6718881134030634, 2.6718881134030634), (0.49177861233351505, 2.09927889422743), (-3.101770503324546, 0.632545855333666)]
+
+},
+{
+    'link_lengths':      [1.6152220210992003, 0.061337590934270415, 1.3234403879665289],
+    'joint_limits':    [(-2.1387095483117493, 2.1387095483117493), (0.9891146648789144, 2.995343265232441), (-0.8764130016749987, 1.056314968905341)]
+},
+{
+    'link_lengths':   [1.2230118964803802, 0.535905079512013, 1.2410830240076063],
+    'joint_limits':  [(-2.0692700289723773, 2.0692700289723773), (-2.360731924937134, 1.523837753749191), (-1.9771787887608834, 2.297118960759965)]
+
+},
+{
+    'link_lengths':   [0.0669306212746465, 1.256411027883429, 1.6766583508419246],
+    'joint_limits':   [(-2.6718881134030634, 2.6718881134030634), (0.49177861233351505, 2.09927889422743), (-3.101770503324546, 0.632545855333666)]
 },
 {
     'link_lengths':  [1.273685932707902, 0.47198624642931564, 1.2543278208627822],
     'joint_limits': [(-2.980810601260852, 2.980810601260852), (-2.2294043441860674, 2.9627856964286843), (1.6889140110258536, 1.9469783681522597)]
-},
-{
-    'link_lengths':  [1.190380808837262, 0.41617572979817086, 1.393443461364567],
-    'joint_limits': [(-3.037248133500475, 3.037248133500475), (0.6853974104719596, 1.6355528728695892), (-2.8475873054248075, 2.9814270756074532)]
-},
-{
-    'link_lengths':   [1.273685932707902, 0.47198624642931564, 1.2543278208627822],
-    'joint_limits': [(-2.7270335266737122, 2.7270335266737122), (1.0133219258739512, 2.345247247091118), (-1.9665329001925376, 2.8793604157088524)]
 },
 {
     'link_lengths':   [0.5, 1.25, 1.25],
@@ -285,9 +294,42 @@ prior_knowledge = [{
 }
 ]
 
-
-
 #prior_knowledge = []
+
+
+
+def save_population_to_txt(population_df, filename="population_saved.txt"):
+    """
+    Save the entire population (DataFrame) to a TXT file.
+    Each row is saved as a JSON object on one line.
+    """
+    with open(filename, "w") as f:
+        for _, row in population_df.iterrows():
+            entry = {
+                "link_lengths": list(map(float, row["link_lengths"])),
+                "joint_limits": [list(map(float, jl)) for jl in row["joint_limits"]],
+                "connectivity": float(row["connectivity"]) if "connectivity" in row else None
+            }
+            f.write(json.dumps(entry) + "\n")
+
+    print(f"[INFO] Population saved to {filename}")
+
+
+def load_population_from_txt(filename="population_saved.txt"):
+    """
+    Load population from a TXT file and return a pandas DataFrame
+    compatible with the GA code.
+    """
+    data = []
+    with open(filename, "r") as f:
+        for line in f:
+            entry = json.loads(line.strip())
+            data.append(entry)
+
+    df = pd.DataFrame(data)
+    print(f"[INFO] Loaded {len(df)} individuals from {filename}")
+    return df
+
 
 
 # ============================================
@@ -295,13 +337,21 @@ prior_knowledge = [{
 # ============================================
 if __name__ == "__main__":
     # Initialize population with optional prior knowledge
-    samples = prior_knowledge[:]
-    additional_samples_needed = sample_number - len(prior_knowledge)
-    if additional_samples_needed > 0:
-        samples += [generate_planar_3r_params() for _ in range(additional_samples_needed)]
 
-    df = pd.DataFrame(samples)   # columns: link_lengths, joint_limits
-    current_generation = df
+    try:
+        current_generation = load_population_from_txt("population_saved.txt")
+        print("[INFO] Resuming GA from saved population...\n")
+        # If connectivity column exists, remove it before next generation evaluation
+        if "connectivity" in current_generation.columns:
+            current_generation = current_generation.drop(columns=["connectivity"])
+
+    except FileNotFoundError:
+        print("[INFO] No saved population found — starting fresh.")
+        samples = prior_knowledge[:]
+        additional_samples_needed = sample_number - len(prior_knowledge)
+        if additional_samples_needed > 0:
+            samples += [generate_planar_3r_params() for _ in range(additional_samples_needed)]
+        current_generation = pd.DataFrame(samples)
 
     global_elite_limit = 0.0
 
@@ -313,6 +363,15 @@ if __name__ == "__main__":
             alpha=alpha
         )
         print(f"Generation {i} completed, {i + 1} generated.\n")
+        # --- Save population to file ---
+        save_population_to_txt(current_generation, "population_saved.txt")
+        print("[INFO] Generation saved.\n")
+
+        # --- Reload population fresh from file ---
+        current_generation = load_population_from_txt("population_saved.txt")
+        # remove connectivity before next gen
+        if "connectivity" in current_generation.columns:
+            current_generation = current_generation.drop(columns=["connectivity"])
 
     # Final evaluation on last generation
     current_generation, global_elite_limit = connectivity_analysis(
