@@ -375,10 +375,12 @@ if __name__ == "__main__":
             current_generation = current_generation.drop(columns=["connectivity"])
 
     # Final evaluation on last generation
+    """
     current_generation, global_elite_limit = connectivity_analysis(
         current_generation,
         global_elite_limit
     )
+    """
 
     # If you re-enable champion_history, you can plot:
     # generations = list(range(1, len(champion_history) + 1))
