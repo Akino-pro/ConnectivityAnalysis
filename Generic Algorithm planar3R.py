@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
+from planar3R_reliable_connectivity_analysis import planar_3r_reliable_connectivity_analysis
 from planar_3R_greyscale_reliability_map import planar_3R_greyscale_connectivity_analysis
 
 pd.set_option('display.max_colwidth', None)  # No column width truncation
@@ -212,7 +213,7 @@ def connectivity_analysis(samples: pd.DataFrame, global_elite_limit):
         #print(row['link_lengths'])
         #print(row['joint_limits'])
 
-        connectivity_value = planar_3R_greyscale_connectivity_analysis( row['link_lengths'], row['joint_limits'] )
+        connectivity_value = planar_3r_reliable_connectivity_analysis( row['link_lengths'], row['joint_limits'] )
 
         # ---- elite update logic ----
         if connectivity_value > elites[-1]:

@@ -7,10 +7,19 @@ import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image
 
+def circular_kernel(radius):
+    """
+    Returns a perfect circular structuring element.
+    radius: circle radius in pixels
+    """
+    y, x = np.ogrid[-radius:radius+1, -radius:radius+1]
+    mask = x*x + y*y <= radius*radius
+    k = mask.astype(np.uint8)
+    return k
 
-
-kernel_size=15
-kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (kernel_size, kernel_size))
+kernel_size=7
+#kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (kernel_size, kernel_size))
+kernel=circular_kernel(radius=kernel_size//2)
 lamda=0.5
 
 def measure_time(func):
@@ -23,7 +32,7 @@ def measure_time(func):
 
     return wrapper
 
-@measure_time
+#@measure_time
 def connectivity_analysis(binary_image):
     erosion_number = 0
     data_list = []
@@ -105,9 +114,9 @@ def connectivity_analysis(binary_image):
                     output_image[labels_im == label] = colors[label - 1]
                 # display components
 
-                cv2.imshow('Connected Components', output_image)
-                cv2.waitKey(0)
-                cv2.destroyAllWindows()
+                #cv2.imshow('Connected Components', output_image)
+                #cv2.waitKey(0)
+                #cv2.destroyAllWindows()
 
 
                 current_image = img_erosion
@@ -137,14 +146,14 @@ def connectivity_analysis(binary_image):
                 # cv2.waitKey(0)
                 # cv2.destroyAllWindows()
     if len(data_list) != 1:
-        print(data_list)
+        #print(data_list)
         y_values = np.exp(-lamda * np.array(data_list))
         #print(y_values)
         integral = np.trapz(y_values)
         connected_connectivity = integral / (len(data_list) - 1)
         #general_connectivity = shape_area*connected_connectivity
         #print(f"The area of the shape in the original image is {shape_area} pixels.")
-        print(f"the connected connectivity of given shape is {connected_connectivity}")
+        #print(f"the connected connectivity of given shape is {connected_connectivity}")
         #print(f"the general connectivity of given shape is {general_connectivity}")
         return connected_connectivity
     return 0

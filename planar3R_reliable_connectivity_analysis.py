@@ -7,12 +7,12 @@ from Two_dimension_connectivity_measure import connectivity_analysis
 from helper_functions import sorted_indices, normalize_and_map_greyscale
 
 step_size = 0.01
-kernel_size=5
 # terminate_threshold = step_size / 2.0
 terminate_threshold = 9.0 / 5.0 * step_size
 ssm_finding_num = 20
 max_ssm = 2
 sample_num = 64
+fig_size=6
 # r1 =0.3
 # r2 =0.2
 # r3 =0.1
@@ -38,7 +38,6 @@ def reliability_computation(r1, r2, r3):
 
 
 cr_list = reliability_computation(r1, r2, r3)
-# print(cr_list)
 # cr_list=[math.pow(cr,2) for cr in cr_list]
 # print(cr_list)
 # cr_list=[0.11, 0.11, 0.11, 0.44, 0.44,0.44, 0.44]
@@ -670,9 +669,9 @@ def planar_3r_reliable_connectivity_analysis(L, CA):
     s = np.sum(L)
 
     # Create 3 figures (do NOT touch figsize=5x5 → needed!)
-    fig11, ax11 = plt.subplots(figsize=(6, 6))
-    fig44, ax44 = plt.subplots(figsize=(6, 6))
-    fig100, ax100 = plt.subplots(figsize=(6, 6))
+    fig11, ax11 = plt.subplots(figsize=(fig_size, fig_size))
+    fig44, ax44 = plt.subplots(figsize=(fig_size, fig_size))
+    fig100, ax100 = plt.subplots(figsize=(fig_size, fig_size))
 
     for ax in (ax11, ax44, ax100):
         ax.set_xlim(-s, s)
@@ -758,7 +757,7 @@ def planar_3r_reliable_connectivity_analysis(L, CA):
     k11 = connectivity_analysis(img11)
     k44 = connectivity_analysis(img44)
     k100 = connectivity_analysis(img100)
-    print(k11,k44,k100)
+    #print(k11,k44,k100)
 
 
     # cleanup
@@ -773,6 +772,8 @@ def planar_3r_reliable_connectivity_analysis(L, CA):
     # area fractions
     only44 = area44 - area100
     only11 = area11 - area44
+
+    #print(area100,only44,only11)
 
     return (
         area100 * k100 +
@@ -790,7 +791,7 @@ def planar_3r_reliable_connectivity_analysis(L, CA):
 # L=[1.273685932707902, 0.47198624642931564, 1.2543278208627822]
 # CA=[(-2.980810601260852, 2.980810601260852), (-2.2294043441860674, 2.9627856964286843), (1.6889140110258536, 1.9469783681522597)]
 
-
+"""
 L=[0.5, 1.25, 1.25]
 #CA=[(-180*np.pi/180.0, 180*np.pi/180.0), (-53.1301*np.pi/180.0, 126.8698*np.pi/180.0), (106.2602*np.pi/180.0, 108.2602*np.pi/180.0)]
 CA=[(-3.141592653589793, 3.141592653589793), (-0.9272951769138392, 2.2142957313467018), (1.8545903538276785, 1.8794969388675649)]
@@ -804,6 +805,7 @@ connectivity_value=planar_3r_reliable_connectivity_analysis(L,CA)
 print(connectivity_value)
 #print(connectivity_value2)
 #print(connectivity_value/connectivity_value2)
+"""
 
 
 
