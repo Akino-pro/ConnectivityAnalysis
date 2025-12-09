@@ -6,6 +6,13 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image
+
+
+
+kernel_size=15
+kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (kernel_size, kernel_size))
+lamda=0.5
+
 def measure_time(func):
     def wrapper(*args, **kwargs):
         start = time.time()
@@ -15,8 +22,9 @@ def measure_time(func):
         return result
 
     return wrapper
-#@measure_time
-def connectivity_analysis(binary_image, kernel_size, lamda):
+
+@measure_time
+def connectivity_analysis(binary_image):
     erosion_number = 0
     data_list = []
 
@@ -24,18 +32,17 @@ def connectivity_analysis(binary_image, kernel_size, lamda):
     img = binary_image
     #img = cv2.imread('output.png', cv2.IMREAD_GRAYSCALE)
     #img=255-img
-    # cv2.imshow('original', img)
-    # cv2.waitKey(0)
-    # cv2.destroyAllWindows()
+    #cv2.imshow('original', img)
+    #cv2.waitKey(0)
+    #cv2.destroyAllWindows()
     #gray_mask = (img > 50) & (img < 200)
     #img = np.where(gray_mask, 0, 255).astype(np.uint8)
     #img = cv2.bitwise_not(img)
-    shape_area = np.sum(img == 255)
+    #shape_area = np.sum(img == 255)
     #cv2.imshow('original', img)
     #cv2.waitKey(0)
     #cv2.destroyAllWindows()
     # size of kernal is propotional to the degree of erosion and dilation.
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (kernel_size, kernel_size))
     #kernel = np.ones((kernel_size, kernel_size), np.uint8)
 
     num_labels, labels_im = cv2.connectedComponents(img,connectivity=8)
@@ -97,11 +104,11 @@ def connectivity_analysis(binary_image, kernel_size, lamda):
                 for label in range(1, num_labels):
                     output_image[labels_im == label] = colors[label - 1]
                 # display components
-                """
+
                 cv2.imshow('Connected Components', output_image)
                 cv2.waitKey(0)
                 cv2.destroyAllWindows()
-                """
+
 
                 current_image = img_erosion
                 current_components_number = num_connected_components
@@ -130,15 +137,16 @@ def connectivity_analysis(binary_image, kernel_size, lamda):
                 # cv2.waitKey(0)
                 # cv2.destroyAllWindows()
     if len(data_list) != 1:
-        #print(data_list)
+        print(data_list)
         y_values = np.exp(-lamda * np.array(data_list))
+        #print(y_values)
         integral = np.trapz(y_values)
         connected_connectivity = integral / (len(data_list) - 1)
-        general_connectivity = shape_area*connected_connectivity
+        #general_connectivity = shape_area*connected_connectivity
         #print(f"The area of the shape in the original image is {shape_area} pixels.")
-        #print(f"the connected connectivity of given shape is {connected_connectivity}")
+        print(f"the connected connectivity of given shape is {connected_connectivity}")
         #print(f"the general connectivity of given shape is {general_connectivity}")
-        return [shape_area, connected_connectivity, general_connectivity]
-    return [shape_area, 0, 0]
+        return connected_connectivity
+    return 0
 
 

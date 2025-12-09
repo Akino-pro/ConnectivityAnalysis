@@ -1,18 +1,13 @@
-import json
-import math
-import time
 
 import cv2
 import numpy as np
-from matplotlib.patches import Wedge
 from scipy.linalg import null_space
-# import matplotlib
-# matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-from greyscale_experiment import compute_connectivity
+
+from Two_dimension_connectivity_measure import connectivity_analysis
 from helper_functions import sorted_indices, normalize_and_map_greyscale
 
 step_size = 0.01
+kernel_size=5
 # terminate_threshold = step_size / 2.0
 terminate_threshold = 9.0 / 5.0 * step_size
 ssm_finding_num = 20
@@ -44,7 +39,7 @@ def reliability_computation(r1, r2, r3):
 
 cr_list = reliability_computation(r1, r2, r3)
 # print(cr_list)
-cr_list = [math.pow(cr, 2) for cr in cr_list]
+# cr_list=[math.pow(cr,2) for cr in cr_list]
 # print(cr_list)
 # cr_list=[0.11, 0.11, 0.11, 0.44, 0.44,0.44, 0.44]
 indices = sorted_indices(cr_list)
@@ -627,127 +622,41 @@ def compute_beta_range(x, y, L, CA):
     return union_ranges(all_smm_beta_range), reliable_beta_ranges
 
 
-def wedge_to_poly3d(wedge, z_value):
-    theta1, theta2 = np.radians(wedge.theta1), np.radians(wedge.theta2)
-    outer_radius = wedge.r
-    inner_radius = wedge.r - wedge.width
 
-    # Outer arc coordinates
-    outer_arc_x = outer_radius * np.cos(np.linspace(theta1, theta2, 100))
-    outer_arc_y = outer_radius * np.sin(np.linspace(theta1, theta2, 100))
-
-    # Inner arc coordinates
-    inner_arc_x = inner_radius * np.cos(np.linspace(theta2, theta1, 100))
-    inner_arc_y = inner_radius * np.sin(np.linspace(theta2, theta1, 100))
-
-    # Combine outer and inner arcs to form a closed polygon
-    x = np.concatenate([outer_arc_x, inner_arc_x])
-    y = np.concatenate([outer_arc_y, inner_arc_y])
-    z = np.full_like(x, z_value)
-
-    # Create a list of (x, y, z) tuples
-    vertices = list(zip(x, y, z))
-    return vertices
-
-
-def figure_to_gray_image(fig):
+def fig_to_binary(fig):
     """
-    Render a Matplotlib figure to a grayscale image (float32, 0–255).
-    Uses buffer_rgba() so we don't have to manually reshape.
+    Convert a Matplotlib Figure into a 0/255 binary image.
+    Output is inverted: black→255, white→0.
     """
-    # Draw the figure into the canvas
+
+    # Force rendering (VERY important)
     fig.canvas.draw()
 
-    # Get an RGBA array directly: shape (H, W, 4)
-    buf = np.asarray(fig.canvas.buffer_rgba(), dtype=np.uint8)  # (h, w, 4)
+    # Try new Matplotlib API first
+    try:
+        renderer = fig.canvas.get_renderer()
+        buf = renderer.buffer_rgba()
+    except Exception:
+        # Fallback for older Matplotlib
+        buf = fig.canvas.tostring_rgb()
 
-    # Convert RGBA -> RGB
-    img_rgb = cv2.cvtColor(buf, cv2.COLOR_RGBA2RGB)
+    w, h = fig.canvas.get_width_height()
 
-    # Convert RGB -> grayscale
-    img_gray = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2GRAY)
+    # Check format (2 cases: RGB buffer or RGBA buffer)
+    if isinstance(buf, bytes) or buf.ndim == 1:
+        # tostring_rgb() → flat array
+        img = np.frombuffer(buf, dtype=np.uint8).reshape(h, w, 3)
+        gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+    else:
+        # buffer_rgba() → RGBA image
+        img = np.array(buf, dtype=np.uint8).reshape(h, w, 4)
+        img = img[..., :3]
+        gray = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
 
-    return img_gray.astype(np.float32)
+    # REVERSED: black (patches) → 255, white (background) → 0
+    _, binary = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY_INV)
 
-
-"""
-def planar_3R_greyscale_connectivity_analysis(L, CA):
-
-
-    #print(L)
-    #print(CA)
-    fig3, ax2d3 = plt.subplots(figsize=(6, 6))
-
-    ax2d3.set_xlim(-np.sum(L), np.sum(L))
-    ax2d3.set_ylim(-np.sum(L), np.sum(L))
-    ax2d3.set_aspect('equal')
-    ax2d3.axis('off')
-
-    #start = time.perf_counter()
-    total_area = 0.0
-
-    for i in range(len(points)):
-
-        point = points[i]
-        x, y = point
-
-        beta_ranges, reliable_beta_ranges = compute_beta_range(x, y, L, CA)
-
-        ranges_to_calculate_area = []
-        for b_r_index in indices:
-            b_r = reliable_beta_ranges[b_r_index]
-            color = color_list[b_r_index]
-            for beta_range in b_r:
-                ranges_to_calculate_area.append(beta_range)
-                theta1 = np.degrees(beta_range[0])  # Start angle
-                theta2 = np.degrees(beta_range[1])  # End angle
-
-                outer_radius = x + ring_width / 2.0
-
-                wedge_2d = Wedge(
-                    center=(0, 0),
-                    r=outer_radius,
-                    theta1=theta1, theta2=theta2,
-                    width=ring_width,
-                    facecolor=color,
-                    edgecolor=color,
-                    alpha=1.0,
-                    zorder=b_r_index + 1
-                )
-
-                ax2d3.add_patch(wedge_2d)
-
-        if ranges_to_calculate_area:
-            merged_ranges = union_ranges(ranges_to_calculate_area)
-
-            inner_radius = x - ring_width / 2.0
-            outer_radius = x + ring_width / 2.0
-            ring_area = np.pi * (outer_radius ** 2 - inner_radius ** 2)  # full ring
-
-            for beta_range in merged_ranges:
-                beta_start, beta_end = beta_range
-                angular_fraction = (beta_end - beta_start) / (2 * np.pi)
-                total_area += ring_area * angular_fraction
-
-
-    #end = time.perf_counter()
-    #print(f"Loop took {end - start:.6f} seconds")
-
-    # From here on, we assume we are within time budget
-    img_gray = figure_to_gray_image(fig3)
-
-    #connectivity_value, depths, conn_curve = compute_connectivity(img_gray)
-    connectivity_value=compute_connectivity(img_gray)
-    plt.close(fig3)
-
-    #print(f"area: {total_area:.6f}")
-    #print(f"Final connectivity: {connectivity_value:.6f}")
-    #print(connectivity_value)
-    #print(total_area * connectivity_value)
-
-    #return total_area * connectivity_value
-    return connectivity_value
-"""
+    return binary
 
 import gc
 import matplotlib
@@ -757,102 +666,119 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Wedge
 
 
-def planar_3R_greyscale_connectivity_analysis(L, CA):
-    # KEEP 5x5 FOR CONNECTIVITY CORRECTNESS
-    fig3 = plt.figure(figsize=(5, 5))
-    ax2d3 = fig3.add_subplot(111)
-
+def planar_3r_reliable_connectivity_analysis(L, CA):
     s = np.sum(L)
-    ax2d3.set_xlim(-s, s)
-    ax2d3.set_ylim(-s, s)
-    ax2d3.set_aspect('equal')
-    ax2d3.axis('off')
 
-    total_area = 0.0
-    wedge_refs = []
+    # Create 3 figures (do NOT touch figsize=5x5 → needed!)
+    fig11, ax11 = plt.subplots(figsize=(6, 6))
+    fig44, ax44 = plt.subplots(figsize=(6, 6))
+    fig100, ax100 = plt.subplots(figsize=(6, 6))
 
-    # ======================================================
-    #                    MAIN LOOP
-    # ======================================================
+    for ax in (ax11, ax44, ax100):
+        ax.set_xlim(-s, s)
+        ax.set_ylim(-s, s)
+        ax.set_aspect('equal')
+        ax.axis('off')
+
+    # ============================================
+    area11 = area44 = area100 = 0.0
+    # ============================================
+
+    # MAIN LOOP
     for i in range(len(points)):
         x, y = points[i]
+
         beta_ranges, reliable_beta_ranges = compute_beta_range(x, y, L, CA)
 
-        ranges_to_calculate_area = []
+        ranges11 = []
+        ranges44 = []
+        ranges100 = []
 
-        for b_r_index in indices:
-            b_r = reliable_beta_ranges[b_r_index]
-            color = color_list[b_r_index]
+        for b_idx in indices:
+            b_r = reliable_beta_ranges[b_idx]
 
-            for beta_range in b_r:
-                ranges_to_calculate_area.append(beta_range)
-
-                theta1 = np.degrees(beta_range[0])
-                theta2 = np.degrees(beta_range[1])
-                outer_radius = x + ring_width / 2.0
+            for br in b_r:
+                theta1 = np.degrees(br[0])
+                theta2 = np.degrees(br[1])
+                outer_r = x + ring_width / 2.0
 
                 w = Wedge(
                     center=(0, 0),
-                    r=outer_radius,
+                    r=outer_r,
                     theta1=theta1,
                     theta2=theta2,
                     width=ring_width,
-                    facecolor=color,
-                    edgecolor=color,
-                    linewidth=0,
-                    alpha=1.0,
+                    facecolor="k",
+                    edgecolor="k",
+                    linewidth=0
                 )
-                ax2d3.add_patch(w)
-                wedge_refs.append(w)
 
-        if ranges_to_calculate_area:
-            merged_ranges = union_ranges(ranges_to_calculate_area)
-            inner_r = x - ring_width / 2.0
-            outer_r = x + ring_width / 2.0
-            ring_area = np.pi * (outer_r ** 2 - inner_r ** 2)
+                if b_idx in (0, 1, 2):
+                    ranges11.append(br)
+                    ax11.add_patch(w)
 
-            for b0, b1 in merged_ranges:
-                total_area += ring_area * ((b1 - b0) / (2 * np.pi))
+                elif b_idx in (3, 4, 5):
+                    ranges44.append(br)
+                    ranges11.append(br)
+                    ax44.add_patch(w)
 
-        del beta_ranges, reliable_beta_ranges, ranges_to_calculate_area
+                else:
+                    ranges100.append(br)
+                    ax100.add_patch(w)
 
-    # ======================================================
-    #  Convert to grayscale image (this triggers rasterization)
-    # ======================================================
-    img_gray = figure_to_gray_image(fig3)
+        # compute ring area
+        inner_r = x - ring_width / 2.0
+        outer_r = x + ring_width / 2.0
+        ring_area = np.pi * (outer_r**2 - inner_r**2)
 
-    # Compute connectivity
-    connectivity_value = compute_connectivity(img_gray)
+        # area-accumulation for 11
+        if ranges11:
+            for r0, r1 in union_ranges(ranges11):
+                area11 += ring_area * ((r1 - r0) / (2*np.pi))
 
-    # ======================================================
-    #                ABSOLUTE CLEANUP (IMPORTANT)
-    # ======================================================
+        # area-accumulation for 44
+        if ranges44:
+            for r0, r1 in union_ranges(ranges44):
+                area44 += ring_area * ((r1 - r0) / (2*np.pi))
 
-    # Remove Wedges
-    for w in wedge_refs:
-        w.remove()
-    wedge_refs.clear()
+        # area-accumulation for 100
+        if ranges100:
+            for r0, r1 in union_ranges(ranges100):
+                area100 += ring_area * ((r1 - r0) / (2*np.pi))
 
-    # Clear axes artists
-    ax2d3.cla()
 
-    # Clear figure and renderer caches
-    fig3.canvas.draw()  # ensures the renderer exists
-    fig3.clf()  # removes all artists
-    fig3.canvas.flush_events()  # flush backend state
+    # ==================================================
+    # CONVERT FIGURES → BINARY IMAGES
+    # ==================================================
+    img11 = fig_to_binary(fig11)
+    img44 = fig_to_binary(fig44)
+    img100 = fig_to_binary(fig100)
 
-    # Close figure to release GUI/renderer resources
-    plt.close(fig3)
+    # connectivity computation
+    k11 = connectivity_analysis(img11)
+    k44 = connectivity_analysis(img44)
+    k100 = connectivity_analysis(img100)
+    print(k11,k44,k100)
 
-    # Delete references to axes and fig
-    del ax2d3
-    del fig3
 
-    # Force garbage collection AND free Python memory immediately
+    # cleanup
+    plt.close(fig11)
+    plt.close(fig44)
+    plt.close(fig100)
+
+    del ax11, ax44, ax100
+    del fig11, fig44, fig100
     gc.collect()
-    gc.collect()
 
-    return connectivity_value
+    # area fractions
+    only44 = area44 - area100
+    only11 = area11 - area44
+
+    return (
+        area100 * k100 +
+        only44 * k44 * cr_list[3] +
+        only11 * k11 * cr_list[0]
+    )
 
 
 # L =  [0.0001,1.49995,1.49995]
@@ -864,7 +790,7 @@ def planar_3R_greyscale_connectivity_analysis(L, CA):
 # L=[1.273685932707902, 0.47198624642931564, 1.2543278208627822]
 # CA=[(-2.980810601260852, 2.980810601260852), (-2.2294043441860674, 2.9627856964286843), (1.6889140110258536, 1.9469783681522597)]
 
-"""
+
 L=[0.5, 1.25, 1.25]
 #CA=[(-180*np.pi/180.0, 180*np.pi/180.0), (-53.1301*np.pi/180.0, 126.8698*np.pi/180.0), (106.2602*np.pi/180.0, 108.2602*np.pi/180.0)]
 CA=[(-3.141592653589793, 3.141592653589793), (-0.9272951769138392, 2.2142957313467018), (1.8545903538276785, 1.8794969388675649)]
@@ -873,9 +799,18 @@ print(CA)
 #CA2=[(-3.104323811217068, 3.104323811217068), (-2.2135476717406846, -2.0770894991977737), (-3.0424740198157405, 0.028968517296451335)]
 C_dot_A = CA.copy()
 C_dot_A[0] = (-np.pi, np.pi)
-connectivity_value=planar_3R_greyscale_connectivity_analysis(L,CA)
+connectivity_value=planar_3r_reliable_connectivity_analysis(L,CA)
 #connectivity_value2=planar_3R_greyscale_connectivity_analysis(L2,CA2)
 print(connectivity_value)
 #print(connectivity_value2)
 #print(connectivity_value/connectivity_value2)
-"""
+
+
+
+
+
+
+
+
+
+
