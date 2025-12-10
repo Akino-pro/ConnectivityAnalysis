@@ -746,7 +746,8 @@ def planar_3r_reliable_connectivity_analysis(L, CA):
             for r0, r1 in union_ranges(ranges100):
                 area100 += ring_area * ((r1 - r0) / (2*np.pi))
 
-    if area100<(fault_tolerant_threshold*np.pi*9.0):
+    #if area100<(fault_tolerant_threshold*np.pi*9.0):
+    if area100==0:
         plt.close(fig11)
         plt.close(fig44)
         plt.close(fig100)

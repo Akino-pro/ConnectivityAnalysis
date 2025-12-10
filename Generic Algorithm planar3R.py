@@ -14,7 +14,7 @@ pd.set_option('display.width', 1000)        # Set display width to a large value
 # GA Hyperparameters
 # ============================================
 sample_number = 128
-num_generations = 1
+num_generations = 2
 alpha = 0.05            # Top α fraction kept by elitism
 mutation_rate = 0.15    # Fraction of children to mutate
 POPULATION_FILE = "population_saved.txt"
