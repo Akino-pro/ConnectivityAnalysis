@@ -2,6 +2,7 @@
 import cv2
 import numpy as np
 from scipy.linalg import null_space
+from tqdm import tqdm
 
 from Two_dimension_connectivity_measure import connectivity_analysis
 from helper_functions import sorted_indices, normalize_and_map_greyscale
@@ -685,8 +686,9 @@ def planar_3r_reliable_connectivity_analysis(L, CA):
     # ============================================
 
     # MAIN LOOP
-    for i in range(len(points)):
+    for i in tqdm(range(len(points)), desc="Processing rings", unit="ring"):
         x, y = points[i]
+
 
         beta_ranges, reliable_beta_ranges = compute_beta_range(x, y, L, CA)
 
@@ -729,22 +731,22 @@ def planar_3r_reliable_connectivity_analysis(L, CA):
         # compute ring area
         inner_r = x - ring_width / 2.0
         outer_r = x + ring_width / 2.0
-        ring_area = np.pi * (outer_r**2 - inner_r**2)
+        ring_area = np.pi * (outer_r ** 2 - inner_r ** 2)
 
         # area-accumulation for 11
         if ranges11:
             for r0, r1 in union_ranges(ranges11):
-                area11 += ring_area * ((r1 - r0) / (2*np.pi))
+                area11 += ring_area * ((r1 - r0) / (2 * np.pi))
 
         # area-accumulation for 44
         if ranges44:
             for r0, r1 in union_ranges(ranges44):
-                area44 += ring_area * ((r1 - r0) / (2*np.pi))
+                area44 += ring_area * ((r1 - r0) / (2 * np.pi))
 
         # area-accumulation for 100
         if ranges100:
             for r0, r1 in union_ranges(ranges100):
-                area100 += ring_area * ((r1 - r0) / (2*np.pi))
+                area100 += ring_area * ((r1 - r0) / (2 * np.pi))
 
     #if area100<(fault_tolerant_threshold*np.pi*9.0):
     if area100==0:
@@ -800,10 +802,13 @@ CA = [(-18.2074 * np.pi / 180, 18.2074 * np.pi / 180), (-111.3415 * np.pi / 180,
 CA = [(-42.35 * np.pi / 180, 42.35 * np.pi / 180), (-42.53 * np.pi / 180, 113.19 * np.pi / 180),(-121.02 * np.pi / 180, 121.48 * np.pi / 180)]
 # L=[1.273685932707902, 0.47198624642931564, 1.2543278208627822]
 # CA=[(-2.980810601260852, 2.980810601260852), (-2.2294043441860674, 2.9627856964286843), (1.6889140110258536, 1.9469783681522597)]
-
-
+#[0.19673903968038703, 2.3754666831470272, 0.42779427717258556], "joint_limits": [[-0.8253860194800519, 0.8253860194800519], [1.211410927581377, 2.2128279780658087], [-3.0510359783739225, 1.9443340293465705]]
+#[2.0146606464336387, 0.5507842263151406, 0.43455512725122114], "joint_limits": [[-2.8474558181394816, 2.8474558181394816], [-0.9742810870568448, 0.8686171560206055], [-0.9653711199356598, 1.1613522990169853]]
+L=[2.0146606464336387, 0.5507842263151406, 0.43455512725122114]
+CA=[[-2.8474558181394816, 2.8474558181394816], [-0.9742810870568448, 0.8686171560206055], [-0.9653711199356598, 1.1613522990169853]]
 #L=[0.5, 1.25, 1.25]
 #CA=[(-180*np.pi/180.0, 180*np.pi/180.0), (-53.1301*np.pi/180.0, 126.8698*np.pi/180.0), (106.2602*np.pi/180.0, 108.2602*np.pi/180.0)]
+#print(CA)
 #CA=[(-3.141592653589793, 3.141592653589793), (-0.9272951769138392, 2.2142957313467018), (1.8545903538276785, 1.8794969388675649)]
 #print(CA)
 #L2=[0.008849317757047144, 1.465181316077158, 1.525969366165795]
