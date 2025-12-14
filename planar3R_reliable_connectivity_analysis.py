@@ -298,6 +298,9 @@ def find_random_ssm(x_target, all_ssm_theta_list, L, CA):
     error = 10
     ik = False
     while error > error_threshold:
+        #if step_num > 20000:
+        #    print('too many iterations due to singularity or unknown error')
+        #    return ik, [], [[], [], [], []], all_ssm_theta_list, ssm_found, False
         x_current = forward_kinematics_3R(q, L)
         delta_x = x_target - x_current
         error = np.linalg.norm(x_target - x_current)
@@ -337,6 +340,9 @@ def find_random_ssm(x_target, all_ssm_theta_list, L, CA):
     lowest = step_size
     highest_delta_theta = -1000.0
     while True:
+        if num == 20000:
+            print('stupid algorithm')
+            return ik, [], [[], [], []], all_ssm_theta_list, ssm_found, False
         if threshold <= terminate_threshold and num > 4: break
         old_theta = theta.copy()
         theta, new_n_j, old_n_j = stepwise_ssm(theta, n_j, x_target, old_n_j, L)
@@ -687,6 +693,7 @@ def planar_3r_reliable_connectivity_analysis(L, CA):
 
     # MAIN LOOP
     for i in tqdm(range(len(points)), desc="Processing rings", unit="ring"):
+    #for i in range(len(points)):
         x, y = points[i]
 
 
@@ -806,8 +813,8 @@ CA = [(-42.35 * np.pi / 180, 42.35 * np.pi / 180), (-42.53 * np.pi / 180, 113.19
 #[2.0146606464336387, 0.5507842263151406, 0.43455512725122114], "joint_limits": [[-2.8474558181394816, 2.8474558181394816], [-0.9742810870568448, 0.8686171560206055], [-0.9653711199356598, 1.1613522990169853]]
 L=[2.0146606464336387, 0.5507842263151406, 0.43455512725122114]
 CA=[[-2.8474558181394816, 2.8474558181394816], [-0.9742810870568448, 0.8686171560206055], [-0.9653711199356598, 1.1613522990169853]]
-#L=[0.5, 1.25, 1.25]
-#CA=[(-180*np.pi/180.0, 180*np.pi/180.0), (-53.1301*np.pi/180.0, 126.8698*np.pi/180.0), (106.2602*np.pi/180.0, 108.2602*np.pi/180.0)]
+L=[0.5, 1.25, 1.25]
+CA=[(-180*np.pi/180.0, 180*np.pi/180.0), (-53.1301*np.pi/180.0, 126.8698*np.pi/180.0), (106.2602*np.pi/180.0, 108.2602*np.pi/180.0)]
 #print(CA)
 #CA=[(-3.141592653589793, 3.141592653589793), (-0.9272951769138392, 2.2142957313467018), (1.8545903538276785, 1.8794969388675649)]
 #print(CA)

@@ -181,6 +181,7 @@ def connectivity_analysis(df):
     connectivity = []
     for _, row in tqdm(df.iterrows(), total=len(df), desc="Evaluating samples"):
         val = planar_3r_reliable_connectivity_analysis(row['link_lengths'], row['joint_limits'])
+        #print(val)
         connectivity.append(val)
 
     df['connectivity'] = connectivity
