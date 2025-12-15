@@ -12,7 +12,7 @@ pd.set_option('display.width', 1000)
 # GA Hyperparameters
 # ============================================
 sample_number = 128
-num_generations = 1
+num_generations = 2
 alpha = 0.05
 mutation_rate = 0.15            # adaptive later
 immigrant_fraction = 0.05       # mild random restart

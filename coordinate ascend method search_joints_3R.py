@@ -1,6 +1,7 @@
 from tqdm import tqdm
 import numpy as np
 
+from planar3R_reliable_connectivity_analysis import planar_3r_reliable_connectivity_analysis
 from planar_3R_greyscale_reliability_map import planar_3R_greyscale_connectivity_analysis
 
 
@@ -20,7 +21,7 @@ def find_local_optimum(sample):
     }
 
     # Evaluate starting point
-    global_maximum = planar_3R_greyscale_connectivity_analysis(
+    global_maximum = planar_3r_reliable_connectivity_analysis(
         best_sample['link_lengths'],
         best_sample['joint_limits']
     )
@@ -48,7 +49,7 @@ def find_local_optimum(sample):
                     trial_limits = base_limits.copy()
                     trial_limits[0] = (new_lower, new_upper)
 
-                    val = planar_3R_greyscale_connectivity_analysis(
+                    val = planar_3r_reliable_connectivity_analysis(
                         best_sample['link_lengths'],
                         trial_limits
                     )
@@ -72,7 +73,7 @@ def find_local_optimum(sample):
                     trial_limits = base_limits.copy()
                     trial_limits[i] = (new_lower, new_upper)
 
-                    val = planar_3R_greyscale_connectivity_analysis(
+                    val = planar_3r_reliable_connectivity_analysis(
                         best_sample['link_lengths'],
                         trial_limits
                     )
@@ -91,7 +92,7 @@ def find_local_optimum(sample):
                     trial_limits = base_limits.copy()
                     trial_limits[i] = (new_lower, new_upper)
 
-                    val = planar_3R_greyscale_connectivity_analysis(
+                    val = planar_3r_reliable_connectivity_analysis(
                         best_sample['link_lengths'],
                         trial_limits
                     )
@@ -124,7 +125,7 @@ def find_local_optimum(sample):
 # Example call
 best_sample, best_value = find_local_optimum(
     {
-        'link_lengths': [0.0001,1.49995,1.49995],
-        'joint_limits': [(-2.8856310512880317, 2.8856310512880317), (-0.3672802511511213, 1.2181326405622919), (-3.0246087669394037, 1.878588173306368)],
+        'link_lengths': [0.5, 1.25, 1.25],
+        'joint_limits':  [(-3.141592653589793, 3.141592653589793), (-0.9272951769138392, 2.2142957313467018), (1.8545903538276785, 1.8894969388675649)],
     }
 )

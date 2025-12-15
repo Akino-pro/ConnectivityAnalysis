@@ -692,8 +692,8 @@ def planar_3r_reliable_connectivity_analysis(L, CA):
     # ============================================
 
     # MAIN LOOP
-    for i in tqdm(range(len(points)), desc="Processing rings", unit="ring"):
-    #for i in range(len(points)):
+    #for i in tqdm(range(len(points)), desc="Processing rings", unit="ring"):
+    for i in range(len(points)):
         x, y = points[i]
 
 
