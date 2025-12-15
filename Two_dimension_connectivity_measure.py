@@ -150,7 +150,7 @@ def connectivity_analysis(binary_image):
         #print(data_list)
         y_values = np.exp(-lamda * np.array(data_list))
         #print(y_values)
-        integral = np.trapezoid(y_values)
+        integral = np.trapz(y_values)
         connected_connectivity = integral / (len(data_list) - 1)
         #general_connectivity = shape_area*connected_connectivity
         #print(f"The area of the shape in the original image is {shape_area} pixels.")
