@@ -756,6 +756,7 @@ def planar_3r_reliable_connectivity_analysis(L, CA):
                 area100 += ring_area * ((r1 - r0) / (2 * np.pi))
 
     #if area100<(fault_tolerant_threshold*np.pi*9.0):
+    """
     if area100==0:
         plt.close(fig11)
         plt.close(fig44)
@@ -764,6 +765,7 @@ def planar_3r_reliable_connectivity_analysis(L, CA):
         del fig11, fig44, fig100
         gc.collect()
         return 0
+    """
     # ==================================================
     # CONVERT FIGURES → BINARY IMAGES
     # ==================================================
