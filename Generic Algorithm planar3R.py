@@ -12,7 +12,7 @@ pd.set_option('display.width', 1000)
 # GA Hyperparameters
 # ============================================
 sample_number = 128
-num_generations = 2
+num_generations = 4
 alpha = 0.05
 mutation_rate = 0.15            # adaptive later
 immigrant_fraction = 0.05       # mild random restart
@@ -25,6 +25,8 @@ POPULATION_FILE = "population_saved.txt"
 def generate_planar_3r_params():
     raw_lengths = np.random.dirichlet([1, 1, 1])
     link_lengths = (3 * raw_lengths).tolist()
+
+    link_lengths=[1,1,1] #for local optimization
 
     joint_limits = []
     for i in range(3):
