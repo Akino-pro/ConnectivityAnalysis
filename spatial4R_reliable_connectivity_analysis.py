@@ -23,10 +23,10 @@ terminate_threshold = 9.0 / 5.0 * step_size
 # terminate_threshold = step_size * 0.5
 ssm_finding_num = 20
 max_ssm = 4
-r1 = 0.5
-r2 = 0.6
-r3 = 0.7
-r4 = 0.8
+r1 = 0.9
+r2 = 0.9
+r3 = 0.9
+r4 = 0.9
 
 
 # 1,2,3,4,12,13,14,23,24,34,123,124,134,234,1234
@@ -273,9 +273,9 @@ def find_critical_points(ssm_theta_list):
     thetas_cp_sum = [[], [], [], []]
     if len(ssm_theta_list) == 1:
         return ([ssm_theta_list[0][0][0], ssm_theta_list[0][0][0]]
-                , [ssm_theta_list[0][1][0], ssm_theta_list[0][1][0]]
-                , [ssm_theta_list[0][2][0], ssm_theta_list[0][2][0]]
-                , [ssm_theta_list[0][3][0], ssm_theta_list[0][3][0]])
+                    , [ssm_theta_list[0][1][0], ssm_theta_list[0][1][0]]
+                    , [ssm_theta_list[0][2][0], ssm_theta_list[0][2][0]]
+                    , [ssm_theta_list[0][3][0], ssm_theta_list[0][3][0]])
     if ssm_theta_list:
         thetas_cp_range[0] = [ssm_theta_list[0][0][0], ssm_theta_list[0][0][0]]
         thetas_cp_range[1] = [ssm_theta_list[0][1][0], ssm_theta_list[0][1][0]]
@@ -485,7 +485,7 @@ def compute_beta_range(x, y, z, robot, C_dot_A, CA):
     # print(extend_ranges(theta2_ranges_union))
     # print(extend_ranges(theta3_ranges_union))
     # print(extend_ranges(theta4_ranges_union))
-
+    """
     if len(all_theta) != 0:
         points = np.array(all_theta)
 
@@ -540,6 +540,7 @@ def compute_beta_range(x, y, z, robot, C_dot_A, CA):
         plt.ylim([-np.pi, np.pi])
 
         plt.show()
+    """
 
     ion1 = False
     min_beta1 = 0
@@ -1002,398 +1003,27 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     grid_size = (64, 64, 64)
     grid_centers = generate_grid_centers(n_x, n_z, N, x_range, z_range)
 
-    """uniform sample
-    cells_per_radius = 4  # so cube side length d = R/16
-    side_length = max_length / cells_per_radius
-
-    # Edges and centers along one axis
-    edges = np.arange(-max_length, max_length + 1e-12, side_length)
-    n_cells = edges.size - 1
-    centers = np.linspace(-max_length + side_length / 2, max_length - side_length / 2, n_cells)
-
-    # 3D grid of cube centers
-    x_c, y_c, z_c = np.meshgrid(centers, centers, centers, indexing='ij')
-
-    # Keep centers inside the sphere of radius R
-    in_sphere = (x_c**2 + y_c**2 + z_c**2) <=max_length**2
-
-    cut3 = ((x_c >= 0) & (y_c >= 0) & (z_c >= 0)) | \
-           ((x_c <= 0) & (y_c >= 0) & (z_c <= 0)) | \
-           ((x_c <= 0) & (y_c <= 0) & (z_c >= 0)) | \
-           ((x_c <= 0) & (y_c >= 0) & (z_c >= 0))
-
-    mask = in_sphere & (~cut3)
-    #mask = in_sphere
-
-    x_values = x_c[mask]
-    y_values = y_c[mask]
-    z_values = z_c[mask]
-
-    grid_centers  = np.column_stack((x_values, y_values, z_values))
-
-
-    print("cube_side_length d =", side_length)
-    print("cells per axis =", n_cells)
-    print("num cubes selected =", len(grid_centers))
-    """
-
-    """random sample
-    N = 17256
-
-    def sample_in_sphere(n, r, seed=None):
-        rng = np.random.default_rng(seed)
-        out = np.empty((n, 3), dtype=float)
-        filled = 0
-        r2 = r * r
-        batch = max(4096, int(n * 1.2))
-
-        while filled < n:
-            pts = rng.uniform(-r, r, size=(batch, 3))  # totally random x,y,z in cube
-            in_sphere = np.einsum('ij,ij->i', pts, pts) <= r2  # keep those inside sphere
-            kept = pts[in_sphere]
-            take = min(kept.shape[0], n - filled)
-            if take:
-                out[filled:filled + take] = kept[:take]
-                filled += take
-            if kept.shape[0] < batch // 4 and batch < 1_000_000:
-                batch *= 2
-        return out
-
-    # 1) sample exactly 17,256 points inside the sphere
-    points = sample_in_sphere(N, max_length, seed=None)  # set seed=int if you want reproducibility
-    x_c, y_c, z_c = points.T
-
-    # 2) mask for the four octants to EXCLUDE (your ranges)
-    cut4 = ((x_c >= 0) & (y_c >= 0) & (z_c >= 0)) | \
-           ((x_c <= 0) & (y_c >= 0) & (z_c <= 0)) | \
-           ((x_c <= 0) & (y_c <= 0) & (z_c >= 0)) | \
-           ((x_c <= 0) & (y_c >= 0) & (z_c >= 0))
-
-    # 3) valid points are NOT in those ranges
-    valid_mask = ~cut4
-    grid_centers = points[valid_mask]
-    #grid_centers=points
-    side_length=max_length / 16.0
-
-    print("Sampled inside sphere:", N)
-    print("Final number of valid points:", grid_centers.shape[0])
-    """
 
     all_reliable_beta_ranges = [[] for _ in range(15)]
 
     # test_center=[1.5,0,-0.2]
     # all_reliable_beta_ranges = compute_reliable_beta_range(test_center[0],test_center[1],test_center[2], robot, C_dot_A, CA,
     #                                                      all_reliable_beta_ranges)
-    color_list, sm = normalize_and_map_colors(cr_list)
-    indices = sorted_indices(cr_list)
-    """ uniform and random
-    fig = plt.figure(figsize=(8, 8))
-    ax = fig.add_subplot(111, projection='3d')
-    """
-
-    # """original
-    fig, ax2 = plt.subplots()
-    ax2.set_xlim([0, max_length])
-    ax2.set_ylim([-max_length, max_length])
-    ax2.set_aspect(1)
-    cbar = plt.colorbar(sm, ax=ax2, label='Reliability Spectrum')
-
-    plt.ion()
-    indices = sorted_indices(cr_list)
-    index_dict = {}
-    # """original
 
     start = time.perf_counter()
-    twod_squares = generate_2D_square_grid(n_x, n_z, x_range, z_range)
     for i, center in tqdm(enumerate(grid_centers), total=len(grid_centers), desc="Processing grid centers"):
         # print(center)
-        square = twod_squares[i]
         all_reliable_beta_ranges, F_list = compute_reliable_beta_range(
             center[0], center[1], center[2], robot, C_dot_A, CA, all_reliable_beta_ranges
         )
-
-        last_true = None
-        for you in indices:  # indices is ascending
-            if F_list[you]:
-                last_true = you
-
-        if last_true is not None:
-            color = color_list[last_true]
-            update_or_add_square_2d(ax2, square, color, 1.0, i, index_dict=index_dict)
-            # draw_cube(ax, center, side_length, color)
-            # draw_sphere(ax, center, side_length, color)
 
     end = time.perf_counter()
     print(f"Loop took {end - start:.6f} seconds")
 
     # grid_squares = generate_square_grid(n_x, n_z, x_range, z_range)
-    with open("my_list.txt", "w") as file:
-        file.write(str(all_reliable_beta_ranges))
+    #with open("my_list.txt", "w") as file:
+       #file.write(str(all_reliable_beta_ranges))
 
-    """ uniform and random
-    R = max_length
-    ax.set_xlim(-R, R)
-    ax.set_ylim(-R, R)
-    ax.set_zlim(-R, R)
-    set_axes_equal(ax)
-
-    ax.set_box_aspect([1, 1, 1])  # forces equal aspect
-
-    #ax.view_init(elev=28, azim=-35)  # try (28, -35); tweak ±2° if needed
-    #ax.set_proj_type('persp')
-    #ax.dist = 9
-    axis_length = max_length * 1.2  # extend beyond the shape for visibility
-    ax.quiver(0, 0, 0, axis_length, 0, 0, color='k', arrow_length_ratio=0.1, linewidth=1.5)  # X-axis
-    ax.quiver(0, 0, 0, 0, axis_length, 0, color='k', arrow_length_ratio=0.1, linewidth=1.5)  # Y-axis
-    ax.quiver(0, 0, 0, 0, 0, axis_length, color='k', arrow_length_ratio=0.1, linewidth=1.5)  # Z-axis
-
-    # Add axis labels near arrow tips
-    ax.text(axis_length, 0, 0, r"$x$", fontsize=14, color='k')
-    ax.text(0, axis_length, 0, r"$y$", fontsize=14, color='k')
-    ax.text(0, 0, axis_length, r"$z$", fontsize=14, color='k')
-
-    ax.set_xlabel("x", fontsize=25)
-    ax.set_ylabel("y", fontsize=25)
-    ax.set_zlabel("z", fontsize=25)
-    tick_positions = [-3,-2, -1, 0, 1, 2,3]
-    ax.set_xticks(tick_positions)
-    ax.set_yticks(tick_positions)
-    ax.set_zticks(tick_positions)
-    ax.tick_params(axis='x', labelsize=18)  # Increase font size for X-axis ticks
-    ax.tick_params(axis='y', labelsize=18)
-    ax.tick_params(axis='z', labelsize=18)
-    ax.view_init(elev=35, azim=146, roll=-111)
-    plt.show()
-    """
-
-    # original extra beta
-    fig, ax = plt.subplots(figsize=(12, 4))
-
-    sub_indices = [
-        i for i in range(len(grid_centers))
-        if any(len(all_reliable_beta_ranges[you][i]) != 0 for you in indices)
-    ]
-    sub_grid_centers = [grid_centers[i] for i in sub_indices]
-
-    # Optional placeholders (just to show columns exist)
-    for i in range(len(grid_centers)):
-        ax.bar(i, 0, width=0.6, color="white", edgecolor="purple")
-
-    # Style (like before)
-    tick_positions = [-np.pi, -np.pi / 2, 0, np.pi / 2, np.pi]
-    tick_labels = [r'$-\pi$', r'$-\pi/2$', '0', r'$\pi/2$', r'$\pi$']
-    ax.set_ylim(-np.pi, np.pi)
-    ax.set_yticks(tick_positions)
-    ax.set_yticklabels(tick_labels, fontsize=18)
-    # ax.set_xticks(range(len(grid_centers)))
-    # ax.set_xticklabels([f"({x:.2f},{z:.2f})" for x,y,z in grid_centers], rotation=45, ha="right", fontsize=12)
-    ax.set_ylabel("Failure Tolerant Rotation Angles of β", fontsize=27)
-    ax.set_xlabel("x, z Task Space Locations", fontsize=27)
-    ax.grid(axis='y', linestyle='--', alpha=0.6)
-    plt.tight_layout()
-    NDIGITS = 8
-    # x_index_map = {key3(pt, ndigits=NDIGITS): i for i, pt in enumerate(grid_centers)}
-    # x_index_map = {key3(pt, ndigits=NDIGITS): i for i, pt in enumerate(sub_grid_centers)}
-    x_index_map = {
-        key3(grid_centers[i], ndigits=NDIGITS): j
-        for j, i in enumerate(sub_indices)
-    }
-    # original"""
-
-    """original3D
-    fig = plt.figure()
-    ax4 = fig.add_subplot(111, projection='3d')
-
-    ax4.set_xlim([-3, 3])  # todo: optimized
-    ax4.set_ylim([-3, 3])
-    ax4.set_zlim([-3, 3])
-    grid_squares = generate_square_grid(n_x, n_z, x_range, z_range)
-    """
-
-    for you in indices:
-        ftw_points_count = 0
-
-        """ original 3D
-        arc_color = color_list[you]
-
-        #fig = plt.figure()
-        #ax = fig.add_subplot(111, projection='3d')
-
-        #ax.set_xlim([-3, 3])  # todo: optimized
-        #ax.set_ylim([-3, 3])
-        #ax.set_zlim([-3, 3])
-
-        for i, square in tqdm(enumerate(grid_squares), desc="Processing Items"):
-            for beta_range in all_reliable_beta_ranges[you][i]:
-                # draw_wedge(ax, square, beta_range, arc_color)
-                draw_rotated_grid(ax4, square, beta_range, arc_color)
-
-        """
-        # ax.view_init(elev=30, azim=135)
-
-        # ax.set_xlabel('X')
-        # ax.set_ylabel('Y')
-        # ax.set_zlabel('Z')
-        # plt.draw()
-        # print("Press 'q' to continue...")
-        # while True:
-        #    key = plt.waitforbuttonpress()
-        #    if key:  # Any key will work, but we can restrict it if needed
-        #       break
-
-        # plt.close(fig)
-        # """
-        """
-        grid_squares = generate_square_grid(n_x, n_z, x_range, z_range)
-
-        # Plot setup
-        fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d')
-
-        # Set plot range
-        ax.set_xlim([0, max_length])
-        ax.set_ylim([-max_length, max_length])
-        ax.set_zlim([-max_length, max_length])
-        ax.set_box_aspect([1, 1, 2])
-
-        # Draw squares only if the angle_ranges[i] is non-empty
-        for i, square in enumerate(grid_squares):
-            color = 'k'
-            alpha_level = 0
-            if all_reliable_beta_ranges[you][i]:  # Check if the list is non-empty
-                color = color_list[you]
-                alpha_level = 1.0
-                ftw_points_count += 1
-                # Plot the square grid directly
-            square_poly = Poly3DCollection([square], facecolor=color, edgecolor='k', alpha=alpha_level)
-            ax.add_collection3d(square_poly)
-
-
-        # Set plot labels and show the plot
-        ax.set_xlabel('X')
-        ax.set_ylabel('Y')
-        ax.set_zlabel('Z')
-
-        plt.draw()
-        print("Press 'q' to continue...")
-        while True:
-            key = plt.waitforbuttonpress()
-            if key:
-                break
-
-        plt.close(fig)
-
-        print(f'we have {ftw_points_count} grids over {grid_sample_num} fault tolerant')
-        # also plot a 2D view of it
-        """
-
-        """random and uniform
-        twod_squares = generate_2D_square_grid(n_x, n_z, x_range, z_range)
-        for i, square in enumerate(twod_squares):
-            #color = 'w'
-            #alpha_level=1.0
-            if all_reliable_beta_ranges[you][i]:
-                #color = color_list[you]
-                ftw_points_count += 1
-        """
-        # """original
-        for j, i in enumerate(sub_indices):
-            pt = grid_centers[i]
-            ranges = all_reliable_beta_ranges[you][i]
-            if not ranges:
-                continue
-            update_beta_bar_multicolor(
-                ax, pt, ranges,
-                zorder=you + 1,
-                x_index_map=x_index_map,  # built from the same pts
-                ndigits=NDIGITS
-            )
-        # original"""
-
-        """
-        # Set plot labels and show the plot
-        ax.set_xlabel('X')
-        ax.set_ylabel('Z')
-        frame_points = [
-            (x_range[0], z_range[0]), (x_range[1], z_range[0]),
-            (x_range[1], z_range[1]), (x_range[0], z_range[1]),
-            (x_range[0], z_range[0])  # Closing the loop
-        ]
-
-        # Draw frame
-        frame_x, frame_z = zip(*frame_points)
-        ax.plot(frame_x, frame_z, color='k', linewidth=2)
-
-        plt.draw()
-        print("Press 'q' to continue...")
-        while True:
-            key = plt.waitforbuttonpress()
-            if key:
-                break
-
-        plt.close(fig)
-        """
-
-    """orignal 3D
-    ax4.view_init(elev=35, azim=146, roll=-111)
-    R = max_length
-    ax4.set_xlim(-R, R)
-    ax4.set_ylim(-R, R)
-    ax4.set_zlim(-R, R)
-    set_axes_equal(ax4)
-    ax4.set_box_aspect([1, 1, 1])  # forces equal aspect
-    axis_length = max_length * 1.2  # extend beyond the shape for visibility
-    ax4.quiver(0, 0, 0, axis_length, 0, 0, color='k', arrow_length_ratio=0.1, linewidth=1.5)  # X-axis
-    ax4.quiver(0, 0, 0, 0, axis_length, 0, color='k', arrow_length_ratio=0.1, linewidth=1.5)  # Y-axis
-    ax4.quiver(0, 0, 0, 0, 0, axis_length, color='k', arrow_length_ratio=0.1, linewidth=1.5)  # Z-axis
-
-    # Add axis labels near arrow tips
-    ax4.text(axis_length, 0, 0, r"$x$", fontsize=14, color='k')
-    ax4.text(0, axis_length, 0, r"$y$", fontsize=14, color='k')
-    ax4.text(0, 0, axis_length, r"$z$", fontsize=14, color='k')
-    ax4.set_xlabel("x", fontsize=25)
-    ax4.set_ylabel("y", fontsize=25)
-    ax4.set_zlabel("z", fontsize=25)
-    tick_positions = [-3, -2, -1, 0, 1, 2, 3]
-    ax4.set_xticks(tick_positions)
-    ax4.set_yticks(tick_positions)
-    ax4.set_zticks(tick_positions)
-    ax4.tick_params(axis='x', labelsize=18)  # Increase font size for X-axis ticks
-    ax4.tick_params(axis='y', labelsize=18)
-    ax4.tick_params(axis='z', labelsize=18)
-    plt.show()
-    """
-
-    """
-    plt.show()
-    print("Press 'q' to continue...")
-    while True:
-        key = plt.waitforbuttonpress()
-        if key:  # Any key will work, but we can restrict it if needed
-            break
-
-    plt.close(fig)
-    """
-
-    # """original
-    set_sparse_xyz_labels(ax, sub_grid_centers, max_labels=20, ndigits=2)
-    ax.set_xlim(-0.5, len(sub_grid_centers) - 0.5)
-    ax.set_facecolor("white")
-    ax2.set_xlabel('X', fontsize=24)
-    ax2.set_ylabel('Z', fontsize=24)
-    ax2.tick_params(axis='both', which='major', labelsize=18)
-
-    frame_points = [
-        (x_range[0], z_range[0]), (x_range[1], z_range[0]),
-        (x_range[1], z_range[1]), (x_range[0], z_range[1]),
-        (x_range[0], z_range[0])  # Closing the loop
-    ]
-
-    # Draw frame
-    frame_x, frame_z = zip(*frame_points)
-    ax2.plot(frame_x, frame_z, color='k', linewidth=2)
-    plt.ioff()
-    plt.show()
     reliable_connectivity = 0
 
     for index, angle_ranges in enumerate(all_reliable_beta_ranges):
@@ -1404,7 +1034,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
         shape_area, connected_connectivity, general_connectivity = connectivity_analysis(binary_matrix,
                                                                                          kernel_size, Lambda)
         reliable_connectivity += cr_list[index] * general_connectivity
-        print(general_connectivity)
+        #print(general_connectivity)
     print(f' The general reliable connectivity considering top 5 cases is{reliable_connectivity}.')
     return reliable_connectivity
     # original"""
@@ -1421,7 +1051,7 @@ CA = [(-146 * np.pi / 180, 146 * np.pi / 180), (-234 * np.pi / 180, 10 * np.pi /
 alpha = [85 * np.pi / 180, -53 * np.pi / 180, -89 * np.pi / 180, 68 * np.pi / 180]
 d = [-0.29, 0, 0.05, 1]
 l = [0.5, 0.48, 0.76, 0.95]
-ap = ssm_estimation(128, d, alpha, l, CA)
+ap = ssm_estimation(32, d, alpha, l, CA)
 # d = [-0.019917995106395026, 0.6118090376463043, 0.05065138908443867, 0.45487466192184756]
 # alpha = [85 * np.pi / 180, -53 * np.pi / 180, -89 * np.pi / 180, 68 * np.pi / 180]
 # alpha=  [0.7334761894150401, -0.7205303423799283, -1.3089320990376847, 1.5510841614806563]
