@@ -1338,3 +1338,46 @@ def sample_line(p1, p2, n_between=40):
     x_vals = np.linspace(p1[0], p2[0], n_between + 2)
     y_vals = np.linspace(p1[1], p2[1], n_between + 2)
     return list(zip(x_vals, y_vals))
+
+
+def exclusive_areas(A):
+    """
+    Convert non-exclusive intersection areas A1..A15
+    into exclusive areas E1..E15 using inclusion–exclusion.
+
+    Input:
+        A : list or array-like of length 15
+            [A1, A2, ..., A15]
+
+    Output:
+        E : list of length 15
+            [E1, E2, ..., E15]
+    """
+    if len(A) != 15:
+        raise ValueError("Input must have exactly 15 elements (A1..A15)")
+
+    A1,A2,A3,A4,A5,A6,A7,A8,A9,A10,A11,A12,A13,A14,A15 = A
+
+    E1  = A1  - A5 - A6 - A7 + A11 + A12 + A13 - A15
+    E2  = A2  - A5 - A8 - A9 + A11 + A12 + A14 - A15
+    E3  = A3  - A6 - A8 - A10 + A11 + A13 + A14 - A15
+    E4  = A4  - A7 - A9 - A10 + A12 + A13 + A14 - A15
+
+    E5  = A5  - A11 - A12 + A15
+    E6  = A6  - A11 - A13 + A15
+    E7  = A7  - A12 - A13 + A15
+    E8  = A8  - A11 - A14 + A15
+    E9  = A9  - A12 - A14 + A15
+    E10 = A10 - A13 - A14 + A15
+
+    E11 = A11 - A15
+    E12 = A12 - A15
+    E13 = A13 - A15
+    E14 = A14 - A15
+    E15 = A15
+
+    return [
+        E1, E2, E3, E4,
+        E5, E6, E7, E8, E9, E10,
+        E11, E12, E13, E14, E15
+    ]

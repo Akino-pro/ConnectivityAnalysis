@@ -1434,10 +1434,8 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
             n_x, n_z, x_range, z_range, grid_size, angle_ranges
         )
 
-        shape_area, connected_connectivity, general_connectivity = connectivity_analysis(binary_matrix,
-                                                                                         kernel_size, Lambda)
-        reliable_connectivity += cr_list[index] * general_connectivity
-        print(general_connectivity)
+        connected_connectivity = connectivity_analysis(binary_matrix,kernel_size, Lambda)
+        reliable_connectivity += cr_list[index] * np.sum(binary_matrix)*connected_connectivity
     print(f' The general reliable connectivity considering top 5 cases is{reliable_connectivity}.')
     return reliable_connectivity
     #original"""
@@ -1445,6 +1443,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
 
 CA = [(-146 * np.pi / 180, 146 * np.pi / 180), (-234 * np.pi / 180, 10 * np.pi / 180),
      (-115 * np.pi / 180, 132 * np.pi / 180), (-101 * np.pi / 180, 118 * np.pi / 180)]
+CA=[(-1.1462323775013838, 3.0555459324329153), (-1.1618976450230296, 3.141592653589793), (-2.690561890475438, 1.9074680849495245), (-0.5390132397825012, 0.4414181348394396)]
 # CA =  [(-0.34476583954363793, 0.34476583954363793), (-3.8557928335253506, 0.5727802075632915),
 #                   (-2.0120387975312504, 0.8610682582634244), (-1.6048847508602293, 2.1951493670529656)]
 # CA = [(-2.017801347479772, 2.017801347479772), (-3.0735622252855346, -1.8767802693000228), (-2.3001230516678093, -1.0323465272698482), (-1.091382218006809, 0.5810127777635778)]
@@ -1455,6 +1454,8 @@ alpha = [85 * np.pi / 180, -53 * np.pi / 180, -89 * np.pi / 180, 68 * np.pi / 18
 d = [-0.29, 0, 0.05, 1]
 l = [0.5, 0.48, 0.76, 0.95]
 ap = ssm_estimation(512, d, alpha, l, CA)
+print(ap)
+
 # d = [-0.019917995106395026, 0.6118090376463043, 0.05065138908443867, 0.45487466192184756]
 # alpha = [85 * np.pi / 180, -53 * np.pi / 180, -89 * np.pi / 180, 68 * np.pi / 180]
 # alpha=  [0.7334761894150401, -0.7205303423799283, -1.3089320990376847, 1.5510841614806563]

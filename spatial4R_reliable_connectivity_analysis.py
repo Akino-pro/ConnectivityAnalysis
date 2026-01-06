@@ -11,12 +11,12 @@ from spatialmath import SE3
 
 from helper_functions import normalize_and_map_colors, update_or_add_square, sorted_indices, union_ranges, \
     update_or_add_square_2d, update_beta_bar_multicolor, key3, set_sparse_xyz_labels, draw_cube, set_axes_equal, \
-    draw_sphere
+    draw_sphere, exclusive_areas
 from spatial3R_ftw_draw import generate_grid_centers, generate_square_grid, draw_rotated_grid, generate_2D_square_grid
 from Three_dimension_connectivity_measure import connectivity_analysis
 from spatial3R_ftw_draw import generate_binary_matrix
 
-kernel_size = 1
+kernel_size = 3
 Lambda = 0.5
 step_size = 0.01
 terminate_threshold = 9.0 / 5.0 * step_size
@@ -58,7 +58,8 @@ def reliability_computation(r1, r2, r3, r4):
 
 
 cr_list = reliability_computation(r1, r2, r3, r4)
-print(sorted_indices(cr_list))
+print(cr_list)
+#print(sorted_indices(cr_list))
 
 
 # print(cr_list)
@@ -307,7 +308,7 @@ def find_critical_points(ssm_theta_list):
     return thetas_cp_sum
 
 
-def find_single_intersection(ssm_theta_list):
+def find_single_intersection(ssm_theta_list,CA):
     tof = False
     for theta_index in range(len(ssm_theta_list)):
         theta_flatten = ssm_theta_list[theta_index].flatten()
@@ -317,7 +318,7 @@ def find_single_intersection(ssm_theta_list):
     return tof
 
 
-def find_random_ssm(x_target, all_ssm_theta_list, robot, C_dot_A):
+def find_random_ssm(x_target, all_ssm_theta_list, robot, C_dot_A,CA):
     ssm_found = False
     q = np.array(np.random.uniform(low=-np.pi, high=np.pi, size=(4,))).T.reshape((4, 1))
     Tep = SE3(x_target)
@@ -339,6 +340,9 @@ def find_random_ssm(x_target, all_ssm_theta_list, robot, C_dot_A):
     threshold = 1
     lowest = step_size
     while True:
+        if num == 20000:
+            print('stupid algorithm')
+            return False, [], [[], [], []], all_ssm_theta_list, ssm_found, False
         num += 1
         if threshold <= terminate_threshold and num >= 4: break
         theta, new_n_j, old_n_j = stepwise_ssm(theta, n_j, x_target, old_n_j, robot)
@@ -421,7 +425,7 @@ def find_random_ssm(x_target, all_ssm_theta_list, robot, C_dot_A):
 
     ip_ranges, tof = find_intersection_points(ssm_theta_list, C_dot_A)
     cp_ranges = find_critical_points(ssm_theta_list)
-    single_intersection_tf = find_single_intersection(ssm_theta_list)
+    single_intersection_tf = find_single_intersection(ssm_theta_list,CA)
     return True, ip_ranges, cp_ranges, all_ssm_theta_list, ssm_found, single_intersection_tf
 
 
@@ -438,7 +442,7 @@ def compute_beta_range(x, y, z, robot, C_dot_A, CA):
     ssm_found = 0
     while find_count < ssm_finding_num and ssm_found < max_ssm:
         ik, iprs, cp_ranges, all_theta, ssm_found_tf = find_random_ssm(
-            target_x, all_theta, robot, C_dot_A)
+            target_x, all_theta, robot, C_dot_A,CA)
         if not ik: break
         find_count += 1
         iprs = extend_ranges(iprs)
@@ -650,7 +654,7 @@ def compute_beta_range(x, y, z, robot, C_dot_A, CA):
 
 def compute_reliable_beta_range(x, y, z, robot, C_dot_A, CA, all_reliable_beta_ranges):
     # 15 cases
-    reliable_connectivity = reliable_beta_ranges = [[] for _ in range(15)]
+    reliable_beta_ranges = [[] for _ in range(15)]
     target_x = np.array([x, y, z]).T.reshape((3, 1))
     F_list = [False] * 15
     all_theta = []
@@ -664,7 +668,7 @@ def compute_reliable_beta_range(x, y, z, robot, C_dot_A, CA, all_reliable_beta_r
     single_intersection_tf_all = False
     while find_count < ssm_finding_num and ssm_found < max_ssm:
         ik, iprs, cp_ranges, all_theta, ssm_found_tf, single_intersection_tf = find_random_ssm(
-            target_x, all_theta, robot, C_dot_A)
+            target_x, all_theta, robot, C_dot_A,CA)
         single_intersection_tf_all = single_intersection_tf_all or single_intersection_tf
         if not ik: break
         find_count += 1
@@ -976,10 +980,9 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     return general_connectivity
 """
 
-
 # reliability
 # @measure_time
-def ssm_estimation(grid_sample_num, d, alpha, l, CA):
+def spatial_4r_weighted_sum (grid_sample_num, d, alpha, l, CA):
     C_dot_A = CA.copy()
     C_dot_A[0] = (-np.pi, np.pi)
     C_dot_A = convert_to_C_dot_A(C_dot_A)
@@ -997,7 +1000,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     max_length = 0
     for i in range(4):
         max_length += np.sqrt(np.power(d[i], 2) + np.power(l[i], 2))
-    print(max_length)
+    #print(max_length)
     x_range = (0, max_length)  # Range for x-axis
     z_range = (-max_length, max_length)  # Range for z-axis
     grid_size = (64, 64, 64)
@@ -1011,7 +1014,8 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     #                                                      all_reliable_beta_ranges)
 
     start = time.perf_counter()
-    for i, center in tqdm(enumerate(grid_centers), total=len(grid_centers), desc="Processing grid centers"):
+    #for i, center in tqdm(enumerate(grid_centers), total=len(grid_centers), desc="Processing grid centers"):
+    for i, center in enumerate(grid_centers):
         # print(center)
         all_reliable_beta_ranges, F_list = compute_reliable_beta_range(
             center[0], center[1], center[2], robot, C_dot_A, CA, all_reliable_beta_ranges
@@ -1024,22 +1028,75 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     #with open("my_list.txt", "w") as file:
        #file.write(str(all_reliable_beta_ranges))
 
+    volumns15=[]
+    case1_range= case2_range=case3_range= [[] for _ in range(grid_sample_num)]
     reliable_connectivity = 0
 
     for index, angle_ranges in enumerate(all_reliable_beta_ranges):
+        #print (len(angle_ranges))
         binary_matrix, x_edges, y_edges, z_edges = generate_binary_matrix(
             n_x, n_z, x_range, z_range, grid_size, angle_ranges
         )
+        shape_area=np.sum(binary_matrix)
 
-        shape_area, connected_connectivity, general_connectivity = connectivity_analysis(binary_matrix,
-                                                                                         kernel_size, Lambda)
-        reliable_connectivity += cr_list[index] * general_connectivity
+        # specific case 0.9 0.9 0.9 0.9
+        # [0.25, 0.25, 0.25, 0.25, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.75, 0.75, 0.75, 0.75, 1.0]
+
+
+
+        #connected_connectivity= connectivity_analysis(binary_matrix,kernel_size, Lambda)
+        volumns15.append(shape_area)
+
+        if index in (0, 1, 2, 3):
+            for index2, rng in enumerate(case1_range):
+                case1_range[index2] = union_ranges(rng + angle_ranges[index2])
+        elif index in (4, 5, 6, 7, 8, 9):
+            for index2, rng in enumerate(case2_range):
+                case2_range[index2] = union_ranges(rng + angle_ranges[index2])
+        elif index in (10, 11, 12, 13):
+            for index2, rng in enumerate(case3_range):
+                case3_range[index2] = union_ranges(rng + angle_ranges[index2])
+        else:
+            connected_connectivity = connectivity_analysis(binary_matrix, kernel_size, Lambda)
+            reliable_connectivity += shape_area*connected_connectivity
+
+        #reliable_connectivity += cr_list[index] * general_connectivity
         #print(general_connectivity)
-    print(f' The general reliable connectivity considering top 5 cases is{reliable_connectivity}.')
+    #print(f' The general reliable connectivity considering top 5 cases is{reliable_connectivity}.')
+
+    exclusive_volumns = exclusive_areas(volumns15)
+
+
+
+    #specific case 0.9 0.9 0.9 0.9
+    #[0.25, 0.25, 0.25, 0.25, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.75, 0.75, 0.75, 0.75, 1.0]
+
+
+    binary_matrix1, x_edges, y_edges, z_edges = generate_binary_matrix(
+            n_x, n_z, x_range, z_range, grid_size, case1_range
+        )
+    binary_matrix2, x_edges, y_edges, z_edges = generate_binary_matrix(
+        n_x, n_z, x_range, z_range, grid_size, case2_range
+    )
+    binary_matrix3, x_edges, y_edges, z_edges = generate_binary_matrix(
+        n_x, n_z, x_range, z_range, grid_size, case3_range
+    )
+    connectivity_case1=connectivity_analysis(binary_matrix1,kernel_size, Lambda)
+    connectivity_case2 = connectivity_analysis(binary_matrix2, kernel_size, Lambda)
+    connectivity_case3 = connectivity_analysis(binary_matrix3, kernel_size, Lambda)
+
+
+
+    for index, vol in enumerate(exclusive_volumns):
+        if index in (0,1,2,3):reliable_connectivity+=0.25*vol*connectivity_case1
+        elif index in (4,5,6,7,8,9):reliable_connectivity+=0.5*vol*connectivity_case2
+        elif index in (10, 11, 12, 13):reliable_connectivity+=0.75*vol*connectivity_case3
+
+
     return reliable_connectivity
     # original"""
 
-
+"""
 CA = [(-146 * np.pi / 180, 146 * np.pi / 180), (-234 * np.pi / 180, 10 * np.pi / 180),
       (-115 * np.pi / 180, 132 * np.pi / 180), (-101 * np.pi / 180, 118 * np.pi / 180)]
 # CA =  [(-0.34476583954363793, 0.34476583954363793), (-3.8557928335253506, 0.5727802075632915),
@@ -1051,7 +1108,11 @@ CA = [(-146 * np.pi / 180, 146 * np.pi / 180), (-234 * np.pi / 180, 10 * np.pi /
 alpha = [85 * np.pi / 180, -53 * np.pi / 180, -89 * np.pi / 180, 68 * np.pi / 180]
 d = [-0.29, 0, 0.05, 1]
 l = [0.5, 0.48, 0.76, 0.95]
-ap = ssm_estimation(32, d, alpha, l, CA)
+ap = spatial_4r_weighted_sum(128, d, alpha, l, CA)
+print(ap)
+"""
+
+
 # d = [-0.019917995106395026, 0.6118090376463043, 0.05065138908443867, 0.45487466192184756]
 # alpha = [85 * np.pi / 180, -53 * np.pi / 180, -89 * np.pi / 180, 68 * np.pi / 180]
 # alpha=  [0.7334761894150401, -0.7205303423799283, -1.3089320990376847, 1.5510841614806563]

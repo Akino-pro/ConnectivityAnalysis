@@ -29,8 +29,8 @@ terminate_threshold = 9.0 / 5.0 * step_size
 # terminate_threshold = step_size * 0.5
 ssm_finding_num = 10
 max_ssm = 16
-positional_samples = 288 # 288
-orientation_samples = 64  # 64
+positional_samples = 8 # 288
+orientation_samples = 32  # 64
 theta_phi_list = fibonacci_sphere_angles(orientation_samples)
 """ random
 theta_phi_list =[]
@@ -483,8 +483,10 @@ def find_random_ssm(r, x_target, all_ssm_theta_list, robot, C_dot_A, C_dot_A_7):
     while True:
         num += 1
         # print(num)
-        if threshold <= terminate_threshold and num >= 4:
-            """
+
+        if threshold <= terminate_threshold and num >= 4: break
+
+        """
             points = np.array(ssm_theta_list)
 
             plt.figure()
@@ -549,8 +551,9 @@ def find_random_ssm(r, x_target, all_ssm_theta_list, robot, C_dot_A, C_dot_A_7):
 
             # Display the plot
             plt.show()
-            """
+            
             break
+            """
         theta, new_n_j, old_n_j = stepwise_ssm(theta, n_j, Tep, old_n_j, robot)
         threshold = np.linalg.norm(theta - theta_prime)
         all_dis.append(threshold)
@@ -665,6 +668,12 @@ def find_random_ssm(r, x_target, all_ssm_theta_list, robot, C_dot_A, C_dot_A_7):
 
             # return True, [], [[], [], [], []], all_ssm_theta_list, ssm_found
         ssm_theta_list.append(theta)
+    #if num==1395:
+    #    points = np.array(ssm_theta_list)
+    #    np.save("ssm_theta_points2.npy", points)
+
+    #points = np.load("ssm_theta_points.npy")
+
     """
     points = np.array(ssm_theta_list)
 
@@ -722,7 +731,7 @@ def find_random_ssm(r, x_target, all_ssm_theta_list, robot, C_dot_A, C_dot_A_7):
 
     """
     all_ssm_theta_list.extend(ssm_theta_list)
-    # print(f'found a new ssm with {num} points.')
+    print(f'found a new ssm with {num} points.')
     ssm_found = True
 
     ip_ranges = find_intersection_points(ssm_theta_list, C_dot_A)
@@ -1172,6 +1181,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
         positional_beta_ranges = []
         target_x = np.array([center[0], center[1], center[2]]).T.reshape((3, 1))
         for sample_tuple in tqdm(theta_phi_list, desc="Processing Items"):
+            print(sample_tuple)
             #sampled_orientation = zyz_to_R(sample_tuple[0], sample_tuple[1], sample_tuple[2]) #random
             sampled_orientation = zyz_to_R(sample_tuple[0], sample_tuple[1], 0) #original and uniform
             beta_ranges, alpha_ranges,reliability,F_list = compute_beta_range(sampled_orientation, target_x, robot, C_dot_A, CA)
@@ -1391,14 +1401,22 @@ ap = ssm_estimation(512, d, alpha, l, CA)
 # 72 98 128 162 200 242 288 338 392
 
 
-alpha = [-62 * np.pi / 180, -79 * np.pi / 180, 90 * np.pi / 180, 29 * np.pi / 180, 81 * np.pi / 180, -80 * np.pi / 180,
-         0]#was -90*np.pi/180
+alpha = [-62 * np.pi / 180, -79 * np.pi / 180, 90 * np.pi / 180, 29 * np.pi / 180, 81 * np.pi / 180, -80 * np.pi / 180,0]#was -90*np.pi/180
+alpha2 = [-np.pi/2, np.pi/2, -np.pi/2, np.pi/2, -np.pi/2, np.pi/2,0]
 l = [0.4, 0.8, 0.2, 1, 0.6, 0.4, 0]#last one was 0.2
+l2 = [0, 0, 0, 0, 0, 0, 0]
 d = [-0.4, -0.6, 0.2, 0.6, -0.8, 0.2, 0]# was 0.8
+d2 = [0.2848, -0.0118, 0.4208, -0.0128, 0.3143, 0, 0]
 CA = [(-107 * np.pi / 180, 107 * np.pi / 180), (-164 * np.pi / 180, 141 * np.pi / 180),
       (-132 * np.pi / 180, 132 * np.pi / 180), (-151 * np.pi / 180, 102 * np.pi / 180),
       (-115 * np.pi / 180, 149 * np.pi / 180), (-75 * np.pi / 180, 129 * np.pi / 180),
       (16 * np.pi / 180, 193 * np.pi / 180)]
+CA2 = [(-180 * np.pi / 180, 180 * np.pi / 180), (-180 * np.pi / 180, 180 * np.pi / 180),
+       (-180 * np.pi / 180, 180 * np.pi / 180), (-180 * np.pi / 180, 180 * np.pi / 180),
+       (-180 * np.pi / 180, 180 * np.pi / 180), (-180 * np.pi / 180, 180 * np.pi / 180),
+       (-180 * np.pi / 180, 180 * np.pi / 180)]
+
+"""
 CA2 = [(-137 * np.pi / 180, 77 * np.pi / 180), (-194 * np.pi / 180, 111 * np.pi / 180),
        (-162 * np.pi / 180, 102 * np.pi / 180), (-181 * np.pi / 180, 72 * np.pi / 180),
        (-145 * np.pi / 180, 119 * np.pi / 180), (-105 * np.pi / 180, 99 * np.pi / 180),
@@ -1430,4 +1448,6 @@ CA6 = [(-137 * np.pi / 180, 137 * np.pi / 180), #expand 30
        (-105 * np.pi / 180, 159 * np.pi / 180),
        (-14 * np.pi / 180, 223 * np.pi / 180)]
 #1,2,4,6t
-ap = ssm_estimation(positional_samples, d, alpha, l, CA)
+"""
+
+#ap = ssm_estimation(positional_samples, d2, alpha2, l2, CA2)

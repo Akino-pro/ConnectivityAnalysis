@@ -69,7 +69,7 @@ def connectivity_analysis(object_matrix, kernel_size, lamda):
     # gray_mask = (img > 50) & (img < 200)
     # img = np.where(gray_mask, 0, 255).astype(np.uint8)
     # img = cv2.bitwise_not(img)
-    object_volume = np.sum(original_object)
+    #object_volume = np.sum(original_object)
     #print(object_volume)
     # cv2.imshow('original', img)
     # cv2.waitKey(0)
@@ -177,12 +177,12 @@ def connectivity_analysis(object_matrix, kernel_size, lamda):
         y_values = np.exp(-lamda * np.array(data_list))
         integral = np.trapz(y_values)
         connected_connectivity = integral / (len(data_list) - 1)
-        general_connectivity = object_volume*connected_connectivity
+        #general_connectivity = object_volume*connected_connectivity
         #print(f"The volume of the shape in the original image is {object_volume} pixels.")
         #print(f"the connected connectivity of given shape is {connected_connectivity}")
         #print(f"the general connectivity of given shape is {general_connectivity}")
-        return [object_volume, connected_connectivity, general_connectivity]
-    return [object_volume,0,0]
+        return connected_connectivity
+    return 0
 
 
 
