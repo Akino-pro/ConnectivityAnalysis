@@ -20,16 +20,16 @@ step_size = 0.01
 terminate_threshold = 9.0 / 5.0 * step_size
 ssm_finding_num = 20
 max_ssm = 2
-sample_num = 128
-#r1 =1/3
-#r2 =1/3
-#r3 =1/3
+sample_num = 256
+r1 =1/3
+r2 =1/3
+r3 =1/3
 #r1 = 0.65
 #r2 = 0.65
 #r3 = 0.9
-r1 = 0.9
-r2 = 0.9
-r3 = 0.5
+#r1 = 0.9
+#r2 = 0.9
+#r3 = 0.5
 
 # L = [0.4888656043245976, 1.3992499610293656, 1.1118844346460368]
 # L = [1, 1, 1]
@@ -50,12 +50,14 @@ r3 = 0.5
 #L=[0.5, 1.25, 1.25]
 #L=[0.43040682168699834, 1.3515556196662437, 1.2180375586467576]
 #L=[1, 1, 1]
-L=[1.6996684721019975, 1e-06, 1.3003305278980026]
 #CA=[(-3.0264669089058134, 3.0264669089058134), (-0.7410695983666384, 1.449244014330336), (0.8341121105086309, 1.4826554340139362)]
 #CA=[[-3.0242449852914977, 3.0242449852914977], [-1.0612039220499854, 1.549982425626038], [0.23828851148811148, 1.7447798897165265]]
 #CA=[(-3.141592653589793, 3.141592653589793), (0.640270911503988, 1.57313244849884), (0.4332034212492015, 1.6973158592745994)]
 #CA=[(-18.2074 * np.pi / 180, 18.2074 * np.pi / 180), (-111.3415 * np.pi / 180, 111.3415 * np.pi / 180),(-111.3415 * np.pi / 180, 111.3415 * np.pi / 180)]
-CA=[[-2.8885336215376194, 2.8885336215376194], [-0.6803751046375337, 2.678730519437895], [-1.7814757882052858, 1.35867484275379]]
+
+
+#L=[1.6996684721019975, 1e-06, 1.3003305278980026]
+#CA=[[-2.8885336215376194, 2.8885336215376194], [-0.6803751046375337, 2.678730519437895], [-1.7814757882052858, 1.35867484275379]]
 
 """
 for ca in CA:
@@ -68,8 +70,8 @@ for ca in CA:
 #L=[1.1087656764379812, 0.07607469296918844, 1.8151596305928301]
 
 #dont touch this part!
-#L=[0.4454,0.3143,0.2553] #kinova gen 3 planar ,dont delete!
-#CA=[(-33.11 * np.pi / 180, 33.11 * np.pi / 180), (-68.11* np.pi / 180, 36.98 * np.pi / 180),(-102.29 * np.pi / 180, 107.04 * np.pi / 180)]
+L=[0.4454,0.3143,0.2553] #kinova gen 3 planar ,dont delete!
+CA=[(-33.11 * np.pi / 180, 33.11 * np.pi / 180), (-68.11* np.pi / 180, 36.98 * np.pi / 180),(-102.29 * np.pi / 180, 107.04 * np.pi / 180)]
 
 
 print(np.sum(L))
@@ -1095,22 +1097,25 @@ def fold_offset(La, Lb, theta_locked):
     # orientation offset of the rigid pair relative to the first link
     return np.arctan2(Lb*np.sin(theta_locked), La + Lb*np.cos(theta_locked))
 
-main_function()
+#main_function()
 
-"""
+
+
+
+# below is code for motion planning, don't delete!
 import json
 results = []
 
-p1 = (0.6015959713, 0.2279385242)#y+=0.4
-p2 = (0.7384040287, -0.1479385242)
-#p1 = (0.4015959713, -0.4279385242)#y+=0.4
-#p2 = (0.5384040287, -0.7479385242)
+#p1 = (0.6015959713, 0.2279385242)#y+=0.4
+#p2 = (0.7384040287, -0.1479385242)
+p1 = (0.4015959713, -0.4279385242)#y+=0.4
+p2 = (0.5384040287, -0.7479385242)
 
 sample_number=40
 points = sample_line(p1, p2, sample_number)
 #random_lock_time = np.random.randint(1, sample_number+2)
 #print(random_lock_time)
-random_lock_time= 35 #7,14,21,28,35,
+random_lock_time= 35#7,14,21,28,35,
 random_lock_joint = np.random.randint(0, 3)
 random_lock_joint=2
 #q = np.array([10*np.pi/180.0,10*np.pi/180.0,10*np.pi/180.0]).T.reshape((3, 1))
@@ -1318,10 +1323,10 @@ payload = json.dumps(traj, separators=(",", ":"))
 ros_cmd = f"ros2 topic pub --once /joint_trajectory_controller/joint_trajectory trajectory_msgs/JointTrajectory '{payload}'"
 
 # Save it to a file
-with open("ros2_trajectory_command.txt", "w") as f:
-    f.write(ros_cmd)
+#with open("ros2_trajectory_command.txt", "w") as f:
+#    f.write(ros_cmd)
 
 print(f"✅ Saved ready-to-run ROS2 command to ros2_trajectory_command.txt")
 print("➡  Open it and paste the entire command into your terminal to execute.")
 
-"""
+
