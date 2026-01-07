@@ -270,7 +270,7 @@ def plot_two_manual_solutions(
     Plot two manual placements on a single figure:
       - Optimal task placement (white)
       - Non-optimal task placement (black)
-    Adds legend (line + dot) near the left-center, enlarged font.
+    Also prints their scores.
     """
     N = F.shape[0]
     xmin, xmax, ymin, ymax = bbox
@@ -316,14 +316,29 @@ def plot_two_manual_solutions(
 
     path_arr = np.asarray(path_cont, np.float32)
 
-    def _draw_one(angle_deg, pivot_xy, color):
+    def _draw_one(angle_deg, pivot_xy, color, name):
         pc = path_arr.mean(axis=0)
         rot_pts = rotate_points(path_arr, float(angle_deg), center_xy=(float(pc[0]), float(pc[1])))
         pts_grid_rot = cont_to_idx_points(rot_pts)
+
         ker_rot, _ = rasterize_path_kernel_with_meta(
             pts_grid_rot, thickness_px=thickness_px, pad=8, fill_closed=False
         )
+
         mask = place_kernel_at_pivot_mask(F.shape, ker_rot, pivot_xy)
+
+        # ---- SCORE (sum + mean) ----
+        vals = F[mask > 0]
+        score_sum = float(vals.sum()) if vals.size else 0.0
+        score_mean = float(vals.mean()) if vals.size else float("nan")
+        n_cells = int(vals.size)
+
+        print(
+            f"[{name}] angle={float(angle_deg):.4f} deg, pivot=({float(pivot_xy[0]):.6f}, {float(pivot_xy[1]):.6f}), "
+            f"cells={n_cells}, sum={score_sum:.6f}, mean={score_mean:.6f}"
+        )
+
+        # ---- DRAW ----
         draw_mask_boundary(ax, mask, N, bbox, lw=2.2, color=color, z=13)
         px, py = float(pivot_xy[0]), float(pivot_xy[1])
         ax.plot(
@@ -332,9 +347,11 @@ def plot_two_manual_solutions(
             mew=1.0, zorder=14
         )
 
-    # --- draw both placements ---
-    _draw_one(case_optimal[0], case_optimal[1], "white")
-    _draw_one(case_nonoptimal[0], case_nonoptimal[1], "black")
+        return {"sum": score_sum, "mean": score_mean, "cells": n_cells}
+
+    # --- draw both placements + print scores ---
+    s1 = _draw_one(case_optimal[0], case_optimal[1], "white", "Manual case 1 (white)")
+    s2 = _draw_one(case_nonoptimal[0], case_nonoptimal[1], "black", "Manual case 2 (black)")
 
     # --- styling ---
     ax.set_xlim(xmin, xmax)
@@ -355,12 +372,11 @@ def plot_two_manual_solutions(
                markeredgecolor="white", linewidth=2.2, markersize=7,
                label="Non-optimal task placement"),
     ]
-    # Place near left-center with larger text (×1.5 previous size)
     legend = ax.legend(
         handles=legend_elements,
-        loc="center left",        # base position
-        bbox_to_anchor=(0.05, 0.5),  # shift near left-center
-        fontsize=18,              # enlarged text (~1.5×)
+        loc="center left",
+        bbox_to_anchor=(0.05, 0.5),
+        fontsize=18,
         frameon=True,
         facecolor="white"
     )
@@ -368,6 +384,9 @@ def plot_two_manual_solutions(
 
     if created_fig:
         plt.show()
+
+    # return scores too (handy if you want to log/save)
+    return {"case1": s1, "case2": s2}
         
 def mask_to_indices(mask):
     rr, cc = np.where(mask > 0)
