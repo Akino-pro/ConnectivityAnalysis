@@ -1101,7 +1101,7 @@ def fold_offset(La, Lb, theta_locked):
 
 
 
-
+"""
 # below is code for motion planning, don't delete!
 import json
 results = []
@@ -1329,4 +1329,4 @@ ros_cmd = f"ros2 topic pub --once /joint_trajectory_controller/joint_trajectory 
 print(f"✅ Saved ready-to-run ROS2 command to ros2_trajectory_command.txt")
 print("➡  Open it and paste the entire command into your terminal to execute.")
 
-
+"""
