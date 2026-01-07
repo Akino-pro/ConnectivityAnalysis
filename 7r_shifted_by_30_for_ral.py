@@ -49,10 +49,11 @@ robot = DHRobot(
 #sampled_orientation = zyz_to_R(orientation2[0], orientation2[1], 0)
 #beta_ranges, alpha_ranges,reliability,F_list = compute_beta_range(sampled_orientation, target_x, robot, C_dot_A, CA)
 
-#position1=[0.261125, 0, 0.261125]
-#position2=[0.22618496, 0.13056250, 0.261125]
-#orientation1=[3.5330721611604616, 0.4327345342669689,0]
-#orientation2=[3.5330721611604616+30*np.pi/180, 0.4327345342669689,0]
+
+position1=[0.261125, 0, 0.261125]
+position2=[0.22614088, 0.1305625,  0.261125  ]
+orientation1=[3.5330721611604616, 0.4327345342669689,0]
+orientation2=[3.5330721611604616+30*np.pi/180, 0.4327345342669689,0]
 
 #target_x = np.array([position1[0],position1[1], position1[2]]).T.reshape((3, 1))
 #sampled_orientation = zyz_to_R(orientation1[0], orientation1[1], 0)
@@ -68,44 +69,84 @@ robot = DHRobot(
 
 
 
+
 points1 = np.load("ssm_theta_points1.npy")
 points2 = np.load("ssm_theta_points2.npy")
 
-plt.figure()
+#fig1
+plt.figure(facecolor='white')
+
+ax = plt.gca()
+ax.set_facecolor('white')
+
+# Larger tick labels
+ax.tick_params(axis='both', which='major', labelsize=14, width=1.2)
+ax.tick_params(axis='both', which='minor', labelsize=12)
+
+# Larger axis labels
+plt.xlabel(r'$\theta_1$', fontsize=18)
+plt.ylabel(r'$\theta_2$', fontsize=18)
+
+
+"""optimal case
+x = points1[:, 0].copy()
+y = points1[:, 1].copy()
+x[x <= -2.5] += 2 * np.pi
+plt.scatter(x, y, c='r', marker='o')
+x = points2[:, 0].copy()
+y = points2[:, 1].copy()
+x[x <= -2.5] += 2 * np.pi
+plt.scatter(x, y, c='b', marker='o')
+plt.xlim([-2.5, -2.5+2*np.pi])
+plt.ylim([-np.pi, np.pi])
+"""
 plt.scatter(points1[:, 0], points1[:, 1], c='r', marker='o')
 plt.scatter(points2[:, 0], points2[:, 1], c='b', marker='o')
-
-# Set labels
-plt.xlabel('theta1')
-plt.ylabel('theta2')
-
-# Set plot limits for better visualization
 plt.xlim([-np.pi, np.pi])
 plt.ylim([-np.pi, np.pi])
 
 plt.show()
 
-plt.figure()
+
+#fig2
+plt.figure(facecolor='white')
+
+ax = plt.gca()
+ax.set_facecolor('white')
+
+# Larger tick labels
+ax.tick_params(axis='both', which='major', labelsize=14, width=1.2)
+ax.tick_params(axis='both', which='minor', labelsize=12)
+
+# Larger axis labels
+plt.xlabel(r'$\theta_3$', fontsize=18)
+plt.ylabel(r'$\theta_4$', fontsize=18)
 plt.scatter(points1[:, 2], points1[:, 3], c='r', marker='o')
 plt.scatter(points2[:, 2], points2[:, 3], c='b', marker='o')
 
-# Set labels
-plt.xlabel('theta3')
-plt.ylabel('theta4')
-
 # Set plot limits for better visualization
 plt.xlim([-np.pi, np.pi])
 plt.ylim([-np.pi, np.pi])
 
 plt.show()
 
-plt.figure()
+
+#fig3
+plt.figure(facecolor='white')
+
+ax = plt.gca()
+ax.set_facecolor('white')
+
+# Larger tick labels
+ax.tick_params(axis='both', which='major', labelsize=14, width=1.2)
+ax.tick_params(axis='both', which='minor', labelsize=12)
+
+# Larger axis labels
+plt.xlabel(r'$\theta_5$', fontsize=18)
+plt.ylabel(r'$\theta_6$', fontsize=18)
 plt.scatter(points1[:, 4], points1[:, 5], c='r', marker='o')
 plt.scatter(points2[:, 4], points2[:, 5], c='b', marker='o')
 
-# Set labels
-plt.xlabel('theta5')
-plt.ylabel('theta6')
 
 # Set plot limits for better visualization
 plt.xlim([-np.pi, np.pi])
@@ -113,16 +154,54 @@ plt.ylim([-np.pi, np.pi])
 
 plt.show()
 
-plt.figure()
+
+
+#fig4
+plt.figure(facecolor='white')
+
+ax = plt.gca()
+ax.set_facecolor('white')
+
+# Larger tick labels
+ax.tick_params(axis='both', which='major', labelsize=14, width=1.2)
+ax.tick_params(axis='both', which='minor', labelsize=12)
+
+# Larger axis labels
+
+plt.xlabel(r'$\theta_7$', fontsize=18)
+plt.ylabel(r'$\theta_1$', fontsize=18)
+
 plt.scatter(points1[:, 6], points1[:, 0], c='r', marker='o')
 plt.scatter(points2[:, 6], points2[:, 0], c='b', marker='o')
-
-# Set labels
-plt.xlabel('theta7')
-plt.ylabel('theta1')
-
-# Set plot limits for better visualization
 plt.xlim([-np.pi, np.pi])
 plt.ylim([-np.pi, np.pi])
-
 plt.show()
+
+"""optimal case
+x = points1[:, 6].copy()
+y = points1[:, 0].copy()
+x[x <= 1] += 2 * np.pi
+y[y <= -2.5] += 2 * np.pi
+plt.scatter(x, y, c='r', marker='o')
+x = points2[:, 6].copy()
+y = points2[:, 0].copy()
+x[x <= 1] += 2 * np.pi
+y[y <= -2.5] += 2 * np.pi
+plt.scatter(x, y, c='b', marker='o')
+plt.xlim([1, 1+2*np.pi])
+plt.ylim([-2.5, -2.5+2*np.pi])
+plt.show()
+"""
+"""kinova case
+x = points1[:, 6].copy()
+y = points1[:, 0].copy()
+y[y >= -1] -= 2 * np.pi
+plt.scatter(x, y, c='r', marker='o')
+x = points2[:, 6].copy()
+y = points2[:, 0].copy()
+y[y >= -1] -= 2 * np.pi
+plt.scatter(x, y, c='b', marker='o')
+plt.xlim([-np.pi, np.pi])
+plt.ylim([-1-2*np.pi, -1])
+plt.show()
+"""

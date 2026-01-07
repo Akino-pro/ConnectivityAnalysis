@@ -668,7 +668,7 @@ def find_random_ssm(r, x_target, all_ssm_theta_list, robot, C_dot_A, C_dot_A_7):
 
             # return True, [], [[], [], [], []], all_ssm_theta_list, ssm_found
         ssm_theta_list.append(theta)
-    #if num==1395:
+    #if num==1402:
     #    points = np.array(ssm_theta_list)
     #    np.save("ssm_theta_points2.npy", points)
 
