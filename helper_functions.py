@@ -580,7 +580,7 @@ def track_top_5():
 
 import matplotlib as mpl
 
-"""
+
 def normalize_and_map_colors(values, cmap_name='rainbow'):
    
     values = np.array(values)
@@ -595,20 +595,12 @@ def normalize_and_map_colors(values, cmap_name='rainbow'):
     sm.set_array([])
 
     return colors, sm
+
+
 """
-
-
 from matplotlib.colors import ListedColormap
 def normalize_and_map_colors(values, cmap_name='rainbow', shallow_factor=0.5, snap_eps=1e-8):
-    """
-    Map normalized values [0,1] to colors:
-      - ~0 → the colormap's native color at 0.0 (mid violet in 'rainbow')
-      - ~1 → strong red (1,0,0)
-      - Others → lightened colormap colors
-
-    shallow_factor: 0 (no lightening) .. 1 (white)
-    snap_eps: tolerance for snapping to endpoints
-    """
+    
     n_levels = 256  # fixed constant for colorbar resolution
 
     values = np.asarray(values, dtype=float)
@@ -643,7 +635,7 @@ def normalize_and_map_colors(values, cmap_name='rainbow', shallow_factor=0.5, sn
             colors.append(tuple(lighter))
 
     return colors, sm
-
+"""
 
 def normalize_and_map_greyscale(values, snap_eps=1e-8):
     """

@@ -20,16 +20,20 @@ step_size = 0.01
 terminate_threshold = 9.0 / 5.0 * step_size
 ssm_finding_num = 20
 max_ssm = 2
-sample_num = 256
-r1 =1/3
-r2 =1/3
-r3 =1/3
+sample_num = 16
+#r1 =1/3
+#r2 =1/3
+#r3 =1/3
 #r1 = 0.65
 #r2 = 0.65
 #r3 = 0.9
 #r1 = 0.9
 #r2 = 0.9
 #r3 = 0.5
+
+r1 =0.5
+r2 =0.4
+r3 =0.3
 
 # L = [0.4888656043245976, 1.3992499610293656, 1.1118844346460368]
 # L = [1, 1, 1]
@@ -49,7 +53,7 @@ r3 =1/3
 #L=[1.0979719137596065, 0.43264536955861516, 1.4693827166817788]
 #L=[0.5, 1.25, 1.25]
 #L=[0.43040682168699834, 1.3515556196662437, 1.2180375586467576]
-#L=[1, 1, 1]
+L=[1, 1, 1]
 #CA=[(-3.0264669089058134, 3.0264669089058134), (-0.7410695983666384, 1.449244014330336), (0.8341121105086309, 1.4826554340139362)]
 #CA=[[-3.0242449852914977, 3.0242449852914977], [-1.0612039220499854, 1.549982425626038], [0.23828851148811148, 1.7447798897165265]]
 #CA=[(-3.141592653589793, 3.141592653589793), (0.640270911503988, 1.57313244849884), (0.4332034212492015, 1.6973158592745994)]
@@ -70,8 +74,8 @@ for ca in CA:
 #L=[1.1087656764379812, 0.07607469296918844, 1.8151596305928301]
 
 #dont touch this part!
-L=[0.4454,0.3143,0.2553] #kinova gen 3 planar ,dont delete!
-CA=[(-33.11 * np.pi / 180, 33.11 * np.pi / 180), (-68.11* np.pi / 180, 36.98 * np.pi / 180),(-102.29 * np.pi / 180, 107.04 * np.pi / 180)]
+#L=[0.4454,0.3143,0.2553] #kinova gen 3 planar ,dont delete!
+#CA=[(-33.11 * np.pi / 180, 33.11 * np.pi / 180), (-68.11* np.pi / 180, 36.98 * np.pi / 180),(-102.29 * np.pi / 180, 107.04 * np.pi / 180)]
 
 
 print(np.sum(L))
@@ -89,7 +93,7 @@ print(np.sum(L))
 #CA=[[-1.1512987090849218, 1.1512987090849218], [-2.073976271351838, 2.8513622732614223], [2.2578125376368936, 2.392859365747341]]
 #CA=[(-2.719260436928861, 2.719260436928861), (-0.8672802511511213, 0.618132640562292), (-3.0246087669394037, 0.5785881733063678)]
 #CA=[(-3.0020939720963584, 3.0020939720963584), (-0.7225154838519172, 2.01652742068731), (-3.0684530534773904, 2.103355729370379)]
-#CA = [(-18.2074 * np.pi / 180, 18.2074 * np.pi / 180), (-111.3415 * np.pi / 180, 111.3415 * np.pi / 180),(-111.3415 * np.pi / 180, 111.3415 * np.pi / 180)]
+CA = [(-18.2074 * np.pi / 180, 18.2074 * np.pi / 180), (-111.3415 * np.pi / 180, 111.3415 * np.pi / 180),(-111.3415 * np.pi / 180, 111.3415 * np.pi / 180)]
 #CA=[(-2.980810601260852, 2.980810601260852), (-2.2294043441860674, 2.9627856964286843), (1.6889140110258536, 1.9469783681522597)]
 #CA=[(-2.980810601260852, 2.980810601260852), (-2.2294043441860674, 2.9627856964286843), (1.6889140110258536, 1.9469783681522597)]
 
@@ -115,7 +119,9 @@ def reliability_computation(r1, r2, r3):
     conditional_reliability_list = []
     for p in reliability_list:
         conditional_reliability_list.append(
-            ((p - r1 * r2 * r3) / (r1 * r2 + r1 * r3 + r2 * r3 - 3 * r1 * r2 * r3)))
+            (p / (r1 * r2 + r1 * r3 + r2 * r3 - 2 * r1 * r2 * r3)))
+
+    #conditional_reliability_list.append(r1 * r2 * r3/(r1 * r2 + r1 * r3 + r2 * r3 - 2 * r1 * r2 * r3))
     return conditional_reliability_list
 
 
@@ -123,6 +129,7 @@ cr_list = reliability_computation(r1, r2, r3)
 print(cr_list)
 #cr_list=[0.5, 0.5, 0.5, 0.7, 0.7,0.7, 1.0]
 indices = sorted_indices(cr_list)
+cr_list.append(r1*r2*r3/(r1 * r2 + r1 * r3 + r2 * r3 - 2 * r1 * r2 * r3))
 print(indices)
 
 def forward_kinematics_2R(theta, L,base_point):
@@ -765,19 +772,19 @@ def wedge_to_poly3d(wedge, z_value):
 def main_function():
     num_reliable_ranges = 7
     cr_list.append(0)
-    #color_list, sm = normalize_and_map_colors(cr_list)
-    color_list, sm =normalize_and_map_greyscale(cr_list)
+    color_list, sm = normalize_and_map_colors(cr_list)
+    #color_list, sm =normalize_and_map_greyscale(cr_list)
     final_wedges = []
     final_colors = []
     # z_levels = cr_list
     # np.linspace(-3, 3, num_reliable_ranges)
 
-    #""" original approach
+    """ original approach
     section_length = 3.0 / sample_num
     x_values = (np.arange(sample_num) + 0.5) * section_length
     y_values = np.zeros(sample_num)
     points = np.column_stack((x_values, y_values))
-    #"""
+    """
 
     """ uniform sample
     d = 3.0 / sample_num
@@ -792,7 +799,7 @@ def main_function():
     print(len(points))
     """
 
-    """ uniform and random
+    #""" uniform and random
     # ---------- plotting ----------
     fig, ax = plt.subplots(figsize=(6, 6))
 
@@ -801,13 +808,13 @@ def main_function():
     ax.plot(3*np.cos(theta), 3*np.sin(theta), linewidth=1.2, color='black')
     circle = patches.Circle((0, 0), np.sum(L), edgecolor=color_list[-1], facecolor=color_list[-1], linewidth=0, zorder=0)
     ax.add_patch(circle)
-    """
+    #"""
 
 
 
 
 
-    """ random sample
+    #""" random sample
     N = 812
     theta = np.random.rand(N) * 2 * np.pi
     r = np.sqrt(np.random.rand(N)) * 3
@@ -815,9 +822,9 @@ def main_function():
     y_values = r * np.sin(theta )
     points = np.column_stack((x_values, y_values))
     diam = 3.0 / sample_num
-    """
+    #"""
 
-    #""" original approach
+    """ original approach
     ring_width = 2.0*x_values[0]
     
     
@@ -846,7 +853,7 @@ def main_function():
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
     N=0
-    #"""
+    """
 
     def plot_prefailure_boundary(ax,sample_num):
         section_length = 3.0 / sample_num
@@ -924,7 +931,7 @@ def main_function():
                 ax.add_patch(rect)
                 """
 
-                """random sample
+                #"""random sample
                 circ = Circle(
                     (x, y),  # center
                     radius=diam / 2,  # radius = diameter / 2
@@ -935,10 +942,10 @@ def main_function():
                     alpha=1.0
                 )
                 ax.add_patch(circ)
-                """
+                #"""
 
             for beta_range in b_r:
-                #""" original approach
+                """ original approach
                 # Compute angles in degrees (as required by Wedge)
                 theta1 = np.degrees(beta_range[0])  # Start angle (-π)
                 theta2 = np.degrees(beta_range[1])  # End angle (π)
@@ -988,7 +995,81 @@ def main_function():
                     final_wedges.append(wedge)
                     final_colors.append(color)
     
-                #"""
+                """
+
+        """ original approach
+        prefailure_beta_range=reliable_beta_ranges[-1]
+        color=color_list[-2]
+        for beta_range in prefailure_beta_range:
+            # Compute angles in degrees (as required by Wedge)
+            theta1 = np.degrees(beta_range[0])  # Start angle (-π)
+            theta2 = np.degrees(beta_range[1])  # End angle (π)
+
+            # Calculate the outer radius for the ring (x + ring_width / 2)
+            outer_radius = x + ring_width / 2.0
+            inner_radius = x - ring_width / 2.0
+            if b_r_index == 6: N += np.pi * (outer_radius ** 2 - inner_radius ** 2) / (2 * np.pi) * (
+                        beta_range[1] - beta_range[0])
+
+            wedge = Wedge(
+                center=(0, 0),
+                r=outer_radius,
+                theta1=theta1, theta2=theta2,
+                width=ring_width,
+                facecolor=color,  # Set face color to match 3D plot
+                edgecolor=color,
+                alpha=1.0,
+                zorder=0
+            )
+
+            wedge_2d = Wedge(
+                center=(0, 0),
+                r=outer_radius,
+                theta1=theta1, theta2=theta2,
+                width=ring_width,
+                facecolor=color,
+                edgecolor=color,
+                alpha=1.0,
+                zorder=0
+            )
+
+
+            ax2d3.add_patch(wedge_2d)  # Add wedge to 2D plot
+
+            if b_r_index == len(reliable_beta_ranges) - 1:
+                final_wedges.append(wedge)
+                final_colors.append(color)
+        """
+        """ uniform
+        f_to=F_list[-1]
+        color = color_list[-2]
+        if f_to:
+            rect = Rectangle(
+                    (x - d / 2, y - d / 2),
+                    d, d,
+                    facecolor=color,
+                    edgecolor='none',
+                    zorder=0,
+                    linewidth=0,
+                    alpha=1.0
+                )
+            ax.add_patch(rect)
+        """
+        #""" random
+        f_to = F_list[-1]
+        color = color_list[-2]
+        if f_to:
+            circ = Circle(
+                    (x, y),  # center
+                    radius=diam / 2,  # radius = diameter / 2
+                    facecolor=color,
+                    edgecolor='none',
+                    zorder=0,
+                    linewidth=0,
+                    alpha=1.0
+                )
+            ax.add_patch(circ)
+        #"""
 
     """ original
     if polys2d:  
@@ -1007,10 +1088,10 @@ def main_function():
 
     # plot kept centers in black
     ax.scatter(points[:, 0], points[:, 1], s=8, color='black', zorder=8)
-    #"""
+    """
     end = time.perf_counter()
     print(f"Loop took {end - start:.6f} seconds")
-    """ uniform and random
+    #""" uniform and random
 
     ax.set_aspect('equal', adjustable='box')
     ax.set_xlim(-3, 3)
@@ -1024,10 +1105,10 @@ def main_function():
     ax.tick_params(axis='y', labelsize=18)  # Increase font size for Y-axis ticks
     plt.tight_layout()
     plt.show()
-    """
+    #"""
 
 
-    #""" original approach
+    """ original approach
     #ax2d3.scatter(-1.875,0.375, s=8, color='black')
     ax2d3.tick_params(axis='x', labelsize=18)  # Increase font size for X-axis ticks
     ax2d3.tick_params(axis='y', labelsize=18)  # Increase font size for Y-axis ticks
@@ -1091,13 +1172,13 @@ def main_function():
     #ax2d.set_title("Fault tolerant workspace")
     fig2.show()
     plt.show()
-    #"""
+    """
 
 def fold_offset(La, Lb, theta_locked):
     # orientation offset of the rigid pair relative to the first link
     return np.arctan2(Lb*np.sin(theta_locked), La + Lb*np.cos(theta_locked))
 
-#main_function()
+main_function()
 
 
 
