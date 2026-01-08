@@ -51,12 +51,13 @@ def reliability_computation(r1, r2, r3, r4):
     conditional_reliability_list = []
     for p in reliability_list:
         conditional_reliability_list.append(
-            (p - r1 * r2 * r3 * r4) /
-            (r1 * r2 * r3 + r1 * r2 * r4 + r1 * r3 * r4 + r2 * r3 * r4 - 4 * r1 * r2 * r3 * r4))
+            p /
+            (r1 * r2 * r3 + r1 * r2 * r4 + r1 * r3 * r4 + r2 * r3 * r4 - 3 * r1 * r2 * r3 * r4))
     return conditional_reliability_list
 
 
 cr_list = reliability_computation(r1, r2, r3, r4)
+print(cr_list)
 print(sorted_indices(cr_list))
 
 
@@ -647,9 +648,9 @@ def compute_beta_range(x, y, z, robot, C_dot_A, CA):
 
 def compute_reliable_beta_range(x, y, z, robot, C_dot_A, CA, all_reliable_beta_ranges):
     # 15 cases
-    reliable_connectivity = reliable_beta_ranges = [[] for _ in range(15)]
+    reliable_beta_ranges = [[] for _ in range(16)]
     target_x = np.array([x, y, z]).T.reshape((3, 1))
-    F_list=[False] * 15
+    F_list=[False] * 16
     all_theta = []
     beta0_ranges = []
     theta1_ranges = []
@@ -777,6 +778,7 @@ def compute_reliable_beta_range(x, y, z, robot, C_dot_A, CA, all_reliable_beta_r
             if CA[3][1] - 2 * np.pi <= has_negative_pi_range and CA[3][0] >= has_positive_pi_range:
                 ion4 = True
                 # print('joint 4 succeed')
+    if single_intersection_tf_all:F_list[-1] = True
     if ion1:
         if single_intersection_tf_all: F_list[0] = True
     if ion1 and ion2:
@@ -810,6 +812,7 @@ def compute_reliable_beta_range(x, y, z, robot, C_dot_A, CA, all_reliable_beta_r
 
 
     for index in range(len(beta0_ranges)):
+        reliable_beta_ranges[-1].append(beta0_ranges[index])
         min_beta0, max_beta0 = beta0_ranges[index][0], beta0_ranges[index][1]
         min_beta_f_ftw_v1 = max(min_beta0, -np.pi)
         max_beta_f_ftw_v1 = min(max_beta0, np.pi)
@@ -873,7 +876,7 @@ def compute_reliable_beta_range(x, y, z, robot, C_dot_A, CA, all_reliable_beta_r
 
                 reliable_beta_ranges[13].append([min_beta_f_ftw_v1, max_beta_f_ftw_v1])
                 # reliable_beta_ranges[3].append([min_beta_f_ftw_v1, max_beta_f_ftw_v1])
-    for i in range(15):
+    for i in range(16):
         reliable_beta_ranges[i] = union_ranges(reliable_beta_ranges[i])
         all_reliable_beta_ranges[i].append(reliable_beta_ranges[i])
     # for i in range(5):
@@ -1097,15 +1100,16 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
 
 
 
-    all_reliable_beta_ranges = [[] for _ in range(15)]
+    all_reliable_beta_ranges = [[] for _ in range(16)]
 
 
 
     #test_center=[1.5,0,-0.2]
     #all_reliable_beta_ranges = compute_reliable_beta_range(test_center[0],test_center[1],test_center[2], robot, C_dot_A, CA,
      #                                                      all_reliable_beta_ranges)
-    color_list, sm = normalize_and_map_colors(cr_list)
     indices = sorted_indices(cr_list)
+    cr_list.append(r1*r2*r3*r4/(r1 * r2 * r3 + r1 * r2 * r4 + r1 * r3 * r4 + r2 * r3 * r4 - 3 * r1 * r2 * r3 * r4))
+    color_list, sm = normalize_and_map_colors(cr_list)
     """ uniform and random
     fig = plt.figure(figsize=(8, 8))
     ax = fig.add_subplot(111, projection='3d')
@@ -1119,7 +1123,6 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     cbar = plt.colorbar(sm, ax=ax2, label='Reliability Spectrum')
 
     plt.ion()
-    indices = sorted_indices(cr_list)
     index_dict = {}
     #"""original
 
@@ -1136,15 +1139,18 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
         )
 
         last_true = None
+
+        if F_list[-1]:
+            last_true=-1
         for you in indices:  # indices is ascending
             if F_list[you]:
                 last_true = you
 
         if last_true is not None:
             color = color_list[last_true]
-            update_or_add_square_2d(ax2, square, color, 1.0, i, index_dict=index_dict)
-            # draw_cube(ax, center, side_length, color)
-            # draw_sphere(ax, center, side_length, color)
+            update_or_add_square_2d(ax2, square, color, 1.0, i, index_dict=index_dict) #original
+            # draw_cube(ax, center, side_length, color)  #uniform
+            # draw_sphere(ax, center, side_length, color) #random
 
     end = time.perf_counter()
     print(f"Loop took {end - start:.6f} seconds")
@@ -1229,7 +1235,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     }
     #original"""
 
-    """original3D
+    #"""original3D
     fig = plt.figure()
     ax4 = fig.add_subplot(111, projection='3d')
 
@@ -1237,12 +1243,21 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     ax4.set_ylim([-3, 3])
     ax4.set_zlim([-3, 3])
     grid_squares = generate_square_grid(n_x, n_z, x_range, z_range)
-    """
+    #"""
+
+    # """orignal 3D
+    arc_color = color_list[-1]
+    for i, square in tqdm(enumerate(grid_squares), desc="Processing Items"):
+        for beta_range in all_reliable_beta_ranges[-1][i]:
+            # draw_wedge(ax, square, beta_range, arc_color)
+            draw_rotated_grid(ax4, square, beta_range, arc_color)
+
+    # """
 
     for you in indices:
         ftw_points_count = 0
 
-        """ original 3D
+        #""" original 3D
         arc_color = color_list[you]
 
         #fig = plt.figure()
@@ -1257,7 +1272,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
                 # draw_wedge(ax, square, beta_range, arc_color)
                 draw_rotated_grid(ax4, square, beta_range, arc_color)
 
-        """
+        #"""
         #ax.view_init(elev=30, azim=135)
 
         #ax.set_xlabel('X')
@@ -1363,7 +1378,9 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
         plt.close(fig)
         """
 
-    """orignal 3D
+
+
+    #"""orignal 3D
     ax4.view_init(elev=35, azim=146, roll=-111)
     R = max_length
     ax4.set_xlim(-R, R)
@@ -1391,7 +1408,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     ax4.tick_params(axis='y', labelsize=18)
     ax4.tick_params(axis='z', labelsize=18)
     plt.show()
-    """
+    #"""
 
 
 
@@ -1443,7 +1460,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
 
 CA = [(-146 * np.pi / 180, 146 * np.pi / 180), (-234 * np.pi / 180, 10 * np.pi / 180),
      (-115 * np.pi / 180, 132 * np.pi / 180), (-101 * np.pi / 180, 118 * np.pi / 180)]
-CA=[(-1.1462323775013838, 3.0555459324329153), (-1.1618976450230296, 3.141592653589793), (-2.690561890475438, 1.9074680849495245), (-0.5390132397825012, 0.4414181348394396)]
+#CA=[(-1.1462323775013838, 3.0555459324329153), (-1.1618976450230296, 3.141592653589793), (-2.690561890475438, 1.9074680849495245), (-0.5390132397825012, 0.4414181348394396)]
 # CA =  [(-0.34476583954363793, 0.34476583954363793), (-3.8557928335253506, 0.5727802075632915),
 #                   (-2.0120387975312504, 0.8610682582634244), (-1.6048847508602293, 2.1951493670529656)]
 # CA = [(-2.017801347479772, 2.017801347479772), (-3.0735622252855346, -1.8767802693000228), (-2.3001230516678093, -1.0323465272698482), (-1.091382218006809, 0.5810127777635778)]

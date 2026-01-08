@@ -658,7 +658,7 @@ def normalize_and_map_greyscale(values, snap_eps=1e-8):
     arr[:, 2] = greys
     arr[:, 3] = 1.0  # alpha
 
-    custom_cmap = ListedColormap(arr)
+    custom_cmap = mcolors.ListedColormap(arr)
     norm = mpl.colors.Normalize(vmin=0, vmax=1)
 
     # scalar mappable for colorbar
