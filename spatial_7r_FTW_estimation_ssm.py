@@ -29,8 +29,8 @@ terminate_threshold = 9.0 / 5.0 * step_size
 # terminate_threshold = step_size * 0.5
 ssm_finding_num = 10
 max_ssm = 16
-positional_samples = 8 # 288
-orientation_samples = 32  # 64
+positional_samples = 288 # 288
+orientation_samples = 64  # 64
 theta_phi_list = fibonacci_sphere_angles(orientation_samples)
 """ random
 theta_phi_list =[]
@@ -731,7 +731,7 @@ def find_random_ssm(r, x_target, all_ssm_theta_list, robot, C_dot_A, C_dot_A_7):
 
     """
     all_ssm_theta_list.extend(ssm_theta_list)
-    print(f'found a new ssm with {num} points.')
+    #print(f'found a new ssm with {num} points.')
     ssm_found = True
 
     ip_ranges = find_intersection_points(ssm_theta_list, C_dot_A)
@@ -885,6 +885,7 @@ def compute_beta_range(r, target_x, robot, C_dot_A, CA):
     ion1_alpha = False
     has_negative_pi_range = None
     has_positive_pi_range = None
+    if single_intersection_tf_all: F_list.append(0)
     for tr in theta1_ranges_union:
         if tr[0] == -np.pi:
             has_negative_pi_range = tr[1]
@@ -1173,15 +1174,16 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     #start = time.perf_counter()
     for center in tqdm(grid_centers, desc="Processing Items"):
         # Compute beta ranges for each center
-        print(center)
+        #print(center)
         all_alpha_ranges = []
         all_beta_ranges = []
         all_realiability=[]
         all_true_reliability=[]
         positional_beta_ranges = []
         target_x = np.array([center[0], center[1], center[2]]).T.reshape((3, 1))
-        for sample_tuple in tqdm(theta_phi_list, desc="Processing Items"):
-            print(sample_tuple)
+        #for sample_tuple in tqdm(theta_phi_list, desc="Processing Items"):
+        for sample_tuple in theta_phi_list:
+            #print(sample_tuple)
             #sampled_orientation = zyz_to_R(sample_tuple[0], sample_tuple[1], sample_tuple[2]) #random
             sampled_orientation = zyz_to_R(sample_tuple[0], sample_tuple[1], 0) #original and uniform
             beta_ranges, alpha_ranges,reliability,F_list = compute_beta_range(sampled_orientation, target_x, robot, C_dot_A, CA)
@@ -1230,7 +1232,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     
     # plot 3D positional ftw
     # top_5_grids = get_top_5()
-    with open("my_list.txt", "w") as file:
+    with open("my_7r_list.txt", "w") as file:
         file.write(str(all_data))
 
 
@@ -1449,5 +1451,5 @@ CA6 = [(-137 * np.pi / 180, 137 * np.pi / 180), #expand 30
        (-14 * np.pi / 180, 223 * np.pi / 180)]
 #1,2,4,6t
 """
-
+ap = ssm_estimation(positional_samples, d, alpha, l, CA)
 #ap = ssm_estimation(positional_samples, d2, alpha2, l2, CA2)

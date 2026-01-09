@@ -903,11 +903,13 @@ def compute_reliability_by_f_list(F_list,reliability_list):
     total=0.0
     current=0.0
     full_product = reduce(operator.mul, reliability_list, 1)
+    if 0 in F_list:
+        current += full_product  # prefailure point
     for index, r in enumerate(reliability_list):
         total+=(1.0-r)*full_product/r
         if index+1 in F_list:
             current+=(1.0-r)*full_product/r
-    return current / total if total != 0 else 0.0
+    return current / (total+full_product) if total != 0 else 0.0
 
 import matplotlib.cm as cm
 import matplotlib.colors as mcolors

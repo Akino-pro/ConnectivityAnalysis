@@ -16,7 +16,9 @@ from planar3R_FTW_morphological_estimation_ssm import compute_beta_range
 # 10 times physical exp for 2 trj
 # ----------------------- Global config -----------------------
 N = 256
-joint_reliabilities = [1.0/3.0,1.0/3.0, 1.0/3.0]
+#joint_reliabilities = [0.5,0.6,0.7]
+#x_range_sample=3
+joint_reliabilities = [2.0/3.0,2.0/3.0, 2.0/3.0]
 x_range_sample = np.sum([0.4454,0.3143,0.2553])
 n_angles=1440
 N_MAX = 3
@@ -690,6 +692,7 @@ def compute_all_beta_range():
     x_values = (np.arange(N) + 0.5) * section_length
     y_values = np.zeros(N)
     points = np.column_stack((x_values, y_values))
+    print(len(points))
     all_reliable_beta_ranges = []
     for i in range(len(points)):
         x, y = points[i]
@@ -731,6 +734,7 @@ def generate_F(N, xmin=-x_range_sample, xmax=x_range_sample, ymin=-x_range_sampl
             theta = math.atan2(y, x)
             nearest_idx = nearest_x_index(dist)
             reliable_beta_ranges = all_reliable_beta_ranges[nearest_idx]
+            #print(len(reliable_beta_ranges))
 
             F_List = []
             for beta_range in reliable_beta_ranges[0]:
@@ -742,6 +746,9 @@ def generate_F(N, xmin=-x_range_sample, xmax=x_range_sample, ymin=-x_range_sampl
             for beta_range in reliable_beta_ranges[2]:
                 if beta_range[0] <= theta <= beta_range[1]:
                     F_List.append(3)
+            for beta_range in reliable_beta_ranges[-1]:
+                if beta_range[0] <= theta <= beta_range[1]:
+                    F_List.append(0)
 
             F[yi, xi] = compute_reliability_by_f_list(F_List, joint_reliabilities)
 
@@ -843,13 +850,13 @@ def path_long():
 
 def path_line():
     # Horizontal straight line from -2 to +2
-    #x = np.linspace(-1.7, 1.7, 300, dtype=np.float32)
-    #y = np.zeros_like(x)
+    #y = np.linspace(-1.7, 1.7, 300, dtype=np.float32)
+    #x = np.zeros_like(y)
     y = np.linspace(-0.20, 0.20, 100, dtype=np.float32)
     x = np.zeros_like(y)
     return np.column_stack([x, y])
 
-def path_circle(num_pts=300, radius=0.12):
+def path_circle(num_pts=300, radius=1.2):
     # Circle centered at origin
     theta = np.linspace(0, 2*np.pi, num_pts, endpoint=True, dtype=np.float32)
     x = radius * np.cos(theta)
