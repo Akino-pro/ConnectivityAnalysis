@@ -1172,6 +1172,9 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     shape_volumns = []
     # for center in tqdm(grid_centers, desc="Processing Items"):
     #start = time.perf_counter()
+
+    #grid_centers=[[0.56, 0.00, -0.56]]#just for paper
+
     for center in tqdm(grid_centers, desc="Processing Items"):
         # Compute beta ranges for each center
         #print(center)
@@ -1181,8 +1184,8 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
         all_true_reliability=[]
         positional_beta_ranges = []
         target_x = np.array([center[0], center[1], center[2]]).T.reshape((3, 1))
-        #for sample_tuple in tqdm(theta_phi_list, desc="Processing Items"):
-        for sample_tuple in theta_phi_list:
+        for sample_tuple in tqdm(theta_phi_list, desc="Processing Items"):
+        #for sample_tuple in theta_phi_list:
             #print(sample_tuple)
             #sampled_orientation = zyz_to_R(sample_tuple[0], sample_tuple[1], sample_tuple[2]) #random
             sampled_orientation = zyz_to_R(sample_tuple[0], sample_tuple[1], 0) #original and uniform

@@ -14,108 +14,27 @@ from shapely.ops import unary_union
 
 from helper_functions import normalize_and_map_colors, sorted_indices, wedge_polygon, plot_exterior_boundary, \
     sample_line, normalize_and_map_greyscale
+from smm_ranges import compute_smm_ranges
 
 step_size = 0.01
 # terminate_threshold = step_size / 2.0
 terminate_threshold = 9.0 / 5.0 * step_size
 ssm_finding_num = 20
 max_ssm = 2
-sample_num = 16
-# r1 =1/3
-# r2 =1/3
-# r3 =1/3
-# r1 = 0.65
-# r2 = 0.65
-# r3 = 0.9
-# r1 = 0.9
-# r2 = 0.9
-# r3 = 0.5
+sample_num = 32
+out_path = "smm_ranges_cache.jsonl"
 
 r1 = 0.5
 r2 = 0.6
 r3 = 0.7
 r4= 0.8
 
-# L = [0.4888656043245976, 1.3992499610293656, 1.1118844346460368]
-# L = [1, 1, 1]
-# L = [0.009651087409352832, 1.6279980832723875, 1.3623508293182596]
-# CA = [(-2.312033825326607, 2.312033825326607), (-2.1986530478299358, 1.3083974620434837),
-#     (-3.119803865520389, 0.38031991292340495)]
-# L=[1.42,1,0.58]
-# L=[np.sqrt(0.5),np.sqrt(0.5),np.sqrt(2.0/3.0)]
-# L=[1.119579302546539, 0.4336764284448746, 1.4467442690085863]
-# L=[0.008849317757047144, 1.465181316077158, 1.525969366165795]
-# L=[1.4644359570957466, 0.04698977532204848, 1.4885742675822051]
-# = [1, 1, 1]
-# L=[1.273685932707902, 0.47198624642931564, 1.2543278208627822]
-# L= [1.273685932707902, 0.47198624642931564, 1.2543278208627822]
-# L=[0.001,1.4995,1.4995]
-# L= [1.3943492275174934, 0.04894091088791853, 1.556709861594588]
-# L=[1.0979719137596065, 0.43264536955861516, 1.4693827166817788]
-# L=[0.5, 1.25, 1.25]
-# L=[0.43040682168699834, 1.3515556196662437, 1.2180375586467576]
-# CA=[(-3.0264669089058134, 3.0264669089058134), (-0.7410695983666384, 1.449244014330336), (0.8341121105086309, 1.4826554340139362)]
-# CA=[[-3.0242449852914977, 3.0242449852914977], [-1.0612039220499854, 1.549982425626038], [0.23828851148811148, 1.7447798897165265]]
-# CA=[(-3.141592653589793, 3.141592653589793), (0.640270911503988, 1.57313244849884), (0.4332034212492015, 1.6973158592745994)]
-# CA=[(-18.2074 * np.pi / 180, 18.2074 * np.pi / 180), (-111.3415 * np.pi / 180, 111.3415 * np.pi / 180),(-111.3415 * np.pi / 180, 111.3415 * np.pi / 180)]
-
-
-# L=[1.6996684721019975, 1e-06, 1.3003305278980026]
-# CA=[[-2.8885336215376194, 2.8885336215376194], [-0.6803751046375337, 2.678730519437895], [-1.7814757882052858, 1.35867484275379]]
 
 
 L=[1, 1, 1,1]
 CA=[[-180*np.pi/180, 180*np.pi/180], [90*np.pi/180, 143*np.pi/180], [90*np.pi/180, 143*np.pi/180],[-180*np.pi/180, 180*np.pi/180]]
 
-"""
-for ca in CA:
-    print(ca[0]*180.0/np.pi)
-    print(ca[1] * 180.0 / np.pi)
-"""
-# CA = [(-18.2074 * np.pi / 180, 18.2074 * np.pi / 180), (-111.3415 * np.pi / 180, 111.3415 * np.pi / 180),(-111.3415 * np.pi / 180, 111.3415 * np.pi / 180)]
-# L=[0.4552022160816049, 0.799788779878076, 1.7450090040403197]
-# L=[0.13747246785659767, 1.5353425960267606, 1.327184936116642]
-# L=[1.1087656764379812, 0.07607469296918844, 1.8151596305928301]
 
-# dont touch this part!
-#L = [0.4454, 0.3143, 0.2553]  # kinova gen 3 planar ,dont delete!
-#CA = [(-33.11 * np.pi / 180, 33.11 * np.pi / 180), (-68.11 * np.pi / 180, 36.98 * np.pi / 180),
-      #(-102.29 * np.pi / 180, 107.04 * np.pi / 180)]
-
-print(np.sum(L))
-# CA=[(-3.031883452592004, 3.031883452592004), (-1.619994146091692, -0.8276157453255935), (-1.6977602095460234, -0.7265946655975718)]
-# CA = [(-0.7391244590957556, 0.7391244590957556), (-0.7422740927125862, 1.9756037937159996),
-#     (-2.11211741668124, 2.12020510030)]
-
-# CA=[(-0.5779611440942315, 0.5779611440942315), (-1.1887031063410372, 0.6453736884533061), (-1.7852473794934884, 1.8681718728028136)]
-# CA=[(-1.4151153868935291, 1.4151153868935291), (-2.681030074889385, 0.3520339384204294), (-2.345272510844038, 2.718329833993421)]
-# CA=[(-2.8856310512880317, 2.8856310512880317), (-0.3672802511511213, 1.2181326405622919), (-3.0246087669394037, 1.878588173306368)]
-# CA=[(-1.4706632955724315, 1.4706632955724315), (-1.5768414877131869, 1.3524303899971144), (0.21929326925655435, 2.252802982198095)]
-# CA=[(-2.7270335266737122, 2.7270335266737122), (1.0133219258739512, 2.345247247091118), (-1.9665329001925376, 2.8793604157088524)]
-# CA=[(-2.730140727374663, 2.730140727374663), (-1.1900230157451155, 1.3684356854299917), (-1.5987984422173445, 1.5059186363191728)]
-# CA=[(-180*np.pi/180.0, 180*np.pi/180.0), (-53.1301*np.pi/180.0, 126.8698*np.pi/180.0), (106.2602*np.pi/180.0, 108.2602*np.pi/180.0)]
-# CA=[[-1.1512987090849218, 1.1512987090849218], [-2.073976271351838, 2.8513622732614223], [2.2578125376368936, 2.392859365747341]]
-# CA=[(-2.719260436928861, 2.719260436928861), (-0.8672802511511213, 0.618132640562292), (-3.0246087669394037, 0.5785881733063678)]
-# CA=[(-3.0020939720963584, 3.0020939720963584), (-0.7225154838519172, 2.01652742068731), (-3.0684530534773904, 2.103355729370379)]
-# CA = [(-18.2074 * np.pi / 180, 18.2074 * np.pi / 180), (-111.3415 * np.pi / 180, 111.3415 * np.pi / 180),(-111.3415 * np.pi / 180, 111.3415 * np.pi / 180)]
-# CA=[(-2.980810601260852, 2.980810601260852), (-2.2294043441860674, 2.9627856964286843), (1.6889140110258536, 1.9469783681522597)]
-# CA=[(-2.980810601260852, 2.980810601260852), (-2.2294043441860674, 2.9627856964286843), (1.6889140110258536, 1.9469783681522597)]
-
-# CA = [(-42.35 * np.pi / 180, 42.35 * np.pi / 180), (-42.53 * np.pi / 180, 113.19 * np.pi / 180),(-121.02 * np.pi / 180, 121.48 * np.pi / 180)]
-
-# L=[1, 1, 1]
-# CA = [(-33.11 * np.pi / 180, 33.11 * np.pi / 180), (-68.11 * np.pi / 180, 36.98 * np.pi / 180),(-102.29 * np.pi / 180, 107.04 * np.pi / 180)]
-
-"""
-CA = [(-30 * np.pi / 180, 30 * np.pi / 180), (-120 * np.pi / 180, 60 * np.pi / 180),
-      (-130 * np.pi / 180, 130 * np.pi / 180)]
-CA = [(-25 * np.pi / 180, 25 * np.pi / 180), (40 * np.pi / 180, 90 * np.pi / 180),
-      (-60 * np.pi / 180, 120 * np.pi / 180)]
-CA = [(-3.141592653589793, 3.141592653589793), (-0.9272951769138392, 2.2142957313467018), (1.8545903538276785, 1.8545903538276785)]
-"""
-# for a in range(len(CA)):
-#    if CA[a][1] - CA[a][0] < step_size: CA[a] = (
-#        CA[a][0] - terminate_threshold, CA[a][1] + terminate_threshold)
 C_dot_A = CA.copy()
 C_dot_A[0] = (-np.pi, np.pi)
 
@@ -134,9 +53,9 @@ def four_R_reliability_computation(r1, r2, r3,r4):
 
 
 cr_list = four_R_reliability_computation(r1, r2, r3,r4)
-print(cr_list)
+#print(cr_list)
 all_reliabilities=[]
-all_reliabilities.append(cr_list[0:4]) #five base cases
+all_reliabilities.extend(cr_list[0:4]) #five base cases
 all_reliabilities.append(cr_list[0]+cr_list[1]+cr_list[2]+cr_list[5]) #12
 all_reliabilities.append(cr_list[0]+cr_list[1]+cr_list[3]+cr_list[6]) #13
 all_reliabilities.append(cr_list[0]+cr_list[1]+cr_list[4]+cr_list[7]) #14
@@ -150,10 +69,10 @@ all_reliabilities.append(cr_list[0]+cr_list[2]+cr_list[3]+cr_list[4]+cr_list[8]+
 all_reliabilities.append(np.sum(cr_list)) #1234
 
 
-print(cr_list)
+#print(all_reliabilities)
 # cr_list=[0.5, 0.5, 0.5, 0.7, 0.7,0.7, 1.0]
 indices = sorted_indices(cr_list)
-print(indices)
+#print(indices)
 
 
 def forward_kinematics_2R(theta, L, base_point):
@@ -601,6 +520,38 @@ def union_ranges(ranges):
 
 
 def compute_beta_range(x, y):
+    """
+    results = compute_smm_ranges(x, y,n_workers=1, verbose=True)
+    if len(results)==4:
+        joint_1_ranges = results[0]
+        joint_2_ranges = results[1]
+        joint_3_ranges = results[2]
+        joint_4_ranges = results[3]
+        print(joint_1_ranges)
+        print(joint_2_ranges)
+        print(joint_3_ranges)
+        print(joint_4_ranges)
+
+    F_list = [False] * (8)
+    reliable_beta_ranges = [[], [], [], [], [], [], [],
+                            []]
+    """
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     F_list = [False] * (8)
     target_x = np.array([x, y]).T.reshape((2, 1))
     all_smm_beta_range = []
@@ -769,6 +720,8 @@ def compute_beta_range(x, y):
         reliable_beta_ranges[rbr_index] = union_ranges(reliable_beta_ranges[rbr_index])
     return union_ranges(all_smm_beta_range), reliable_beta_ranges, F_list
 
+    #return [],reliable_beta_ranges, F_list
+
 
 def wedge_to_poly3d(wedge, z_value):
     theta1, theta2 = np.radians(wedge.theta1), np.radians(wedge.theta2)
@@ -794,17 +747,13 @@ def wedge_to_poly3d(wedge, z_value):
 
 
 def main_function():
-    num_reliable_ranges = 7
     cr_list.append(0)
-    color_list, sm = normalize_and_map_colors(cr_list)
-    # color_list, sm =normalize_and_map_greyscale(cr_list)
+    color_list, sm = normalize_and_map_colors(all_reliabilities)
     final_wedges = []
     final_colors = []
-    # z_levels = cr_list
-    # np.linspace(-3, 3, num_reliable_ranges)
 
     # """ original approach
-    section_length = 3.0 / sample_num
+    section_length = 4.0 / sample_num
     x_values = (np.arange(sample_num) + 0.5) * section_length
     y_values = np.zeros(sample_num)
     points = np.column_stack((x_values, y_values))
@@ -873,34 +822,6 @@ def main_function():
     ax = fig.add_subplot(111, projection='3d')
     N = 0
 
-    # """
-
-    def plot_prefailure_boundary(ax, sample_num):
-        section_length = 3.0 / sample_num
-        local_x_values = (np.arange(sample_num) + 0.5) * section_length
-        local_y_values = np.zeros(sample_num)
-        points = np.column_stack((local_x_values, local_y_values))
-        ring_width = 2.0 * local_x_values[0]
-        polys2d = []
-        for i in range(len(points)):
-            point = points[i]
-            x, y = point
-            beta_ranges, reliable_beta_ranges, F_list = compute_beta_range(x, y)
-            prefailure_b_r = reliable_beta_ranges[-1]
-            for beta_range in prefailure_b_r:
-                theta1 = np.degrees(beta_range[0])  # Start angle (-π)
-                theta2 = np.degrees(beta_range[1])  # End angle (π)
-
-                # Calculate the outer radius for the ring (x + ring_width / 2)
-                outer_radius = x + ring_width / 2.0
-                inner_radius = x - ring_width / 2.0
-                polys2d.append(
-                    wedge_polygon((0, 0), outer_radius, inner_radius, theta1, theta2, n=64)
-                )
-        if polys2d:  # guard against empty list
-            shape2d = unary_union(polys2d)  # remove internal boundaries
-            plot_exterior_boundary(ax, shape2d,  # change to ax for uniform and random, ax2d3 for original
-                                   color='k', linewidth=1.8)
 
     start = time.perf_counter()
     for i in range(len(points)):
@@ -908,6 +829,11 @@ def main_function():
         x, y = point
 
         print(point)
+
+        #ranges = compute_smm_ranges(x, y, n_workers=1, verbose=True)
+
+
+
         beta_ranges, reliable_beta_ranges, F_list = compute_beta_range(x, y)  # Get multiple beta ranges
 
         # for b_r_index in range(len(reliable_beta_ranges)):
@@ -1172,236 +1098,31 @@ def fold_offset(La, Lb, theta_locked):
     # orientation offset of the rigid pair relative to the first link
     return np.arctan2(Lb * np.sin(theta_locked), La + Lb * np.cos(theta_locked))
 
+def ssm_ranges_4r_computation_one_time():
+    section_length = 4.0 / sample_num
+    x_values = (np.arange(sample_num) + 0.5) * section_length
+    y_values = np.zeros(sample_num)
+    points = np.column_stack((x_values, y_values))
+    with open(out_path, "a", encoding="utf-8") as f_out:
+        for i in range(len(points)):
+            point = points[i]
+            x, y = point
 
-# main_function()
+            print(point)
 
+            ranges = compute_smm_ranges(x, y, n_workers=1, verbose=True)
+            f_out.write(json.dumps(ranges) + "\n")
+            f_out.flush()
 
-"""
-# below is code for motion planning, don't delete!
-import json
-results = []
-
-#p1 = (0.6015959713, 0.2279385242)#y+=0.4
-#p2 = (0.7384040287, -0.1479385242)
-p1 = (0.4015959713, -0.4279385242)#y+=0.4
-p2 = (0.5384040287, -0.7479385242)
-
-sample_number=40
-points = sample_line(p1, p2, sample_number)
-#random_lock_time = np.random.randint(1, sample_number+2)
-#print(random_lock_time)
-random_lock_time= 35#7,14,21,28,35,
-random_lock_joint = np.random.randint(0, 3)
-random_lock_joint=2
-#q = np.array([10*np.pi/180.0,10*np.pi/180.0,10*np.pi/180.0]).T.reshape((3, 1))
-#print(forward_kinematics_3R(q, L))
+if __name__ == "__main__":
+    import multiprocessing as mp
+    mp.freeze_support()
+    mp.set_start_method("spawn", force=True)  # optional, but OK to put here
+    ssm_ranges_4r_computation_one_time()
 
 
 
-initial_config = [np.random.uniform(low, high) for (low, high) in CA]
-base=(0,0)
-new_L=[]
-reference_index=0
-true_index=0
-reference_angle=0
-locked_angle=0
-success=0
-for index, tp in enumerate(points) :
-    print(tp)
-    (x, y)=tp
-    if index==random_lock_time:
-        match random_lock_joint:
-            case 0:
-                locked_angle=initial_config[0]
-                new_L,new_base=lock_joint_1(locked_angle)
-                base =new_base
-                reference_index=1
-                true_index=0
-                reference_angle=initial_config[1]
-            case 1:
-                locked_angle = initial_config[1]
-                new_L,new_base=lock_joint_2(locked_angle)
-                base = new_base
-                reference_index = 2
-                true_index=1
-                reference_angle = initial_config[2]
-            case 2:
-                locked_angle=initial_config[2]
-                new_L,new_base=lock_joint_3(locked_angle)
-                base = new_base
-                reference_index = 1
-                true_index=2
-                reference_angle = initial_config[0]
-    if index>=random_lock_time:
-        print("-----------------------")
-        print(f"joint {true_index} is locked at angle {locked_angle / np.pi * 180.0}")
-        print("-----------------------")
-        try:
-            sol1, sol2 = ik_2r_single(
-                x, y,
-                new_L[0], new_L[1],
-                base=base
-            )
-            #x_t,y_t=forward_kinematics_2R([theta1, theta2],new_L,base)
-            #print(x_t)
-            #print(y_t)
-        except ValueError as e:
-            print(f"IK failed at index {index}: {e}")
-            break  # quit the loop
-        match random_lock_joint:
-            case 0:
-                 theta10,theta20=sol1
-                 theta11,theta21=sol2
-                 test_config1=[locked_angle,theta10-locked_angle,theta20]
-                 test_config2 = [locked_angle, theta11 - locked_angle, theta21]
-                 previous=initial_config
-                 initial_config = test_config2
-                 if math.sqrt(sum((a - b) ** 2 for a, b in zip(test_config1, previous)))<math.sqrt(sum((a - b) ** 2 for a, b in zip(test_config2, previous))):
-                     initial_config=test_config1
-                 print(initial_config[0] / np.pi * 180.0)
-                 print(initial_config[1] / np.pi * 180.0)
-                 print(initial_config[2] / np.pi * 180.0)
-                 joint1 = float(initial_config[0])
-                 joint4 = float(initial_config[1])
-                 joint6 = float(initial_config[2])
 
-                 # Append full 7-joint configuration
-                 full_config = [
-                     joint1,  # joint 1
-                     90.0 * np.pi / 180.0,  # joint 2 fixed at 90 deg
-                     90.0 * np.pi / 180.0,  # joint 3 fixed at 90 deg
-                     joint4,  # joint 4
-                     0.0,  # joint 5 fixed at 0 deg
-                     joint6,  # joint 6
-                     180.0 * (np.pi-1e-3) / 180.0  # joint 7 fixed at 180 deg
-                 ]
-                 results.append(full_config)
-                 #print(f'computed 2R position:{forward_kinematics_2R([theta1, theta2],new_L, base)}')
-                 #print(f'computed 3R position:{forward_kinematics_3R(np.array(initial_config), L)}')
-                 #print(f'true position:{tp}')
-            case 1:
-                 phi2 = fold_offset(L[0], L[1], locked_angle)
-                 theta10, theta20 = sol1
-                 theta11, theta21 = sol2
-                 test_config1 = [theta10 - phi2, locked_angle, theta20 - locked_angle + phi2]
-                 test_config2 = [theta11 - phi2, locked_angle, theta21 - locked_angle + phi2]
-                 previous = initial_config
-                 initial_config = test_config2
-                 if math.sqrt(sum((a - b) ** 2 for a, b in zip(test_config1, previous))) < math.sqrt(
-                         sum((a - b) ** 2 for a, b in zip(test_config2, previous))):
-                     initial_config = test_config1
 
-                 print(initial_config[0]/ np.pi * 180.0)
-                 print(initial_config[1] / np.pi * 180.0)
-                 print(initial_config[2] / np.pi * 180.0)
-                 joint1 = float(initial_config[0])
-                 joint4 = float(initial_config[1])
-                 joint6 = float(initial_config[2])
 
-                 # Append full 7-joint configuration
-                 full_config = [
-                     joint1,  # joint 1
-                     90.0 * np.pi / 180.0,  # joint 2 fixed at 90 deg
-                     90.0 * np.pi / 180.0,  # joint 3 fixed at 90 deg
-                     joint4,  # joint 4
-                     0.0,  # joint 5 fixed at 0 deg
-                     joint6,  # joint 6
-                     180.0 * (np.pi-1e-3)/ 180.0  # joint 7 fixed at 180 deg
-                 ]
-                 results.append(full_config)
-                 #print(f'computed 2R position:{forward_kinematics_2R([theta1, theta2], new_L, base)}')
-                 #print(f'computed 3R position:{forward_kinematics_3R(np.array(initial_config), L)}')
-                 #print(f'true position:{tp}')
-            case 2:
-                 phi3 = fold_offset(L[1], L[2], locked_angle)
-                 theta10, theta20 = sol1
-                 theta11, theta21 = sol2
-                 test_config1 = [theta10, theta20 - phi3, locked_angle]
-                 test_config2 = [theta11, theta21 - phi3, locked_angle]
-                 previous = initial_config
-                 initial_config = test_config2
-                 if math.sqrt(sum((a - b) ** 2 for a, b in zip(test_config1, previous))) < math.sqrt(
-                         sum((a - b) ** 2 for a, b in zip(test_config2, previous))):
-                     initial_config = test_config1
 
-                 print(initial_config[0] / np.pi * 180.0)
-                 print(initial_config[1] / np.pi * 180.0)
-                 print(initial_config[2] / np.pi * 180.0)
-                 joint1 = float(initial_config[0])
-                 joint4 = float(initial_config[1])
-                 joint6 = float(initial_config[2])
-
-                 # Append full 7-joint configuration
-                 full_config = [
-                     joint1,  # joint 1
-                     90.0 * np.pi / 180.0,  # joint 2 fixed at 90 deg
-                     90.0 * np.pi / 180.0,  # joint 3 fixed at 90 deg
-                     joint4,  # joint 4
-                     0.0,  # joint 5 fixed at 0 deg
-                     joint6,  # joint 6
-                     180.0 * (np.pi-1e-3) / 180.0  # joint 7 fixed at 180 deg
-                 ]
-                 results.append(full_config)
-                 #print(f'computed 2R position:{forward_kinematics_2R([theta1, theta2], new_L, base)}')
-                 #print(f'computed 3R position:{forward_kinematics_3R(np.array(initial_config), L)}')
-                 #print(f'true position:{tp}')
-        print("-----------------------")
-        success+=1
-    else:
-        sol = dls(np.array([x, y]).reshape((2, 1)), initial_config)
-        while not all(low <= s <= high for s, (low, high) in zip(sol, CA)) or sol == []:
-            initial_config = [np.random.uniform(low, high) for (low, high) in CA]
-            sol = dls(np.array([x, y]).reshape((2, 1)), initial_config)
-        initial_config=sol
-        joint1 = float(initial_config[0])
-        joint4 = float(initial_config[1])
-        joint6 = float(initial_config[2])
-
-        # Append full 7-joint configuration
-        full_config = [
-            joint1,  # joint 1
-            90.0 * np.pi / 180.0,  # joint 2 fixed at 90 deg
-            90.0 * np.pi / 180.0,  # joint 3 fixed at 90 deg
-            joint4,  # joint 4
-            0.0,  # joint 5 fixed at 0 deg
-            joint6,  # joint 6
-            180.0 * (np.pi-1e-3) / 180.0  # joint 7 fixed at 180 deg
-        ]
-        results.append(full_config)
-        #if not all(low <= initial_config <= high for initial_config, (low, high) in zip(initial_config, CA)):print("At least one angle is out of range")
-        for i in sol:
-            print(i/np.pi*180.0)
-        #print(sol)
-        print("-----------------------")
-        success+=1
-if success == 42: print('task complete!')
-
-DT = 0.5  # seconds between trajectory points
-
-traj = {
-    "joint_names": ["joint_1","joint_2","joint_3","joint_4","joint_5","joint_6","joint_7"],
-    "points": []
-}
-
-for i, q in enumerate(results):
-    sec = int(i * DT)
-    nanosec = int((i * DT - sec) * 1e9)
-    traj["points"].append({
-        "positions": [float(x) for x in q],
-        "time_from_start": {"sec": sec, "nanosec": nanosec}
-    })
-
-# Compact JSON payload
-payload = json.dumps(traj, separators=(",", ":"))
-
-# Compose the final ROS2 command (single-line, paste-ready)
-ros_cmd = f"ros2 topic pub --once /joint_trajectory_controller/joint_trajectory trajectory_msgs/JointTrajectory '{payload}'"
-
-# Save it to a file
-#with open("ros2_trajectory_command.txt", "w") as f:
-#    f.write(ros_cmd)
-
-print(f"✅ Saved ready-to-run ROS2 command to ros2_trajectory_command.txt")
-print("➡  Open it and paste the entire command into your terminal to execute.")
-
-"""
