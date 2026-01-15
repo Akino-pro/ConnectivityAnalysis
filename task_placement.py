@@ -16,10 +16,10 @@ from planar3R_FTW_morphological_estimation_ssm import compute_beta_range
 # 10 times physical exp for 2 trj
 # ----------------------- Global config -----------------------
 N = 256
-#joint_reliabilities = [0.5,0.6,0.7]
-#x_range_sample=3
-joint_reliabilities = [2.0/3.0,2.0/3.0, 2.0/3.0]
-x_range_sample = np.sum([0.4454,0.3143,0.2553])
+joint_reliabilities = [0.5,0.6,0.7]
+x_range_sample=3
+#joint_reliabilities = [2.0/3.0,2.0/3.0, 2.0/3.0]
+#x_range_sample = np.sum([0.4454,0.3143,0.2553])
 n_angles=1440
 N_MAX = 3
 
