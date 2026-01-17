@@ -22,7 +22,7 @@ terminate_threshold = 9.0 / 5.0 * step_size
 ssm_finding_num = 20
 max_ssm = 2
 sample_num = 32
-out_path = "smm_ranges_cache.jsonl"
+out_path = "smm_ranges_only.jsonl"
 
 r1 = 0.5
 r2 = 0.6
@@ -69,21 +69,11 @@ all_reliabilities.append(cr_list[0]+cr_list[2]+cr_list[3]+cr_list[4]+cr_list[8]+
 all_reliabilities.append(np.sum(cr_list)) #1234
 
 
-#print(all_reliabilities)
-# cr_list=[0.5, 0.5, 0.5, 0.7, 0.7,0.7, 1.0]
-indices = sorted_indices(cr_list)
-#print(indices)
+print(all_reliabilities)
+indices = sorted_indices(all_reliabilities)
+print(indices)
 
 
-def forward_kinematics_2R(theta, L, base_point):
-    x1 = L[0] * np.cos(theta[0])
-    y1 = L[0] * np.sin(theta[0])
-
-    x2 = x1 + L[1] * np.cos(theta[0] + theta[1])
-    y2 = y1 + L[1] * np.sin(theta[0] + theta[1])
-    x2 += base_point[0]
-    y2 += base_point[1]
-    return np.array([x2, y2]).T.reshape((2, 1))
 
 
 def forward_kinematics_3R(theta, L):
@@ -1114,11 +1104,280 @@ def ssm_ranges_4r_computation_one_time():
             f_out.write(json.dumps(ranges) + "\n")
             f_out.flush()
 
+def compute_4r_beta_ranges():
+    all_reliabilities.append(0)
+    color_list, sm = normalize_and_map_colors(all_reliabilities)
+    final_wedges = []
+    final_colors = []
+
+    # """ original approach
+    section_length = 4.0 / sample_num
+    x_values = (np.arange(sample_num) + 0.5) * section_length
+    y_values = np.zeros(sample_num)
+    points = np.column_stack((x_values, y_values))
+
+    # """ original approach
+    ring_width = 2.0 * x_values[0]
+
+    fig3, ax2d3 = plt.subplots(figsize=(6, 6))
+
+    # Set limits for the 2D plot
+
+    ax2d3.set_xlim(-np.sum(L), np.sum(L))
+    ax2d3.set_ylim(-np.sum(L), np.sum(L))
+    ax2d3.set_aspect('equal')
+    ax2d3.set_xlabel("x", fontsize=25)
+    ax2d3.set_ylabel("y", fontsize=25)
+    tick_positions = [-3,-2, -1, 0, 1, 2,3]
+    ax2d3.set_xticks(tick_positions)
+    ax2d3.set_yticks(tick_positions)
+    circle = patches.Circle((0, 0), np.sum(L), edgecolor=color_list[-1], facecolor=color_list[-1], linewidth=0,
+                            zorder=0)
+    ax2d3.add_patch(circle)
+
+
+    all_ranges = []
+    with open("smm_ranges_only.jsonl", "r", encoding="utf-8") as f:
+        for line in f:
+            all_ranges.append(json.loads(line))
+
+
+    start = time.perf_counter()
+    for index,pt in enumerate(points):
+        x, y = pt
+
+        print(pt)
+        ranges=all_ranges[index]
+        joint1_ranges=ranges[0]
+        joint2_ranges = ranges[1]
+        joint3_ranges = ranges[2]
+        joint4_ranges = ranges[3]
+        reliable_beta_ranges = [[], [], [], [], [], [], [], [],[], [], [], [], [], [], [], []]
+        for intersection_range in joint1_ranges:
+            beta0_lm = CA[0][0] - intersection_range[1]
+            beta0_um = CA[0][1] - intersection_range[0]
+            # print(beta0_lm)
+            # print(beta0_um)
+            if beta0_um - beta0_lm >= 2 * np.pi:
+                reliable_beta_ranges[0].append([-np.pi, np.pi])
+            elif beta0_lm < -np.pi:
+                reliable_beta_ranges[0].append([beta0_lm + 2 * np.pi, np.pi])
+                reliable_beta_ranges[0].append([-np.pi, beta0_um])
+            elif beta0_um > np.pi:
+                reliable_beta_ranges[0].append([-np.pi, beta0_um - 2 * np.pi])
+                reliable_beta_ranges[0].append([beta0_lm, np.pi])
+            else:
+                reliable_beta_ranges[0].append([beta0_lm, beta0_um])
+
+        ion1 = False
+        min_beta1 = 0
+        max_beta1 = 0
+        for tr in joint1_ranges:
+            if CA[0][0] >= tr[0] and CA[0][1] <= tr[1]:
+                ion1 = True
+                min_beta1 = CA[0][1] - tr[1]
+                max_beta1 = CA[0][0] - tr[0]
+                if (max_beta1 - min_beta1 >= 2 * np.pi) or (tr[0] == -np.pi and tr[1] == np.pi):
+                    max_beta1 = np.pi
+                    min_beta1 = -np.pi
+        ion2 = False
+        has_negative_pi_range = None
+        has_positive_pi_range = None
+        for tr in joint2_ranges:
+            if tr[0] == -np.pi:
+                has_negative_pi_range = tr[1]
+            if tr[1] == np.pi:
+                has_positive_pi_range = tr[0]
+            if CA[1][0] >= tr[0] and CA[1][1] <= tr[1]:
+                ion2 = True
+        if CA[1][0] < -np.pi:
+            if has_negative_pi_range is not None and has_positive_pi_range is not None:
+                if CA[1][1] <= has_negative_pi_range and CA[1][0] + 2 * np.pi >= has_positive_pi_range:
+                    ion2 = True
+        if CA[1][1] > np.pi:
+            if has_negative_pi_range is not None and has_positive_pi_range is not None:
+                if CA[1][1] - 2 * np.pi <= has_negative_pi_range and CA[1][0] >= has_positive_pi_range:
+                    ion2 = True
+        min_beta2 = -np.pi
+        max_beta2 = np.pi
+
+        ion3 = False
+        has_negative_pi_range = None
+        has_positive_pi_range = None
+        for tr in joint3_ranges:
+            if tr[0] == -np.pi:
+                has_negative_pi_range = tr[1]
+            if tr[1] == np.pi:
+                has_positive_pi_range = tr[0]
+            if CA[2][0] >= tr[0] and CA[2][1] <= tr[1]:
+                ion3 = True
+        if CA[2][0] < -np.pi:
+            if has_negative_pi_range is not None and has_positive_pi_range is not None:
+                if CA[2][1] <= has_negative_pi_range and CA[2][0] + 2 * np.pi >= has_positive_pi_range:
+                    ion3 = True
+        if CA[2][1] > np.pi:
+            if has_negative_pi_range is not None and has_positive_pi_range is not None:
+                if CA[2][1] - 2 * np.pi <= has_negative_pi_range and CA[2][0] >= has_positive_pi_range:
+                    ion3 = True
+        min_beta3 = -np.pi
+        max_beta3 = np.pi
+
+        ion4 = False
+        has_negative_pi_range = None
+        has_positive_pi_range = None
+        for tr in joint4_ranges:
+            if tr[0] == -np.pi:
+                has_negative_pi_range = tr[1]
+            if tr[1] == np.pi:
+                has_positive_pi_range = tr[0]
+            if CA[3][0] >= tr[0] and CA[3][1] <= tr[1]:
+                ion4 = True
+        if CA[3][0] < -np.pi:
+            if has_negative_pi_range is not None and has_positive_pi_range is not None:
+                if CA[3][1] <= has_negative_pi_range and CA[3][0] + 2 * np.pi >= has_positive_pi_range:
+                    ion4 = True
+        if CA[3][1] > np.pi:
+            if has_negative_pi_range is not None and has_positive_pi_range is not None:
+                if CA[3][1] - 2 * np.pi <= has_negative_pi_range and CA[3][0] >= has_positive_pi_range:
+                    ion4 = True
+        min_beta4 = -np.pi
+        max_beta4 = np.pi
+
+        for beta0_range in reliable_beta_ranges[0]:
+            min_beta0, max_beta0 = beta0_range[0], beta0_range[1]
+            if ion1:
+                min_beta_f_1 = max(min_beta0, min_beta1)
+                max_beta_f_1 = min(max_beta0, max_beta1)
+                if min_beta_f_1 <= max_beta_f_1:
+                    reliable_beta_ranges[1].append([min_beta_f_1, max_beta_f_1])
+            if ion2:
+                min_beta_f_2 = max(min_beta0, min_beta2)
+                max_beta_f_2 = min(max_beta0, max_beta2)
+                if min_beta_f_2 <= max_beta_f_2:
+                    reliable_beta_ranges[2].append([min_beta_f_2, max_beta_f_2])
+            if ion3:
+                min_beta_f_3 = max(min_beta0, min_beta3)
+                max_beta_f_3 = min(max_beta0, max_beta3)
+                if min_beta_f_3 <= max_beta_f_3:
+                    reliable_beta_ranges[3].append([min_beta_f_3, max_beta_f_3])
+            if ion4:
+                min_beta_f_4 = max(min_beta0, min_beta4)
+                max_beta_f_4 = min(max_beta0, max_beta4)
+                if min_beta_f_4 <= max_beta_f_4:
+                    reliable_beta_ranges[4].append([min_beta_f_4, max_beta_f_4])
+
+            if ion1 and ion2:
+                min_beta_f_12 = max(min_beta0, min_beta1, min_beta2)
+                max_beta_f_12 = min(max_beta0, max_beta1, max_beta2)
+                if min_beta_f_12 <= max_beta_f_12:
+                    reliable_beta_ranges[5].append([min_beta_f_12, max_beta_f_12])
+            if ion1 and ion3:
+                min_beta_f_13 = max(min_beta0, min_beta1, min_beta3)
+                max_beta_f_13 = min(max_beta0, max_beta1, max_beta3)
+                if min_beta_f_13 <= max_beta_f_13:
+                    reliable_beta_ranges[6].append([min_beta_f_13, max_beta_f_13])
+            if ion1 and ion4:
+                min_beta_f_14 = max(min_beta0, min_beta1, min_beta4)
+                max_beta_f_14 = min(max_beta0, max_beta1, max_beta4)
+                if min_beta_f_14 <= max_beta_f_14:
+                    reliable_beta_ranges[7].append([min_beta_f_14, max_beta_f_14])
+            if ion2 and ion3:
+                min_beta_f_23 = max(min_beta0, min_beta2, min_beta3)
+                max_beta_f_23 = min(max_beta0, max_beta2, max_beta3)
+                if min_beta_f_23 <= max_beta_f_23:
+                    reliable_beta_ranges[8].append([min_beta_f_23, max_beta_f_23])
+            if ion2 and ion4:
+                min_beta_f_24 = max(min_beta0, min_beta2, min_beta4)
+                max_beta_f_24 = min(max_beta0, max_beta2, max_beta4)
+                if min_beta_f_24 <= max_beta_f_24:
+                    reliable_beta_ranges[9].append([min_beta_f_24, max_beta_f_24])
+            if ion3 and ion4:
+                min_beta_f_34 = max(min_beta0, min_beta3, min_beta4)
+                max_beta_f_34 = min(max_beta0, max_beta3, max_beta4)
+                if min_beta_f_34 <= max_beta_f_34:
+                    reliable_beta_ranges[10].append([min_beta_f_34, max_beta_f_34])
+
+            if ion1 and ion2 and ion3:
+                min_beta_f_123 = max(min_beta0, min_beta1, min_beta2, min_beta3)
+                max_beta_f_123 = min(max_beta0, max_beta1, max_beta2, max_beta3)
+                if min_beta_f_123 <= max_beta_f_123:
+                    reliable_beta_ranges[11].append([min_beta_f_123, max_beta_f_123])
+            if ion1 and ion2 and ion4:
+                min_beta_f_124 = max(min_beta0, min_beta1, min_beta2, min_beta4)
+                max_beta_f_124 = min(max_beta0, max_beta1, max_beta2, max_beta4)
+                if min_beta_f_124 <= max_beta_f_124:
+                    reliable_beta_ranges[12].append([min_beta_f_124, max_beta_f_124])
+            if ion1 and ion3 and ion4:
+                min_beta_f_134 = max(min_beta0, min_beta1, min_beta3, min_beta4)
+                max_beta_f_134 = min(max_beta0, max_beta1, max_beta3, max_beta4)
+                if min_beta_f_134 <= max_beta_f_134:
+                    reliable_beta_ranges[13].append([min_beta_f_134, max_beta_f_134])
+            if ion2 and ion3 and ion4:
+                min_beta_f_234 = max(min_beta0, min_beta2, min_beta3, min_beta4)
+                max_beta_f_234 = min(max_beta0, max_beta2, max_beta3, max_beta4)
+                if min_beta_f_234 <= max_beta_f_234:
+                    reliable_beta_ranges[14].append([min_beta_f_234, max_beta_f_234])
+
+            if ion1 and ion2 and ion3 and ion4:
+                min_beta_f_ftw = max(min_beta0, min_beta1, min_beta2, min_beta3, min_beta4)
+                max_beta_f_ftw = min(max_beta0, min_beta1, max_beta2, max_beta3, max_beta4)
+                if min_beta_f_ftw <= max_beta_f_ftw:
+                    reliable_beta_ranges[15].append([min_beta_f_ftw, max_beta_f_ftw])
+
+
+        for b_r_index in indices:
+            b_r = reliable_beta_ranges[b_r_index]
+            color = color_list[b_r_index]
+
+            for beta_range in b_r:
+                # """ original approach
+                # Compute angles in degrees (as required by Wedge)
+                theta1 = np.degrees(beta_range[0])  # Start angle (-π)
+                theta2 = np.degrees(beta_range[1])  # End angle (π)
+
+                # Calculate the outer radius for the ring (x + ring_width / 2)
+                outer_radius = x + ring_width / 2.0
+                wedge_2d = Wedge(
+                    center=(0, 0),
+                    r=outer_radius,
+                    theta1=theta1, theta2=theta2,
+                    width=ring_width,
+                    facecolor=color,
+                    edgecolor=color,
+                    alpha=1.0,
+                    zorder=b_r_index * 2
+                )
+
+                ax2d3.add_patch(wedge_2d)  # Add wedge to 2D plot
+    end = time.perf_counter()
+    print(f"Loop took {end - start:.6f} seconds")
+
+    # """ original approach
+    # ax2d3.scatter(-1.875,0.375, s=8, color='black')
+    top_z = 10_000  # anything huge
+
+    ax2d3.axhline(0, color='black', linewidth=2, zorder=top_z)  # y=0
+    ax2d3.axvline(0, color='black', linewidth=2, zorder=top_z)  # x=0
+
+    x_ticks = np.linspace(0, 4, sample_num + 1)
+    tick_length = 0.05
+    for x in x_ticks:
+        ax2d3.plot([x, x], [0, tick_length],
+                   color='black', linewidth=2, zorder=top_z)
+
+
+    plt.show(block=True)
+
+
+
+
+
 if __name__ == "__main__":
     import multiprocessing as mp
-    mp.freeze_support()
-    mp.set_start_method("spawn", force=True)  # optional, but OK to put here
-    ssm_ranges_4r_computation_one_time()
+    #mp.freeze_support()
+    #mp.set_start_method("spawn", force=True)  # optional, but OK to put here
+    #ssm_ranges_4r_computation_one_time()
+    compute_4r_beta_ranges()
 
 
 
