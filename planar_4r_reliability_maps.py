@@ -69,9 +69,9 @@ all_reliabilities.append(cr_list[0]+cr_list[2]+cr_list[3]+cr_list[4]+cr_list[8]+
 all_reliabilities.append(np.sum(cr_list)) #1234
 
 
-print(all_reliabilities)
+#print(all_reliabilities)
 indices = sorted_indices(all_reliabilities)
-print(indices)
+#print(indices)
 
 
 
@@ -1100,7 +1100,7 @@ def ssm_ranges_4r_computation_one_time():
 
             print(point)
 
-            ranges = compute_smm_ranges(x, y, n_workers=1, verbose=True)
+            ranges = compute_smm_ranges(x, y, bounds=CA, n_workers=1, verbose=True)
             f_out.write(json.dumps(ranges) + "\n")
             f_out.flush()
 
@@ -1148,12 +1148,13 @@ def compute_4r_beta_ranges():
 
         print(pt)
         ranges=all_ranges[index]
-        joint1_ranges=ranges[0]
-        joint2_ranges = ranges[1]
-        joint3_ranges = ranges[2]
-        joint4_ranges = ranges[3]
+        intersection_ranges=ranges[0]
+        joint1_ranges=ranges[1]
+        joint2_ranges = ranges[2]
+        joint3_ranges = ranges[3]
+        joint4_ranges = ranges[4]
         reliable_beta_ranges = [[], [], [], [], [], [], [], [],[], [], [], [], [], [], [], []]
-        for intersection_range in joint1_ranges:
+        for intersection_range in intersection_ranges:
             beta0_lm = CA[0][0] - intersection_range[1]
             beta0_um = CA[0][1] - intersection_range[0]
             # print(beta0_lm)
@@ -1376,8 +1377,8 @@ if __name__ == "__main__":
     import multiprocessing as mp
     #mp.freeze_support()
     #mp.set_start_method("spawn", force=True)  # optional, but OK to put here
-    #ssm_ranges_4r_computation_one_time()
-    compute_4r_beta_ranges()
+    ssm_ranges_4r_computation_one_time()
+    #compute_4r_beta_ranges()
 
 
 
