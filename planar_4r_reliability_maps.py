@@ -32,7 +32,8 @@ r4= 0.8
 
 
 L=[1, 1, 1,1]
-CA=[[-180*np.pi/180, 180*np.pi/180], [90*np.pi/180, 143*np.pi/180], [90*np.pi/180, 143*np.pi/180],[-180*np.pi/180, 180*np.pi/180]]
+#CA=[[-180*np.pi/180, 180*np.pi/180], [90*np.pi/180, 143*np.pi/180], [90*np.pi/180, 143*np.pi/180],[-180*np.pi/180, 180*np.pi/180]]
+CA=[[-146*np.pi/180, 146*np.pi/180], [-180*np.pi/180, 10*np.pi/180], [-115*np.pi/180, 132*np.pi/180],[-101*np.pi/180, 108*np.pi/180]]
 
 
 C_dot_A = CA.copy()
@@ -55,7 +56,11 @@ def four_R_reliability_computation(r1, r2, r3,r4):
 cr_list = four_R_reliability_computation(r1, r2, r3,r4)
 #print(cr_list)
 all_reliabilities=[]
-all_reliabilities.extend(cr_list[0:4]) #five base cases
+all_reliabilities.append(cr_list[0])
+all_reliabilities.append(cr_list[0]+cr_list[1])
+all_reliabilities.append(cr_list[0]+cr_list[2])
+all_reliabilities.append(cr_list[0]+cr_list[3])
+all_reliabilities.append(cr_list[0]+cr_list[4])
 all_reliabilities.append(cr_list[0]+cr_list[1]+cr_list[2]+cr_list[5]) #12
 all_reliabilities.append(cr_list[0]+cr_list[1]+cr_list[3]+cr_list[6]) #13
 all_reliabilities.append(cr_list[0]+cr_list[1]+cr_list[4]+cr_list[7]) #14
@@ -1148,6 +1153,7 @@ def compute_4r_beta_ranges():
 
         print(pt)
         ranges=all_ranges[index]
+        if ranges is None: continue
         intersection_ranges=ranges[0]
         joint1_ranges=ranges[1]
         joint2_ranges = ranges[2]
@@ -1321,16 +1327,20 @@ def compute_4r_beta_ranges():
 
             if ion1 and ion2 and ion3 and ion4:
                 min_beta_f_ftw = max(min_beta0, min_beta1, min_beta2, min_beta3, min_beta4)
-                max_beta_f_ftw = min(max_beta0, min_beta1, max_beta2, max_beta3, max_beta4)
+                max_beta_f_ftw = min(max_beta0, max_beta1, max_beta2, max_beta3, max_beta4)
                 if min_beta_f_ftw <= max_beta_f_ftw:
                     reliable_beta_ranges[15].append([min_beta_f_ftw, max_beta_f_ftw])
 
-
+        level=0
         for b_r_index in indices:
+            level+=1
             b_r = reliable_beta_ranges[b_r_index]
             color = color_list[b_r_index]
+            print(f'level: {level}')
+            print(f'reliability: {all_reliabilities[b_r_index]}')
 
             for beta_range in b_r:
+                print(f'range: {beta_range}')
                 # """ original approach
                 # Compute angles in degrees (as required by Wedge)
                 theta1 = np.degrees(beta_range[0])  # Start angle (-π)
@@ -1346,7 +1356,7 @@ def compute_4r_beta_ranges():
                     facecolor=color,
                     edgecolor=color,
                     alpha=1.0,
-                    zorder=b_r_index * 2
+                    zorder=level
                 )
 
                 ax2d3.add_patch(wedge_2d)  # Add wedge to 2D plot
@@ -1377,8 +1387,8 @@ if __name__ == "__main__":
     import multiprocessing as mp
     #mp.freeze_support()
     #mp.set_start_method("spawn", force=True)  # optional, but OK to put here
-    ssm_ranges_4r_computation_one_time()
-    #compute_4r_beta_ranges()
+    #ssm_ranges_4r_computation_one_time()
+    compute_4r_beta_ranges()
 
 
 

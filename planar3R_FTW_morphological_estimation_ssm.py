@@ -35,6 +35,11 @@ r1 =0.5
 r2 =0.6
 r3 =0.7
 
+
+#r1 =2.0/3.0
+#r2 =2.0/3.0
+#r3 =2.0/3.0
+
 # L = [0.4888656043245976, 1.3992499610293656, 1.1118844346460368]
 L = [1, 1, 1]
 # L = [0.009651087409352832, 1.6279980832723875, 1.3623508293182596]
@@ -56,7 +61,7 @@ L = [1, 1, 1]
 #CA=[(-3.0264669089058134, 3.0264669089058134), (-0.7410695983666384, 1.449244014330336), (0.8341121105086309, 1.4826554340139362)]
 #CA=[[-3.0242449852914977, 3.0242449852914977], [-1.0612039220499854, 1.549982425626038], [0.23828851148811148, 1.7447798897165265]]
 #CA=[(-3.141592653589793, 3.141592653589793), (0.640270911503988, 1.57313244849884), (0.4332034212492015, 1.6973158592745994)]
-#CA=[(-18.2074 * np.pi / 180, 18.2074 * np.pi / 180), (-111.3415 * np.pi / 180, 111.3415 * np.pi / 180),(-111.3415 * np.pi / 180, 111.3415 * np.pi / 180)]
+CA=[(-18.2074 * np.pi / 180, 18.2074 * np.pi / 180), (-111.3415 * np.pi / 180, 111.3415 * np.pi / 180),(-111.3415 * np.pi / 180, 111.3415 * np.pi / 180)]
 
 
 #L=[1.6996684721019975, 1e-06, 1.3003305278980026]
@@ -73,8 +78,8 @@ for ca in CA:
 #L=[1.1087656764379812, 0.07607469296918844, 1.8151596305928301]
 
 #dont touch this part!
-L=[0.4454,0.3143,0.2553] #kinova gen 3 planar ,dont delete!
-CA=[(-33.11 * np.pi / 180, 33.11 * np.pi / 180), (-68.11* np.pi / 180, 36.98 * np.pi / 180),(-102.29 * np.pi / 180, 107.04 * np.pi / 180)]
+#L=[0.4454,0.3143,0.2553] #kinova gen 3 planar ,dont delete!
+#CA=[(-33.11 * np.pi / 180, 33.11 * np.pi / 180), (-68.11* np.pi / 180, 36.98 * np.pi / 180),(-102.29 * np.pi / 180, 107.04 * np.pi / 180)]
 
 
 print(np.sum(L))
@@ -897,8 +902,9 @@ def main_function():
         # for b_r_index in range(len(reliable_beta_ranges)):
 
 
-
+        level=0
         for b_r_index in indices:
+            level+=1
             b_r = reliable_beta_ranges[b_r_index]
             # z_level = z_levels[b_r_index]
             z_level = b_r_index * 2
@@ -952,7 +958,7 @@ def main_function():
                     facecolor=color,  # Set face color to match 3D plot
                     edgecolor=color,
                     alpha=1.0,
-                    zorder=b_r_index+1
+                    zorder=level
                 )
     
                 wedge_2d = Wedge(
@@ -963,7 +969,7 @@ def main_function():
                     facecolor=color,
                     edgecolor=color,
                     alpha=1.0,
-                    zorder=b_r_index+1
+                    zorder=level
                 )
                 
                 poly3d = wedge_to_poly3d(wedge, z_level)
@@ -1159,11 +1165,11 @@ def fold_offset(La, Lb, theta_locked):
     # orientation offset of the rigid pair relative to the first link
     return np.arctan2(Lb*np.sin(theta_locked), La + Lb*np.cos(theta_locked))
 
-#main_function()
+main_function()
 
 
 
-
+"""
 # below is code for motion planning, don't delete!
 import json
 results = []
@@ -1390,5 +1396,5 @@ ros_cmd = f"ros2 topic pub --once /joint_trajectory_controller/joint_trajectory 
 
 print(f"✅ Saved ready-to-run ROS2 command to ros2_trajectory_command.txt")
 print("➡  Open it and paste the entire command into your terminal to execute.")
-
+"""
 

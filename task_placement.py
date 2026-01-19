@@ -850,10 +850,10 @@ def path_long():
 
 def path_line():
     # Horizontal straight line from -2 to +2
-    #y = np.linspace(-1.7, 1.7, 300, dtype=np.float32)
-    #x = np.zeros_like(y)
-    y = np.linspace(-0.20, 0.20, 100, dtype=np.float32)
+    y = np.linspace(-1.7, 1.7, 300, dtype=np.float32)
     x = np.zeros_like(y)
+    #y = np.linspace(-0.20, 0.20, 100, dtype=np.float32)
+    #x = np.zeros_like(y)
     return np.column_stack([x, y])
 
 def path_circle(num_pts=300, radius=1.2):
@@ -967,17 +967,17 @@ if __name__ == "__main__":
     print(f"reliability map computation took {end - start:.6f} seconds")
 
     paths = {
-        #"Sin curve":  path_short(),
-        #"Triangle": path_medium(),
+        "Sin curve":  path_short(),
+        "Triangle": path_medium(),
         #"Rectangle":   path_long(),
         "Line": path_line(),
         #"Half-Moon": clip_to_circle(path_half_moon(center=(1.1, -1.0), R=1.1, r=0.6, dx=0.7)),
-        #"Circle": path_circle(),
+        "Circle": path_circle(),
         #"Square": path_square(),
-        #"Rectangle":   path_long(),
+        "Rectangle":   path_long(),
     }
 
-    rand_paths = gen_random_continuous_inputs(n=0, num_ctrl=7, samples_per_seg=32, box=1, max_length=4, seed=None)
+    rand_paths = gen_random_continuous_inputs(n=1, num_ctrl=7, samples_per_seg=32, box=1, max_length=4, seed=None)
     for i, p in enumerate(rand_paths, start=1):
         paths[f"Random curve"] = p
 
