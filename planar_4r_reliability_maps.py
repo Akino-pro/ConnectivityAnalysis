@@ -14,7 +14,7 @@ from shapely.ops import unary_union
 
 from helper_functions import normalize_and_map_colors, sorted_indices, wedge_polygon, plot_exterior_boundary, \
     sample_line, normalize_and_map_greyscale
-from smm_ranges import compute_smm_ranges
+from ssm_ranges import compute_smm_ranges
 
 step_size = 0.01
 # terminate_threshold = step_size / 2.0
@@ -1105,7 +1105,7 @@ def ssm_ranges_4r_computation_one_time():
 
             print(point)
 
-            ranges = compute_smm_ranges(x, y, bounds=CA, n_workers=1, verbose=True)
+            ranges = compute_smm_ranges(x, y, bounds=C_dot_A, n_workers=1, verbose=True)
             f_out.write(json.dumps(ranges) + "\n")
             f_out.flush()
 
@@ -1362,6 +1362,11 @@ def compute_4r_beta_ranges():
                 ax2d3.add_patch(wedge_2d)  # Add wedge to 2D plot
     end = time.perf_counter()
     print(f"Loop took {end - start:.6f} seconds")
+
+    cbar = plt.colorbar(sm, ax=ax2d3)
+    tick_positions = np.arange(0.1, 1.1, 0.1)  # 1.1 ensures 1.0 is included
+    cbar.set_ticks(tick_positions)
+    cbar.set_ticklabels([f"{tick:.1f}" for tick in tick_positions])
 
     # """ original approach
     # ax2d3.scatter(-1.875,0.375, s=8, color='black')

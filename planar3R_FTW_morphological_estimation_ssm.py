@@ -1165,7 +1165,7 @@ def fold_offset(La, Lb, theta_locked):
     # orientation offset of the rigid pair relative to the first link
     return np.arctan2(Lb*np.sin(theta_locked), La + Lb*np.cos(theta_locked))
 
-main_function()
+#main_function()
 
 
 
