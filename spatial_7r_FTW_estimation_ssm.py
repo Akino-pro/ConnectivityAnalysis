@@ -668,9 +668,9 @@ def find_random_ssm(r, x_target, all_ssm_theta_list, robot, C_dot_A, C_dot_A_7):
 
             # return True, [], [[], [], [], []], all_ssm_theta_list, ssm_found
         ssm_theta_list.append(theta)
-    #if num==1402:
-    #    points = np.array(ssm_theta_list)
-    #    np.save("ssm_theta_points2.npy", points)
+    #if num==1792:
+        #points = np.array(ssm_theta_list)
+        #np.save("ssm_theta_points2.npy", points)
 
     #points = np.load("ssm_theta_points.npy")
 
@@ -731,7 +731,7 @@ def find_random_ssm(r, x_target, all_ssm_theta_list, robot, C_dot_A, C_dot_A_7):
 
     """
     all_ssm_theta_list.extend(ssm_theta_list)
-    #print(f'found a new ssm with {num} points.')
+    print(f'found a new ssm with {num} points.')
     ssm_found = True
 
     ip_ranges = find_intersection_points(ssm_theta_list, C_dot_A)
@@ -1454,5 +1454,5 @@ CA6 = [(-137 * np.pi / 180, 137 * np.pi / 180), #expand 30
        (-14 * np.pi / 180, 223 * np.pi / 180)]
 #1,2,4,6t
 """
-ap = ssm_estimation(positional_samples, d, alpha, l, CA)
+#ap = ssm_estimation(positional_samples, d, alpha, l, CA)
 #ap = ssm_estimation(positional_samples, d2, alpha2, l2, CA2)

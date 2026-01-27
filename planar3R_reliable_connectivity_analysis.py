@@ -34,15 +34,18 @@ def reliability_computation(r1, r2, r3):
     conditional_reliability_list = []
     for p in reliability_list:
         conditional_reliability_list.append(
-            (p - r1 * r2 * r3) / (r1 * r2 + r1 * r3 + r2 * r3 - 3 * r1 * r2 * r3))
+            (p / (r1 * r2 + r1 * r3 + r2 * r3 - 2 * r1 * r2 * r3)))
+
+    #conditional_reliability_list.append(r1 * r2 * r3/(r1 * r2 + r1 * r3 + r2 * r3 - 2 * r1 * r2 * r3))
     return conditional_reliability_list
 
 
 cr_list = reliability_computation(r1, r2, r3)
 # cr_list=[math.pow(cr,2) for cr in cr_list]
-#print(cr_list)
+print(cr_list)
 # cr_list=[0.11, 0.11, 0.11, 0.44, 0.44,0.44, 0.44]
 indices = sorted_indices(cr_list)
+cr_list.append(r1*r2*r3/(r1 * r2 + r1 * r3 + r2 * r3 - 2 * r1 * r2 * r3))
 
 cr_list.append(0)
 color_list, sm = normalize_and_map_greyscale(cr_list)
@@ -805,7 +808,7 @@ def planar_3r_reliable_connectivity_analysis(L, CA):
         only44 * k44 * cr_list[4]
     )
 
-"""
+
 #L =  [0.0001,1.49995,1.49995]
 #CA = [(-2.8856310512880317, 2.8856310512880317), (-0.3672802511511213, 1.2181326405622919), (-3.0246087669394037, 1.878588173306368)]
 # L =  [1.4644359570957466, 0.04698977532204848, 1.4885742675822051]
@@ -838,7 +841,7 @@ connectivity_value=planar_3r_reliable_connectivity_analysis(L,CA)
 print(connectivity_value)
 #print(connectivity_value2)
 #print(connectivity_value/connectivity_value2)
-"""
+
 
 
 
