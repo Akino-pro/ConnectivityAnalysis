@@ -42,13 +42,13 @@ def reliability_computation(r1, r2, r3):
 
 cr_list = reliability_computation(r1, r2, r3)
 # cr_list=[math.pow(cr,2) for cr in cr_list]
-print(cr_list)
 # cr_list=[0.11, 0.11, 0.11, 0.44, 0.44,0.44, 0.44]
-indices = sorted_indices(cr_list)
 cr_list.append(r1*r2*r3/(r1 * r2 + r1 * r3 + r2 * r3 - 2 * r1 * r2 * r3))
+print(cr_list)
 
-cr_list.append(0)
-color_list, sm = normalize_and_map_greyscale(cr_list)
+#cr_list.append(0)
+
+#color_list, sm = normalize_and_map_greyscale(cr_list)
 #fault_tolerant_threshold=0.01
 
 
@@ -681,6 +681,7 @@ def planar_3r_reliable_connectivity_analysis(L, CA):
     s = np.sum(L)
 
     # Create 3 figures (do NOT touch figsize=5x5 → needed!)
+    fig00, ax00 = plt.subplots(figsize=(fig_size, fig_size))
     fig11, ax11 = plt.subplots(figsize=(fig_size, fig_size))
     fig22, ax22 = plt.subplots(figsize=(fig_size, fig_size))
     fig33, ax33 = plt.subplots(figsize=(fig_size, fig_size))
@@ -694,7 +695,7 @@ def planar_3r_reliable_connectivity_analysis(L, CA):
         ax.axis('off')
 
     # ============================================
-    area1=area2=area3= area4 = area5= area6=area7= 0.0
+    area0=area1=area2=area3= area4 = area5= area6=area7= 0.0
     # ============================================
 
     # MAIN LOOP
@@ -710,7 +711,7 @@ def planar_3r_reliable_connectivity_analysis(L, CA):
         outer_r = x + ring_width / 2.0
         ring_area = np.pi * (outer_r ** 2 - inner_r ** 2)
 
-        for b_idx in indices:
+        for b_idx in range(8):
             b_r = reliable_beta_ranges[b_idx]
 
             for br in b_r:
@@ -746,9 +747,12 @@ def planar_3r_reliable_connectivity_analysis(L, CA):
                 elif b_idx == 5:
                     ax44.add_patch(w)
                     area6 += ring_area * ((br[1] - br[0]) / (2 * np.pi))
-                else:
+                elif b_idx == 6:
                     area7 += ring_area * ((br[1] - br[0]) / (2 * np.pi))
                     ax100.add_patch(w)
+                else:
+                    area0+= ring_area * ((br[1] - br[0]) / (2 * np.pi))
+                    ax00.add_patch(w)
 
 
 
@@ -766,6 +770,7 @@ def planar_3r_reliable_connectivity_analysis(L, CA):
     # ==================================================
     # CONVERT FIGURES → BINARY IMAGES
     # ==================================================
+    img00 = fig_to_binary(fig00)
     img11 = fig_to_binary(fig11)
     img22 = fig_to_binary(fig22)
     img33 = fig_to_binary(fig33)
@@ -773,6 +778,7 @@ def planar_3r_reliable_connectivity_analysis(L, CA):
     img100 = fig_to_binary(fig100)
 
     # connectivity computation
+    k00 = connectivity_analysis(img00)
     k11 = connectivity_analysis(img11)
     k22 = connectivity_analysis(img22)
     k33 = connectivity_analysis(img33)
@@ -782,19 +788,21 @@ def planar_3r_reliable_connectivity_analysis(L, CA):
 
 
     # cleanup
+    plt.close(fig00)
     plt.close(fig11)
     plt.close(fig22)
     plt.close(fig33)
     plt.close(fig44)
     plt.close(fig100)
 
-    del ax11,ax22,ax33, ax44, ax100
-    del fig11,fig22,fig33, fig44, fig100
+    del ax00,ax11,ax22,ax33, ax44, ax100
+    del fig00,fig11,fig22,fig33, fig44, fig100
     gc.collect()
 
     # area fractions
+    only00=area0-area1-area2-area3+area4+area5+area6-area7
     only22=area3-area5-area6+area7
-    only11 = area1 + area2 - 2 * area4-only22
+    only11 = area1 + area2 - 2*area4-area5+area7-area6+area7
     only33=area4-area7
     only44=area5+area6-2*area7
 
@@ -805,7 +813,7 @@ def planar_3r_reliable_connectivity_analysis(L, CA):
     #return area100+only44*cr_list[3]+only11*cr_list[0]
     return (
         area7 * k100 + only11*k11*cr_list[0]+only22*k22*cr_list[2]+only33*k33*cr_list[3]+
-        only44 * k44 * cr_list[4]
+        only44 * k44 * cr_list[4]+cr_list[-1]*k00*only00
     )
 
 
