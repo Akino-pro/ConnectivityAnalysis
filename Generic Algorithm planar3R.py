@@ -12,7 +12,7 @@ pd.set_option("display.width", 1000)
 # GA Hyperparameters
 # ============================================
 sample_number = 128
-num_generations = 1
+num_generations = 10
 
 elite_fraction = 0.05          # keep top fraction as elites
 blx_alpha = 0.30               # BLX-α crossover parameter
