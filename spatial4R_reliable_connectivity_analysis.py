@@ -11,7 +11,7 @@ from spatialmath import SE3
 
 from helper_functions import normalize_and_map_colors, update_or_add_square, sorted_indices, union_ranges, \
     update_or_add_square_2d, update_beta_bar_multicolor, key3, set_sparse_xyz_labels, draw_cube, set_axes_equal, \
-    draw_sphere, exclusive_areas
+    draw_sphere, exclusive_areas_4
 from spatial3R_ftw_draw import generate_grid_centers, generate_square_grid, draw_rotated_grid, generate_2D_square_grid
 from Three_dimension_connectivity_measure import connectivity_analysis
 from spatial3R_ftw_draw import generate_binary_matrix
@@ -1031,7 +1031,7 @@ def spatial_4r_weighted_sum (grid_sample_num, d, alpha, l, CA):
        #file.write(str(all_reliable_beta_ranges))
 
     volumns16=[]
-    case1_range= case2_range=case3_range= [[] for _ in range(grid_sample_num)]
+    case1_range= case2_range=case3_range=case4_range= [[] for _ in range(grid_sample_num)]
     reliable_connectivity = 0
 
     for index, angle_ranges in enumerate(all_reliable_beta_ranges):
@@ -1058,15 +1058,18 @@ def spatial_4r_weighted_sum (grid_sample_num, d, alpha, l, CA):
         elif index in (10, 11, 12, 13):
             for index2, rng in enumerate(case3_range):
                 case3_range[index2] = union_ranges(rng + angle_ranges[index2])
-        else:
+        elif index==14:
             connected_connectivity = connectivity_analysis(binary_matrix, kernel_size, Lambda)
             reliable_connectivity += shape_area*connected_connectivity
+        else:
+            for index2, rng in enumerate(case4_range):
+                case4_range[index2] = union_ranges(rng + angle_ranges[index2])
 
         #reliable_connectivity += cr_list[index] * general_connectivity
         #print(general_connectivity)
     #print(f' The general reliable connectivity considering top 5 cases is{reliable_connectivity}.')
 
-    exclusive_volumns = exclusive_areas(volumns16)
+    exclusive_volumns = exclusive_areas_4(volumns16)
 
 
 
@@ -1087,9 +1090,13 @@ def spatial_4r_weighted_sum (grid_sample_num, d, alpha, l, CA):
     binary_matrix3, x_edges, y_edges, z_edges = generate_binary_matrix(
         n_x, n_z, x_range, z_range, grid_size, case3_range
     )
+    binary_matrix4, x_edges, y_edges, z_edges = generate_binary_matrix(
+        n_x, n_z, x_range, z_range, grid_size, case4_range
+    )
     connectivity_case1=connectivity_analysis(binary_matrix1,kernel_size, Lambda)
     connectivity_case2 = connectivity_analysis(binary_matrix2, kernel_size, Lambda)
     connectivity_case3 = connectivity_analysis(binary_matrix3, kernel_size, Lambda)
+    connectivity_case4 = connectivity_analysis(binary_matrix4, kernel_size, Lambda)
 
 
 
@@ -1097,7 +1104,7 @@ def spatial_4r_weighted_sum (grid_sample_num, d, alpha, l, CA):
         if index in (0,1,2,3):reliable_connectivity+=cr_list[0]*vol*connectivity_case1
         elif index in (4,5,6,7,8,9):reliable_connectivity+=cr_list[4]*vol*connectivity_case2
         elif index in (10, 11, 12, 13):reliable_connectivity+=cr_list[10]*vol*connectivity_case3
-        else:print("todo")
+        else:reliable_connectivity+=cr_list[-1]*vol*connectivity_case4
 
 
     return reliable_connectivity
@@ -1118,6 +1125,7 @@ l = [0.5, 0.48, 0.76, 0.95]
 ap = spatial_4r_weighted_sum(128, d, alpha, l, CA)
 print(ap)
 """
+
 
 
 # d = [-0.019917995106395026, 0.6118090376463043, 0.05065138908443867, 0.45487466192184756]

@@ -582,7 +582,7 @@ import matplotlib as mpl
 
 
 def normalize_and_map_colors(values, cmap_name='rainbow'):
-   
+
     values = np.array(values)
     cmap = plt.get_cmap(cmap_name)
 
@@ -1334,44 +1334,59 @@ def sample_line(p1, p2, n_between=40):
     return list(zip(x_vals, y_vals))
 
 
-def exclusive_areas(A):
+def exclusive_areas_4(inter: []):
     """
-    Convert non-exclusive intersection areas A1..A15
-    into exclusive areas E1..E15 using inclusion–exclusion.
+    Input (length 16):
+      0..14 : [1,2,3,4,12,13,14,23,24,34,123,124,134,234,1234]
+      15    : universal area U
 
-    Input:
-        A : list or array-like of length 15
-            [A1, A2, ..., A15]
-
-    Output:
-        E : list of length 15
-            [E1, E2, ..., E15]
+    Output (length 16, SAME ORDER):
+      exclusive areas for
+      [1,2,3,4,12,13,14,23,24,34,123,124,134,234,1234,U_only]
     """
-    if len(A) != 15:
-        raise ValueError("Input must have exactly 15 elements (A1..A15)")
+    if len(inter) != 16:
+        raise ValueError("Expected 16 areas")
 
-    A1,A2,A3,A4,A5,A6,A7,A8,A9,A10,A11,A12,A13,A14,A15 = A
-
-    E1  = A1  - A5 - A6 - A7 + A11 + A12 + A13 - A15
-    E2  = A2  - A5 - A8 - A9 + A11 + A12 + A14 - A15
-    E3  = A3  - A6 - A8 - A10 + A11 + A13 + A14 - A15
-    E4  = A4  - A7 - A9 - A10 + A12 + A13 + A14 - A15
-
-    E5  = A5  - A11 - A12 + A15
-    E6  = A6  - A11 - A13 + A15
-    E7  = A7  - A12 - A13 + A15
-    E8  = A8  - A11 - A14 + A15
-    E9  = A9  - A12 - A14 + A15
-    E10 = A10 - A13 - A14 + A15
-
-    E11 = A11 - A15
-    E12 = A12 - A15
-    E13 = A13 - A15
-    E14 = A14 - A15
-    E15 = A15
-
-    return [
-        E1, E2, E3, E4,
-        E5, E6, E7, E8, E9, E10,
-        E11, E12, E13, E14, E15
+    idx_to_mask = [
+        0b0001,  # 1
+        0b0010,  # 2
+        0b0100,  # 3
+        0b1000,  # 4
+        0b0011,  # 12
+        0b0101,  # 13
+        0b1001,  # 14
+        0b0110,  # 23
+        0b1010,  # 24
+        0b1100,  # 34
+        0b0111,  # 123
+        0b1011,  # 124
+        0b1101,  # 134
+        0b1110,  # 234
+        0b1111,  # 1234
     ]
+
+    inter_by_mask = [0.0] * 16
+    inter_by_mask[0] = float(inter[15])  # universe
+    for i, m in enumerate(idx_to_mask):
+        inter_by_mask[m] = float(inter[i])
+
+    excl_by_mask = [0.0] * 16
+    all_mask = 0b1111
+
+    for s in range(16):
+        extra = (~s) & all_mask
+        total = 0.0
+        sub = extra
+        while True:
+            t = s | sub
+            total += (-1.0 if (sub.bit_count() & 1) else 1.0) * inter_by_mask[t]
+            if sub == 0:
+                break
+            sub = (sub - 1) & extra
+        excl_by_mask[s] = total
+
+    result = [excl_by_mask[m] for m in idx_to_mask]
+    result.append(excl_by_mask[0])  # U_only
+
+    return result
+
