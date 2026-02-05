@@ -30,7 +30,6 @@ r4 = 0.9
 
 
 # 1,2,3,4,12,13,14,23,24,34,123,124,134,234,1234
-
 def reliability_computation(r1, r2, r3, r4):
     reliability_list = [r2 * r3 * r4, r1 * r3 * r4, r1 * r2 * r4, r1 * r2 * r3,
                         r1 * r3 * r4 + r2 * r3 * r4 - r1 * r2 * r3 * r4,
@@ -52,12 +51,13 @@ def reliability_computation(r1, r2, r3, r4):
     conditional_reliability_list = []
     for p in reliability_list:
         conditional_reliability_list.append(
-            (p - r1 * r2 * r3 * r4) /
-            (r1 * r2 * r3 + r1 * r2 * r4 + r1 * r3 * r4 + r2 * r3 * r4 - 4 * r1 * r2 * r3 * r4))
+            p /
+            (r1 * r2 * r3 + r1 * r2 * r4 + r1 * r3 * r4 + r2 * r3 * r4 - 3 * r1 * r2 * r3 * r4))
     return conditional_reliability_list
 
 
 cr_list = reliability_computation(r1, r2, r3, r4)
+cr_list.append(r1*r2*r3*r4/(r1 * r2 * r3 + r1 * r2 * r4 + r1 * r3 * r4 + r2 * r3 * r4 - 3 * r1 * r2 * r3 * r4))
 print(cr_list)
 #print(sorted_indices(cr_list))
 
@@ -654,7 +654,7 @@ def compute_beta_range(x, y, z, robot, C_dot_A, CA):
 
 def compute_reliable_beta_range(x, y, z, robot, C_dot_A, CA, all_reliable_beta_ranges):
     # 15 cases
-    reliable_beta_ranges = [[] for _ in range(15)]
+    reliable_beta_ranges = [[] for _ in range(16)]
     target_x = np.array([x, y, z]).T.reshape((3, 1))
     F_list = [False] * 15
     all_theta = []
@@ -817,11 +817,13 @@ def compute_reliable_beta_range(x, y, z, robot, C_dot_A, CA, all_reliable_beta_r
 
     for index in range(len(beta0_ranges)):
         min_beta0, max_beta0 = beta0_ranges[index][0], beta0_ranges[index][1]
+        reliable_beta_ranges[0].append([min_beta0, max_beta0])
         min_beta_f_ftw_v1 = max(min_beta0, -np.pi)
         max_beta_f_ftw_v1 = min(max_beta0, np.pi)
         v1_valid = False
         valid = False
-        if min_beta_f_ftw_v1 <= max_beta_f_ftw_v1: v1_valid = True
+        if min_beta_f_ftw_v1 <= max_beta_f_ftw_v1:
+            v1_valid = True
         min_beta_f_ftw = max(min_beta0, min_beta1, -np.pi)
         max_beta_f_ftw = min(max_beta0, max_beta1, np.pi)
         if min_beta_f_ftw <= max_beta_f_ftw: valid = True
@@ -864,7 +866,7 @@ def compute_reliable_beta_range(x, y, z, robot, C_dot_A, CA, all_reliable_beta_r
             if ion2 and ion3 and ion4:
                 reliable_beta_ranges[13].append([min_beta_f_ftw_v1, max_beta_f_ftw_v1])
                 # reliable_beta_ranges[3].append([min_beta_f_ftw_v1, max_beta_f_ftw_v1])
-    for i in range(15):
+    for i in range(16):
         reliable_beta_ranges[i] = union_ranges(reliable_beta_ranges[i])
         all_reliable_beta_ranges[i].append(reliable_beta_ranges[i])
     # for i in range(5):
@@ -1007,7 +1009,7 @@ def spatial_4r_weighted_sum (grid_sample_num, d, alpha, l, CA):
     grid_centers = generate_grid_centers(n_x, n_z, N, x_range, z_range)
 
 
-    all_reliable_beta_ranges = [[] for _ in range(15)]
+    all_reliable_beta_ranges = [[] for _ in range(16)]
 
     # test_center=[1.5,0,-0.2]
     # all_reliable_beta_ranges = compute_reliable_beta_range(test_center[0],test_center[1],test_center[2], robot, C_dot_A, CA,
@@ -1028,7 +1030,7 @@ def spatial_4r_weighted_sum (grid_sample_num, d, alpha, l, CA):
     #with open("my_list.txt", "w") as file:
        #file.write(str(all_reliable_beta_ranges))
 
-    volumns15=[]
+    volumns16=[]
     case1_range= case2_range=case3_range= [[] for _ in range(grid_sample_num)]
     reliable_connectivity = 0
 
@@ -1045,7 +1047,7 @@ def spatial_4r_weighted_sum (grid_sample_num, d, alpha, l, CA):
 
 
         #connected_connectivity= connectivity_analysis(binary_matrix,kernel_size, Lambda)
-        volumns15.append(shape_area)
+        volumns16.append(shape_area)
 
         if index in (0, 1, 2, 3):
             for index2, rng in enumerate(case1_range):
@@ -1064,12 +1066,16 @@ def spatial_4r_weighted_sum (grid_sample_num, d, alpha, l, CA):
         #print(general_connectivity)
     #print(f' The general reliable connectivity considering top 5 cases is{reliable_connectivity}.')
 
-    exclusive_volumns = exclusive_areas(volumns15)
+    exclusive_volumns = exclusive_areas(volumns16)
 
 
 
     #specific case 0.9 0.9 0.9 0.9
     #[0.25, 0.25, 0.25, 0.25, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.75, 0.75, 0.75, 0.75, 1.0]
+    """
+[0.7692307692307694, 0.7692307692307694, 0.7692307692307694, 0.7692307692307694, 0.8461538461538463, 0.8461538461538463, 0.8461538461538463, 0.8461538461538463, 0.8461538461538463, 0.8461538461538463, 0.9230769230769231, 0.9230769230769231, 0.9230769230769231, 0.9230769230769231, 1.0, 0.6923076923076924]
+
+    """
 
 
     binary_matrix1, x_edges, y_edges, z_edges = generate_binary_matrix(
@@ -1088,9 +1094,10 @@ def spatial_4r_weighted_sum (grid_sample_num, d, alpha, l, CA):
 
 
     for index, vol in enumerate(exclusive_volumns):
-        if index in (0,1,2,3):reliable_connectivity+=0.25*vol*connectivity_case1
-        elif index in (4,5,6,7,8,9):reliable_connectivity+=0.5*vol*connectivity_case2
-        elif index in (10, 11, 12, 13):reliable_connectivity+=0.75*vol*connectivity_case3
+        if index in (0,1,2,3):reliable_connectivity+=cr_list[0]*vol*connectivity_case1
+        elif index in (4,5,6,7,8,9):reliable_connectivity+=cr_list[4]*vol*connectivity_case2
+        elif index in (10, 11, 12, 13):reliable_connectivity+=cr_list[10]*vol*connectivity_case3
+        else:print("todo")
 
 
     return reliable_connectivity
