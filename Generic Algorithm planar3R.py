@@ -19,7 +19,8 @@ blx_alpha = 0.30               # BLX-α crossover parameter
 
 mutation_rate_init = 0.15      # will adapt
 immigrant_fraction = 0.05      # random immigrants fraction
-POPULATION_FILE = "population_saved_planar_3R_global.txt"
+#POPULATION_FILE = "population_saved_planar_3R_global.txt"
+POPULATION_FILE = "population_saved_planar_3R_local.txt"
 
 # ============================================
 # Utilities: hashing individuals (robust uniqueness)
@@ -35,6 +36,7 @@ def indiv_key(link_lengths, joint_limits, nd=6):
 def generate_planar_3r_params():
     raw_lengths = np.random.dirichlet([1, 1, 1])
     link_lengths = (3 * raw_lengths).tolist()
+    link_lengths=[1,1,1] #local optimization metric
 
     joint_limits = []
     for i in range(3):
