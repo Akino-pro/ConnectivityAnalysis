@@ -20,20 +20,20 @@ step_size = 0.01
 terminate_threshold = 9.0 / 5.0 * step_size
 ssm_finding_num = 20
 max_ssm = 2
-sample_num = 16
+sample_num = 32
 #r1 =1/3
 #r2 =1/3
 #r3 =1/3
 #r1 = 0.65
 #r2 = 0.65
 #r3 = 0.9
-#r1 = 0.9
-#r2 = 0.9
-#r3 = 0.5
+r1 = 0.9
+r2 = 0.9
+r3 = 0.5
 
-r1 =0.5
-r2 =0.6
-r3 =0.7
+#r1 =0.5
+#r2 =0.6
+#r3 =0.7
 
 
 #r1 =2.0/3.0
@@ -41,7 +41,7 @@ r3 =0.7
 #r3 =2.0/3.0
 
 # L = [0.4888656043245976, 1.3992499610293656, 1.1118844346460368]
-L = [1, 1, 1]
+#L = [1, 1, 1]
 # L = [0.009651087409352832, 1.6279980832723875, 1.3623508293182596]
 # CA = [(-2.312033825326607, 2.312033825326607), (-2.1986530478299358, 1.3083974620434837),
 #     (-3.119803865520389, 0.38031991292340495)]
@@ -61,12 +61,16 @@ L = [1, 1, 1]
 #CA=[(-3.0264669089058134, 3.0264669089058134), (-0.7410695983666384, 1.449244014330336), (0.8341121105086309, 1.4826554340139362)]
 #CA=[[-3.0242449852914977, 3.0242449852914977], [-1.0612039220499854, 1.549982425626038], [0.23828851148811148, 1.7447798897165265]]
 #CA=[(-3.141592653589793, 3.141592653589793), (0.640270911503988, 1.57313244849884), (0.4332034212492015, 1.6973158592745994)]
-CA=[(-18.2074 * np.pi / 180, 18.2074 * np.pi / 180), (-111.3415 * np.pi / 180, 111.3415 * np.pi / 180),(-111.3415 * np.pi / 180, 111.3415 * np.pi / 180)]
+#CA=[(-18.2074 * np.pi / 180, 18.2074 * np.pi / 180), (-111.3415 * np.pi / 180, 111.3415 * np.pi / 180),(-111.3415 * np.pi / 180, 111.3415 * np.pi / 180)]
 
 
 #L=[1.6996684721019975, 1e-06, 1.3003305278980026]
 #CA=[[-2.8885336215376194, 2.8885336215376194], [-0.6803751046375337, 2.678730519437895], [-1.7814757882052858, 1.35867484275379]]
+L=[1.4730585535218415, 0.0012204516043387876, 1.5257209948738197]
+CA=[[-2.923316619542279, 2.923316619542279], [-2.259564909688944, 2.472685303382877], [-0.19861917260970885, 2.273666386265002]]
 
+L=[1,1,1]
+CA=[[-3.10567309825358, 3.10567309825358], [-2.2823870365553507, 2.723116465162326], [-0.38499180251357207, 0.49457526971108656]]
 """
 for ca in CA:
     print(ca[0]*180.0/np.pi)
@@ -138,6 +142,7 @@ print(cr_list)
 #cr_list=[0.5, 0.5, 0.5, 0.7, 0.7,0.7, 1.0]
 indices = sorted_indices(cr_list)
 cr_list.append(r1*r2*r3/(r1 * r2 + r1 * r3 + r2 * r3 - 2 * r1 * r2 * r3))
+print(cr_list)
 print(indices)
 
 def forward_kinematics_2R(theta, L,base_point):
@@ -850,12 +855,12 @@ def main_function():
     ax2d3.set_yticks(tick_positions)
     circle = patches.Circle((0, 0), np.sum(L), edgecolor=color_list[-1], facecolor=color_list[-1], linewidth=0, zorder=0)
     ax2d3.add_patch(circle)
-    ax2d3.axhline(0, color='black', linewidth=1)  # y=0
-    ax2d3.axvline(0, color='black', linewidth=1)  # x=0
+    ax2d3.axhline(0, color='black', linewidth=1, zorder=1000)  # y=0
+    ax2d3.axvline(0, color='black', linewidth=1, zorder=1000)  # x=0
     x_ticks = np.linspace(0, 3, sample_num + 1)
     tick_length = 0.05
     for x in x_ticks:
-        ax2d3.plot([x, x], [0, tick_length], color='black', linewidth=1)
+        ax2d3.plot([x, x], [0, tick_length], color='black', linewidth=1, zorder=1000)
     
     
     fig = plt.figure()
@@ -1165,7 +1170,7 @@ def fold_offset(La, Lb, theta_locked):
     # orientation offset of the rigid pair relative to the first link
     return np.arctan2(Lb*np.sin(theta_locked), La + Lb*np.cos(theta_locked))
 
-#main_function()
+main_function()
 
 
 

@@ -1390,3 +1390,15 @@ def exclusive_areas_4(inter: []):
 
     return result
 
+def wrap_to_pi(x):
+    return (x + np.pi) % (2*np.pi) - np.pi
+
+def to_pi_intervals(a, b):
+    # returns 1 or 2 intervals in [-pi, pi] with start<=end
+    a = wrap_to_pi(a)
+    b = wrap_to_pi(b)
+    if a <= b:
+        return [[a, b]]
+    else:
+        return [[a, np.pi], [-np.pi, b]]
+

@@ -11,7 +11,7 @@ from spatialmath import SE3
 
 from helper_functions import normalize_and_map_colors, update_or_add_square, sorted_indices, union_ranges, \
     update_or_add_square_2d, update_beta_bar_multicolor, key3, set_sparse_xyz_labels, draw_cube, set_axes_equal, \
-    draw_sphere, exclusive_areas_4
+    draw_sphere, exclusive_areas_4, to_pi_intervals
 from spatial3R_ftw_draw import generate_grid_centers, generate_square_grid, draw_rotated_grid, generate_2D_square_grid
 from Three_dimension_connectivity_measure import connectivity_analysis
 from spatial3R_ftw_draw import generate_binary_matrix
@@ -679,14 +679,8 @@ def compute_reliable_beta_range(x, y, z, robot, C_dot_A, CA, all_reliable_beta_r
             # print(beta0_lm, beta0_um)
             if beta0_um - beta0_lm >= 2 * np.pi:
                 beta0_ranges.append([-np.pi, np.pi])
-            elif beta0_lm < -np.pi:
-                beta0_ranges.append([beta0_lm + 2 * np.pi, np.pi])
-                beta0_ranges.append([-np.pi, beta0_um])
-            elif beta0_um > np.pi:
-                beta0_ranges.append([-np.pi, beta0_um - 2 * np.pi])
-                beta0_ranges.append([beta0_lm, np.pi])
             else:
-                beta0_ranges.append([beta0_lm, beta0_um])
+                beta0_ranges.extend(to_pi_intervals(beta0_lm, beta0_um))
         if ssm_found_tf:  ssm_found += 1; find_count = 0
         for cp_range in cp_ranges[0]:
             if cp_range[0] > -np.inf: theta1_ranges.append(cp_range)
@@ -817,7 +811,7 @@ def compute_reliable_beta_range(x, y, z, robot, C_dot_A, CA, all_reliable_beta_r
 
     for index in range(len(beta0_ranges)):
         min_beta0, max_beta0 = beta0_ranges[index][0], beta0_ranges[index][1]
-        reliable_beta_ranges[0].append([min_beta0, max_beta0])
+        reliable_beta_ranges[-1].append([min_beta0, max_beta0])
         min_beta_f_ftw_v1 = max(min_beta0, -np.pi)
         max_beta_f_ftw_v1 = min(max_beta0, np.pi)
         v1_valid = False
@@ -1031,7 +1025,10 @@ def spatial_4r_weighted_sum (grid_sample_num, d, alpha, l, CA):
        #file.write(str(all_reliable_beta_ranges))
 
     volumns16=[]
-    case1_range= case2_range=case3_range=case4_range= [[] for _ in range(grid_sample_num)]
+    case1_range = [[] for _ in range(grid_sample_num)]
+    case2_range = [[] for _ in range(grid_sample_num)]
+    case3_range = [[] for _ in range(grid_sample_num)]
+    case4_range = [[] for _ in range(grid_sample_num)]
     reliable_connectivity = 0
 
     for index, angle_ranges in enumerate(all_reliable_beta_ranges):
@@ -1122,8 +1119,12 @@ CA = [(-146 * np.pi / 180, 146 * np.pi / 180), (-234 * np.pi / 180, 10 * np.pi /
 alpha = [85 * np.pi / 180, -53 * np.pi / 180, -89 * np.pi / 180, 68 * np.pi / 180]
 d = [-0.29, 0, 0.05, 1]
 l = [0.5, 0.48, 0.76, 0.95]
+start = time.perf_counter()
 ap = spatial_4r_weighted_sum(128, d, alpha, l, CA)
-print(ap)
+end = time.perf_counter()
+
+print(f"Result = {ap}")
+print(f"Elapsed time: {end - start:.2f} seconds")
 """
 
 
