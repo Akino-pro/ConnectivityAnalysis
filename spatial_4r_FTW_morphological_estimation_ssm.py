@@ -1016,10 +1016,10 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     print(max_length)
     x_range = (0, max_length)  # Range for x-axis
     z_range = (-max_length, max_length)  # Range for z-axis
-    """
+    #"""
     grid_size = (64, 64, 64)
     grid_centers = generate_grid_centers(n_x, n_z, N, x_range, z_range)
-    """
+    #"""
 
     """uniform sample
     cells_per_radius = 16 # so cube side length d = R/16
@@ -1057,7 +1057,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     """
 
 
-    #"""random sample
+    """random sample
     N = 17256
 
     def sample_in_sphere(n, r, seed=None):
@@ -1097,7 +1097,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
 
     print("Sampled inside sphere:", N)
     print("Final number of valid points:", grid_centers.shape[0])
-    #"""
+    """
 
 
 
@@ -1112,12 +1112,12 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     indices = sorted_indices(cr_list)
     cr_list.append(r1*r2*r3*r4/(r1 * r2 * r3 + r1 * r2 * r4 + r1 * r3 * r4 + r2 * r3 * r4 - 3 * r1 * r2 * r3 * r4))
     color_list, sm = normalize_and_map_colors(cr_list)
-    #""" uniform and random
+    """ uniform and random
     fig = plt.figure(figsize=(8, 8))
     ax = fig.add_subplot(111, projection='3d')
-    #"""
+    """
 
-    """original
+    #"""original
     fig, ax2 = plt.subplots()
     ax2.set_xlim([0, max_length])
     ax2.set_ylim([-max_length, max_length])
@@ -1126,15 +1126,15 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
 
     plt.ion()
     index_dict = {}
-    original"""
+    #original"""
 
 
 
     start = time.perf_counter()
-    #twod_squares = generate_2D_square_grid(n_x, n_z, x_range, z_range)
+    twod_squares = generate_2D_square_grid(n_x, n_z, x_range, z_range)
     for i, center in tqdm(enumerate(grid_centers), total=len(grid_centers), desc="Processing grid centers"):
         # print(center)
-        #square = twod_squares[i]
+        square = twod_squares[i]
         all_reliable_beta_ranges, F_list = compute_reliable_beta_range(
             center[0], center[1], center[2], robot, C_dot_A, CA, all_reliable_beta_ranges
         )
@@ -1149,9 +1149,9 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
 
         if last_true is not None:
             color = color_list[last_true]
-            #update_or_add_square_2d(ax2, square, color, 1.0, i, index_dict=index_dict) #original
+            update_or_add_square_2d(ax2, square, color, 1.0, i, index_dict=index_dict) #original
             #draw_cube(ax, center, side_length, color)  #uniform
-            draw_sphere(ax, center, side_length, color) #random
+            #draw_sphere(ax, center, side_length, color) #random
 
     end = time.perf_counter()
     print(f"Loop took {end - start:.6f} seconds")
@@ -1161,7 +1161,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     with open("my_list.txt", "w") as file:
         file.write(str(all_reliable_beta_ranges))
 
-    #""" uniform and random
+    """ uniform and random
     R = max_length
     ax.set_xlim(-R, R)
     ax.set_ylim(-R, R)
@@ -1195,12 +1195,12 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     ax.tick_params(axis='z', labelsize=18)
     ax.view_init(elev=35, azim=146, roll=-111)
     plt.show()
-    #"""
+    """
 
 
 
 
-    """original extra beta
+    #"""original extra beta
     fig, ax = plt.subplots(figsize=(12, 4))
 
     sub_indices = [
@@ -1236,7 +1236,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     }
     #original"""
 
-    """original3D
+    #"""original3D
     fig = plt.figure()
     ax4 = fig.add_subplot(111, projection='3d')
 
@@ -1244,21 +1244,21 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     ax4.set_ylim([-3, 3])
     ax4.set_zlim([-3, 3])
     grid_squares = generate_square_grid(n_x, n_z, x_range, z_range)
-    """
+    #"""
 
-    """orignal 3D
+    #"""orignal 3D
     arc_color = color_list[-1]
     for i, square in tqdm(enumerate(grid_squares), desc="Processing Items"):
         for beta_range in all_reliable_beta_ranges[-1][i]:
             # draw_wedge(ax, square, beta_range, arc_color)
             draw_rotated_grid(ax4, square, beta_range, arc_color)
 
-    """
+    #"""
 
     for you in indices:
         ftw_points_count = 0
 
-        """ original 3D
+        #""" original 3D
         arc_color = color_list[you]
 
         #fig = plt.figure()
@@ -1273,7 +1273,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
                 # draw_wedge(ax, square, beta_range, arc_color)
                 draw_rotated_grid(ax4, square, beta_range, arc_color)
 
-        """
+        #"""
         #ax.view_init(elev=30, azim=135)
 
         #ax.set_xlabel('X')
@@ -1341,7 +1341,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
                 #color = color_list[you]
                 ftw_points_count += 1
         """
-        """original
+        #"""original
         for j, i in enumerate(sub_indices):
             pt = grid_centers[i]
             ranges = all_reliable_beta_ranges[you][i]
@@ -1353,7 +1353,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
                 x_index_map=x_index_map,  # built from the same pts
                 ndigits=NDIGITS
             )
-        original"""
+        #original"""
 
         """
         # Set plot labels and show the plot
@@ -1381,7 +1381,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
 
 
 
-    """orignal 3D
+    #"""orignal 3D
     ax4.view_init(elev=35, azim=146, roll=-111)
     R = max_length
     ax4.set_xlim(-R, R)
@@ -1409,7 +1409,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     ax4.tick_params(axis='y', labelsize=18)
     ax4.tick_params(axis='z', labelsize=18)
     plt.show()
-    """
+    #"""
 
 
 
@@ -1425,7 +1425,7 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
     """
 
 
-    """original
+    #"""original
     set_sparse_xyz_labels(ax, sub_grid_centers, max_labels=20, ndigits=2)
     ax.set_xlim(-0.5, len(sub_grid_centers) - 0.5)
     ax.set_facecolor("white")
@@ -1456,11 +1456,12 @@ def ssm_estimation(grid_sample_num, d, alpha, l, CA):
         reliable_connectivity += cr_list[index] * np.sum(binary_matrix)*connected_connectivity
     print(f' The general reliable connectivity considering top 5 cases is{reliable_connectivity}.')
     return reliable_connectivity
-    original"""
+    #original"""
 
 
 CA = [(-146 * np.pi / 180, 146 * np.pi / 180), (-234 * np.pi / 180, 10 * np.pi / 180),
      (-115 * np.pi / 180, 132 * np.pi / 180), (-101 * np.pi / 180, 118 * np.pi / 180)]
+CA= [(-2.7230509924079875, 2.84972212872483), (-2.132810502846054, 2.6970761140212343), (-1.1631868666402352, 2.37425292660108), (-1.5582901644890255, 1.9793610749708577)]
 #CA=[(-1.1462323775013838, 3.0555459324329153), (-1.1618976450230296, 3.141592653589793), (-2.690561890475438, 1.9074680849495245), (-0.5390132397825012, 0.4414181348394396)]
 # CA =  [(-0.34476583954363793, 0.34476583954363793), (-3.8557928335253506, 0.5727802075632915),
 #                   (-2.0120387975312504, 0.8610682582634244), (-1.6048847508602293, 2.1951493670529656)]
