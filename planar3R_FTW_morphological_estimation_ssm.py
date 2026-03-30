@@ -20,8 +20,7 @@ step_size = 0.01
 terminate_threshold = 9.0 / 5.0 * step_size
 ssm_finding_num = 20
 max_ssm = 2
-sample_num = 32
-#r1 =1/3
+sample_num = 128
 #r2 =1/3
 #r3 =1/3
 #r1 = 0.65
@@ -69,8 +68,8 @@ r3 = 0.5
 L=[1.4730585535218415, 0.0012204516043387876, 1.5257209948738197]
 CA=[[-2.923316619542279, 2.923316619542279], [-2.259564909688944, 2.472685303382877], [-0.19861917260970885, 2.273666386265002]]
 
-L=[1,1,1]
-CA=[[-3.10567309825358, 3.10567309825358], [-2.2823870365553507, 2.723116465162326], [-0.38499180251357207, 0.49457526971108656]]
+#L=[1,1,1]
+#CA=[[-3.10567309825358, 3.10567309825358], [-2.2823870365553507, 2.723116465162326], [-0.38499180251357207, 0.49457526971108656]]
 """
 for ca in CA:
     print(ca[0]*180.0/np.pi)
@@ -857,11 +856,12 @@ def main_function():
     ax2d3.add_patch(circle)
     ax2d3.axhline(0, color='black', linewidth=1, zorder=1000)  # y=0
     ax2d3.axvline(0, color='black', linewidth=1, zorder=1000)  # x=0
+    """
     x_ticks = np.linspace(0, 3, sample_num + 1)
     tick_length = 0.05
     for x in x_ticks:
         ax2d3.plot([x, x], [0, tick_length], color='black', linewidth=1, zorder=1000)
-    
+    """
     
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
@@ -912,7 +912,7 @@ def main_function():
             level+=1
             b_r = reliable_beta_ranges[b_r_index]
             # z_level = z_levels[b_r_index]
-            z_level = b_r_index * 2
+            z_level = b_r_index * 2+2
             color = color_list[b_r_index]
 
 
@@ -1039,6 +1039,18 @@ def main_function():
             if b_r_index == len(reliable_beta_ranges) - 1:
                 final_wedges.append(wedge)
                 final_colors.append(color)
+
+            poly3d = wedge_to_poly3d(wedge, 0)
+            # Add the wedge to the plot
+            # ax.add_patch(wedge)
+            ax.add_collection3d(
+                Poly3DCollection(
+                    [poly3d],
+                    facecolor=color,
+                    edgecolor=color,
+                    alpha=1.0
+                )
+            )
         #"""
         """ uniform
         f_to=F_list[-1]
@@ -1136,16 +1148,15 @@ def main_function():
     cbar.set_ticks(tick_positions)
     cbar.set_ticklabels([f"{tick:.1f}" for tick in tick_positions])
     # Define the new labels and corresponding tick positionsq
-    z_tick_labels = [r'$\mathit{F}=\{1\}$', r'$\mathit{F}=\{2\}$', r'$\mathit{F}=\{3\}$',
+    z_tick_labels = [r'$\mathit{F}=\emptyset$', r'$\mathit{F}=\{1\}$', r'$\mathit{F}=\{2\}$', r'$\mathit{F}=\{3\}$',
                      r'$\mathit{F}=\{1,2\}$', r'$\mathit{F}=\{1,3\}$', r'$\mathit{F}=\{2,3\}$', r'$\mathit{F}=\{1,2,3\}$']
     ax.tick_params(axis='z', labelsize=18) 
-    z_tick_positions = [0, 2, 4, 6, 8, 10, 12]  # These match your z_level values
+    z_tick_positions = [0, 2, 4, 6, 8, 10, 12, 14]  # These match your z_level values
     
     # Set the new labels on the Z-axis
     ax.set_zticks(z_tick_positions)
     ax.set_zticklabels(z_tick_labels)
     fig2, ax2d = plt.subplots(figsize=(6, 6))
-    
     for wedge, color in zip(final_wedges, final_colors):
         ax2d.add_patch(wedge)  # Add the stored wedge
         wedge.set_facecolor(color)  # Ensure colors match
