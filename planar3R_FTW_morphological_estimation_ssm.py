@@ -65,11 +65,12 @@ r3 = 0.5
 
 #L=[1.6996684721019975, 1e-06, 1.3003305278980026]
 #CA=[[-2.8885336215376194, 2.8885336215376194], [-0.6803751046375337, 2.678730519437895], [-1.7814757882052858, 1.35867484275379]]
-L=[1.4730585535218415, 0.0012204516043387876, 1.5257209948738197]
-CA=[[-2.923316619542279, 2.923316619542279], [-2.259564909688944, 2.472685303382877], [-0.19861917260970885, 2.273666386265002]]
 
-#L=[1,1,1]
-#CA=[[-3.10567309825358, 3.10567309825358], [-2.2823870365553507, 2.723116465162326], [-0.38499180251357207, 0.49457526971108656]]
+#L=[1.4730585535218415, 0.0012204516043387876, 1.5257209948738197]
+#CA=[[-2.923316619542279, 2.923316619542279], [-2.259564909688944, 2.472685303382877], [-0.19861917260970885, 2.273666386265002]]
+
+L=[1,1,1]
+CA=[[-3.10567309825358, 3.10567309825358], [-2.2823870365553507, 2.723116465162326], [-0.38499180251357207, 0.49457526971108656]]
 """
 for ca in CA:
     print(ca[0]*180.0/np.pi)
@@ -1125,11 +1126,13 @@ def main_function():
     ax.set_xlim(-np.sum(L), np.sum(L))
     ax.set_ylim(-np.sum(L), np.sum(L))
     ax.set_zlim(0, 12)
-    ax.set_xlabel("x")
-    ax.set_ylabel("y")
     tick_positions = [-2, 0, 2]
     ax.set_xticks(tick_positions)
     ax.set_yticks(tick_positions)
+    ax.set_xlabel("x", fontsize=25)
+    ax.set_ylabel("y", fontsize=25)
+    ax.tick_params(axis='x', labelsize=18)  # Increase font size for X-axis ticks
+    ax.tick_params(axis='y', labelsize=18)  # Increase font size for Y-axis ticks
     
     # ax.tick_params(axis='x', labelsize=14)
     # ax.tick_params(axis='y', labelsize=14)
@@ -1147,6 +1150,7 @@ def main_function():
     tick_positions = np.arange(0.1, 1.1, 0.1)  # 1.1 ensures 1.0 is included
     cbar.set_ticks(tick_positions)
     cbar.set_ticklabels([f"{tick:.1f}" for tick in tick_positions])
+    cbar.ax.tick_params(labelsize=14)
     # Define the new labels and corresponding tick positionsq
     z_tick_labels = [r'$\mathit{F}=\emptyset$', r'$\mathit{F}=\{1\}$', r'$\mathit{F}=\{2\}$', r'$\mathit{F}=\{3\}$',
                      r'$\mathit{F}=\{1,2\}$', r'$\mathit{F}=\{1,3\}$', r'$\mathit{F}=\{2,3\}$', r'$\mathit{F}=\{1,2,3\}$']

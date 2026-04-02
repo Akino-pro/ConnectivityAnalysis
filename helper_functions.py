@@ -580,13 +580,39 @@ def track_top_5():
 
 import matplotlib as mpl
 
-
+"""
 def normalize_and_map_colors(values, cmap_name='rainbow'):
 
     values = np.array(values)
     cmap = plt.get_cmap(cmap_name)
 
     # Map directly since values are normalized
+    colors = [cmap(val) for val in values]
+
+    # Create mappable for external colorbar
+    norm = mpl.colors.Normalize(vmin=0, vmax=1)
+    sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+    sm.set_array([])
+
+    return colors, sm
+
+"""
+
+import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+from matplotlib.colors import LinearSegmentedColormap
+
+def normalize_and_map_colors(values):
+    values = np.array(values)
+
+    base_cmap = plt.get_cmap('rainbow')
+
+    # Take the green->yellow->red half of rainbow, then reverse it
+    sampled = base_cmap(np.linspace(0.5, 1.0, 256))[::-1]
+    cmap = LinearSegmentedColormap.from_list('rainbow_red_to_green', sampled)
+
+    # Map directly since values are already normalized
     colors = [cmap(val) for val in values]
 
     # Create mappable for external colorbar
